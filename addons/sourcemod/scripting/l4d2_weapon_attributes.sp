@@ -27,6 +27,51 @@ enum
 	eShowToEveryone
 };
 
+enum L4D2WeaponType {
+	L4D2WeaponType_Unknown = 0,
+	L4D2WeaponType_Pistol,
+	L4D2WeaponType_Magnum,
+	L4D2WeaponType_Rifle,
+	L4D2WeaponType_RifleAk47,
+	L4D2WeaponType_RifleDesert,
+	L4D2WeaponType_RifleM60,
+	L4D2WeaponType_RifleSg552,
+	L4D2WeaponType_HuntingRifle,
+	L4D2WeaponType_SniperAwp,
+	L4D2WeaponType_SniperMilitary,
+	L4D2WeaponType_SniperScout,
+	L4D2WeaponType_SMG,
+	L4D2WeaponType_SMGSilenced,
+	L4D2WeaponType_SMGMp5,
+	L4D2WeaponType_Autoshotgun,
+	L4D2WeaponType_AutoshotgunSpas,
+	L4D2WeaponType_Pumpshotgun,
+	L4D2WeaponType_PumpshotgunChrome,
+	L4D2WeaponType_Molotov,
+	L4D2WeaponType_Pipebomb,
+	L4D2WeaponType_FirstAid,
+	L4D2WeaponType_Pills,
+	L4D2WeaponType_Gascan,
+	L4D2WeaponType_Oxygentank,
+	L4D2WeaponType_Propanetank,
+	L4D2WeaponType_Vomitjar,
+	L4D2WeaponType_Adrenaline,
+	L4D2WeaponType_Chainsaw,
+	L4D2WeaponType_Defibrilator,
+	L4D2WeaponType_GrenadeLauncher,
+	L4D2WeaponType_Melee,
+	L4D2WeaponType_UpgradeFire,
+	L4D2WeaponType_UpgradeExplosive,
+	L4D2WeaponType_BoomerClaw,
+	L4D2WeaponType_ChargerClaw,
+	L4D2WeaponType_HunterClaw,
+	L4D2WeaponType_JockeyClaw,
+	L4D2WeaponType_SmokerClaw,
+	L4D2WeaponType_SpitterClaw,
+	L4D2WeaponType_TankClaw,
+	L4D2WeaponType_Gnome
+}
+
 enum MessageTypeFlag
 {
 	eServerPrint =	(1 << 0),
@@ -131,7 +176,8 @@ static const char sWeaponAttrShortName[PLUGIN_WEAPON_MAX_ATTRS][MAX_ATTRS_NAME_L
 };
 
 ConVar
-	hHideWeaponAttributes = null;
+	hHideWeaponAttributes = null,
+	hShotgunReloadSpeed = null;
 
 bool
 	bTankDamageEnableAttri = false;
@@ -157,6 +203,13 @@ public void OnPluginStart()
 		0 - disable command, 1 - show weapons attribute to admin only. 2 - show weapon attributes to everyone.", \
 		_, true, 0.0, true, 2.0 \
 	);
+
+	hShotgunReloadSpeed = CreateConVar( \
+		"sm_shotgun_reloadspeed", \
+		"1.0", \
+		"Customize shotgun reloadspeed(need weaponHandling plugin)", \
+		_, true, 0.0, true, 4.0 \
+	);
 	
 	hTankDamageAttri = new StringMap();
 	
@@ -168,6 +221,14 @@ public void OnPluginStart()
 	RegServerCmd("sm_weapon_attributes_reset", Cmd_WeaponAttributesReset);
 	
 	RegConsoleCmd("sm_weapon_attributes", Cmd_WeaponAttributes);
+}
+
+forward void WH_OnReloadModifier(int client, int weapon, L4D2WeaponType weapontype, float &speedmodifier);
+public void WH_OnReloadModifier(int client, int weapon, L4D2WeaponType weapontype, float &speedmodifier){
+	if((weapontype == L4D2WeaponType_PumpshotgunChrome || weapontype == L4D2WeaponType_Pumpshotgun)){
+		//PrintToChat(client, "当前喷子装填速度为%f", hShotgunReloadSpeed.FloatValue);
+		speedmodifier = hShotgunReloadSpeed.FloatValue;
+	}
 }
 
 public void OnPluginEnd()

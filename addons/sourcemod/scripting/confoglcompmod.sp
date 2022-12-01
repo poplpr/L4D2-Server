@@ -230,6 +230,7 @@ public void OnPluginStart()
 
 	//Other
 	AddCustomServerTag("confogl");
+	//AddCustomServerTag("hidden");
 }
 
 public void OnPluginEnd()
@@ -261,6 +262,7 @@ public void OnPluginEnd()
 
 	//Other
 	RemoveCustomServerTag("confogl");
+	//RemoveCustomServerTag("hidden");
 }
 
 #if MODULE_MAPINFO || MODULE_REQMATCH || MODULE_SCOREMOD || MODULE_BOSSSPAWNING || MODULE_ITEMTRACKING

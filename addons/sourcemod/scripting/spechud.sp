@@ -224,6 +224,7 @@ public void GameConVarChanged(ConVar convar, const char[] oldValue, const char[]
 public void ServerCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	FillServerNamer();
+	FillReadyConfig();
 }
 
 public void OnAllPluginsLoaded()
@@ -532,7 +533,7 @@ public Action ToggleSpecHudCmd(int client, int args)
 		}
 	}
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Spectator HUD is now %s.", (bSpecHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+	CPrintToChat(client, "<{olive}HUD{default}> 旁观者 HUD 目前是 %s.", (bSpecHudActive[client] ? "{blue}开{default}" : "{red}关{default}"));
 	return Plugin_Handled;
 }
 
@@ -562,7 +563,7 @@ public Action ToggleTankHudCmd(int client, int args)
 		}
 	}
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Tank HUD is now %s.", (bTankHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+	CPrintToChat(client, "<{olive}HUD{default}> Tank HUD 目前是 %s.", (bTankHudActive[client] ? "{blue}开{default}" : "{red}关{default}"));
 
 	return Plugin_Handled;
 }
@@ -602,7 +603,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bSpecHudHintShown[client])
 			{
 				bSpecHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!spechud{default} into chat to toggle the {blue}Spectator HUD{default}.");
+				CPrintToChat(client, "<{olive}HUD{default}> 聊天栏输入 {green}!spechud{default} 来开关 {blue}旁观者 HUD{default}.");
 			}
 		}
 		delete specHud;
@@ -621,7 +622,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bTankHudHintShown[client])
 			{
 				bTankHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!tankhud{default} into chat to toggle the {red}Tank HUD{default}.");
+				CPrintToChat(client, "<{olive}HUD{default}> 聊天栏输入 {green}!tankhud{default} 来开关 {red}Tank HUD{default}.");
 			}
 		}
 	}

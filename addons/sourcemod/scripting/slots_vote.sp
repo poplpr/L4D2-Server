@@ -32,11 +32,6 @@ public void OnPluginStart()
 
 public Action SlotsRequest(int client, int args)
 {
-	if (client == 0)
-	{
-		ReplyToCommand(client, "%T", "NotConsoleVote", LANG_SERVER);
-		return Plugin_Handled;
-	}
 
 	if (args == 1)
 	{
@@ -49,14 +44,24 @@ public Action SlotsRequest(int client, int args)
 		}
 		else
 		{
+			if(client == 0)
+			{
+				//CPrintToChatAll("{blue}[{default}Slots{blue}] {olive}管理员 {default}将服务器位置设为 {blue}%i {default}个", Int);
+				char sName[MAX_NAME_LENGTH];
+				GetClientName(client, sName, sizeof(sName));
+				CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
+				SetConVarInt(FindConVar("sv_maxplayers"), Int);
+				SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
+			}
 			if (GetUserFlagBits(client) & ADMFLAG_GENERIC)
 			{
 				char sName[MAX_NAME_LENGTH];
 				GetClientName(client, sName, sizeof(sName));
 				CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
 				SetConVarInt(FindConVar("sv_maxplayers"), Int);
+				SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
 			}
-			else if (Int < GetConVarInt(FindConVar("survivor_limit")) + GetConVarInt(FindConVar("z_max_player_zombies")))
+			else if (Int < GetConVarInt(FindConVar("survivor_limit")))
 			{
 				CPrintToChat(client, "%t %t", "Tag", "RequiredPlayers");
 			}
@@ -143,6 +148,7 @@ public void SlotVoteResultHandler(Handle vote, int num_votes, int num_clients, c
 				Format(Buffer, sizeof(Buffer), "%T", "LimitingSlots", LANG_SERVER);
 				DisplayBuiltinVotePass(vote, Buffer);
 				SetConVarInt(FindConVar("sv_maxplayers"), Slots);
+				SetConVarInt(FindConVar("sv_visiblemaxplayers"), Slots);
 				return;
 			}
 		}
