@@ -1138,7 +1138,7 @@ public Action Timer_PositionSi(Handle timer)
 	//每1s找一次跑男或者是否所有全被控
 	if(CheckRushManAndAllPinned())
 	{
-		return Plugin_Stop;
+		return Plugin_Continue;
 	}
 	for (int client = 1; client <= MaxClients; client++)
 	{

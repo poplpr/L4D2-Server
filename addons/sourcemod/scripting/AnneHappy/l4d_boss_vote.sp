@@ -70,7 +70,11 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client){
 
 public bool Reachlimit()
 {
-	if(g_iRound < g_hCvarBossVotingLimit.IntValue || (FindConVar("l4d_infected_limit") && GetConVarInt(FindConVar("l4d_infected_limit")) >= 8))
+	if(FindConVar("l4d_infected_limit") && GetConVarInt(FindConVar("l4d_infected_limit")) >= 8)
+	{
+		return true;
+	}
+	if(g_iRound < g_hCvarBossVotingLimit.IntValue)
 	{
 		return false;
 	}
