@@ -4,6 +4,7 @@
 #include <builtinvotes>
 #include <colors>
 #include <sourcemod>
+#include <left4dhooks>
 
 #define L4D2Team_Spectator 1
 
@@ -44,6 +45,12 @@ public Action SlotsRequest(int client, int args)
 		}
 		else
 		{
+			if(Int > numSlots())
+			{
+				if(L4D_LobbyIsReserved())
+					L4D_LobbyUnreserve();
+				SetConVarInt(FindConVar("sv_allow_lobby_connect_only"), 0);
+			}
 			if(client == 0)
 			{
 				//CPrintToChatAll("{blue}[{default}Slots{blue}] {olive}管理员 {default}将服务器位置设为 {blue}%i {default}个", Int);
@@ -159,4 +166,8 @@ public void SlotVoteResultHandler(Handle vote, int num_votes, int num_clients, c
 public void CVarChanged(Handle cvar, char[] oldValue, char[] newValue)
 {
 	MaxSlots = GetConVarInt(hMaxSlots);
+}
+
+stock int numSlots() {
+	return LoadFromAddress(L4D_GetPointer(POINTER_SERVER) + view_as<Address>(L4D_GetServerOS() ? 380 : 384), NumberType_Int32);
 }
