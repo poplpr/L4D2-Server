@@ -58,7 +58,7 @@ public void OnPluginStart()
 	// 骗推设置
 	g_hSpecialJumpAngle = CreateConVar("ai_JockeySpecialJumpAngle", "60", "当目标正在看着 Jockey 并与其处于这个角度之内，Jockey 会尝试骗推", CVAR_FLAG, true, 0.0, true, 180.0);
 	g_hSpecialJumpChance = CreateConVar("ai_JockeySpecialJumpChance", "60", "Jockey 有多少概率执行骗推", CVAR_FLAG, true, 0.0, true, 100.0);
-	g_hActionChance = CreateConVar("ai_jockeyNoActionChance", "20,40,40", "Jockey 执行以下行为的概率（冻结行动 [时间 0 - FREEZE_MAX_TIME 秒随机]，向后跳，高跳）逗号分割", CVAR_FLAG, true, 0.0, true, 100.0);
+	g_hActionChance = CreateConVar("ai_jockeyNoActionChance", "20,20,60", "Jockey 执行以下行为的概率（冻结行动 [时间 0 - FREEZE_MAX_TIME 秒随机]，向后跳，高跳）逗号分割", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hAllowInterControl = CreateConVar("ai_JockeyAllowInterControl", "0", "Jockey 优先找被这些特感控制的生还者，抢控或补控（不想要这个功能可以设置为 0）", CVAR_FLAG);
 	g_hBackVision = CreateConVar("ai_JockeyBackVision", "50", "Jockey 在空中时将会以这个概率向当前视角反方向看", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hJockeyLeapTime =	FindConVar("z_jockey_leap_time");
@@ -190,7 +190,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 						&& actionPercent <= g_iActionArray[ACTION_JUMP_HIGH])
 					{
 						// 高跳
-						float eyeAngles[3] = {0.0}, angle = getRandomFloatInRange(30.0, 50.0);
+						float eyeAngles[3] = {0.0}, angle = getRandomFloatInRange(30.0, 60.0);
 						eyeAngles = angles;
 						eyeAngles[0] = -angle;
 						TeleportEntity(jockey, NULL_VECTOR, eyeAngles, NULL_VECTOR);
