@@ -95,7 +95,7 @@ public OnLibraryRemoved(const String:name[])
     {
         readyUpIsAvailable = false;
     }
-    else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = true; }
+    else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = false; }
 }
 
 public OnLibraryAdded(const String:name[])
@@ -104,7 +104,7 @@ public OnLibraryAdded(const String:name[])
     {
         readyUpIsAvailable = true;
     }
-    else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = false; }
+    else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = true; }
 }
 
 public OnConfigsExecuted()
