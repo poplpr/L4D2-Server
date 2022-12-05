@@ -30,6 +30,7 @@
 #undef REQUIRE_PLUGIN
 #include <veterans>
 #include <updater>
+#include <SteamWorks>
 
 #define IsValidClient(%1)		(1 <= %1 <= MaxClients && IsClientInGame(%1))
 #define IsValidAliveClient(%1)	(1 <= %1 <= MaxClients && IsClientInGame(%1) && IsPlayerAlive(%1))
@@ -53,6 +54,7 @@ ConVar
 	hCvarMotdUrl,
 	hCvarEnableAutoupdate,
 	hCvarEnableInf,
+	hCvarKickFamilyAccount,
 	g_cvSvAllowLobbyCo,
 	hCvarEnableAutoRemoveLobby,
 	hCvarIPUrl;
@@ -62,6 +64,7 @@ public void OnPluginStart()
 {
 	hCvarEnableInf = CreateConVar("join_enable_inf", "1", "是否可以开启加入特感", _, true, 0.0, true, 1.0);
 	hCvarEnableAutoRemoveLobby = CreateConVar("join_enable_autoremovelobby", "0", "大厅满了是否自动删除大厅", _, true, 0.0, true, 1.0);
+	hCvarKickFamilyAccount = CreateConVar("join_enable_kickfamilyaccount", "1", "是否开启踢出家庭共享账户", _, true, 0.0, true, 1.0);
 	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "1", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 3.0);
 	g_cvSvAllowLobbyCo =	FindConVar("sv_allow_lobby_connect_only");
 	hCvarMotdTitle = CreateConVar("sm_cfgmotd_title", "AnneHappy电信服");
@@ -136,6 +139,33 @@ public void OnLibraryRemoved(const char[] name)
 {
     if ( StrEqual(name, "veterans") ) { g_bGroupSystemAvailable = false; }
 	else if (StrEqual(name, "updater")){ g_bUpdateSystemAvailable = false; }
+}
+
+public void SteamWorks_OnValidateClient(int ownerauthid, int authid)
+{
+	if (ownerauthid > 0 && ownerauthid != authid && hCvarKickFamilyAccount.BoolValue)
+	{
+		char SteamID[32];
+		Format(SteamID, 32, "STEAM_1:%d:%d", (authid & 1), (authid >> 1));
+		int client = GetIndexBySteamID(SteamID);
+		if (client != -1)
+		{
+			KickClient(client, "家庭共享账户无法进入本服务器组");
+		}
+	}
+}
+
+int GetIndexBySteamID(const char[] SteamID)
+{
+	char AuthStringToCompareWith[32];
+	for (int i = 1; i <= MaxClients; i++)
+	{ 
+		if (IsClientConnected(i) && GetClientAuthId(i, AuthId_Steam2, AuthStringToCompareWith, sizeof(AuthStringToCompareWith)) && StrEqual(AuthStringToCompareWith, SteamID))
+		{
+			return i;
+		}
+	}
+	return -1;
 }
 
 public Action RestartMap(int client,int args)
