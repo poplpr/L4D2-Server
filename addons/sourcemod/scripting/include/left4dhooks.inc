@@ -58,9 +58,9 @@
 
 
 
-// Natives: 238
-// L4D1 = 30 [left4downtown] + 47 [l4d_direct] + 15 [l4d2addresses] + 50 [silvers - mine!] + 4 [anim] = 140
-// L4D2 = 66 [left4downtown] + 61 [l4d_direct] + 26 [l4d2addresses] + 92 [silvers - mine!] + 4 [anim] = 237
+// Natives: 240
+// L4D1 = 30 [left4downtown] + 47 [l4d_direct] + 15 [l4d2addresses] + 52 [silvers - mine!] + 4 [anim] = 142
+// L4D2 = 66 [left4downtown] + 61 [l4d_direct] + 26 [l4d2addresses] + 94 [silvers - mine!] + 4 [anim] = 239
 
 // Forwards: 168
 // L4D1 = 123;
@@ -137,6 +137,7 @@ public void __pl_l4dh_SetNTVOptional()
 	MarkNativeAsOptional("L4D_GetEntityFromAddress");
 	MarkNativeAsOptional("L4D_ReadMemoryString");
 	MarkNativeAsOptional("L4D_GetServerOS");
+	MarkNativeAsOptional("Left4DHooks_Version");
 	MarkNativeAsOptional("L4D2_GetScriptScope");
 	MarkNativeAsOptional("L4D2_GetVScriptEntity");
 	MarkNativeAsOptional("L4D2_ExecVScriptCode");
@@ -147,6 +148,7 @@ public void __pl_l4dh_SetNTVOptional()
 	MarkNativeAsOptional("L4D_SetHumanSpec");
 	MarkNativeAsOptional("L4D_TakeOverBot");
 	MarkNativeAsOptional("L4D_CanBecomeGhost");
+	MarkNativeAsOptional("L4D_SetBecomeGhostAt");
 	MarkNativeAsOptional("L4D2_AreWanderersAllowed");
 	MarkNativeAsOptional("L4D2_GetCurrentFinaleStage");
 	MarkNativeAsOptional("L4D2_ForceNextStage");
@@ -2799,6 +2801,24 @@ native int L4D_ReadMemoryString(Address addy, char[] buffer, int maxlength);
 native int L4D_GetServerOS();
 
 /**
+ * @brief Returns the Left4DHooks version number. For example version "1.122" is 1122.
+ * @note This will only work from Left4DHooks version 1.122 or newer.
+ *
+ * @remarks Use to verify a newer version is running from a certain version number, where for example a new native or forward was added.
+ * @remarks Each version number will be greater than the previous.
+ * @remarks Example code:
+ * @remarks Put: MarkNativeAsOptional("Left4DHooks_Version") in your plugins "AskPluginLoad2" section.
+ * @remarks Then run this code to determine the version:
+ * @remarks if( GetFeatureStatus(FeatureType_Native, "Left4DHooks_Version") == FeatureStatus_Available && Left4DHooks_Version() >= 1122 )
+ *
+ * @remarks Alternatively, to support all versions, it would be better to use the "left4dhooks_version" convar, retrieve as a float and check.
+ * @remarks For example: FindConVar("left4dhooks_version").FloatValue >= 1.122
+ *
+ * @return	Version number
+ */
+native int Left4DHooks_Version();
+
+/**
 * @brief Returns an entities script scope (HSCRIPT)
 *
 * @param	entity		The entity to retrieve it's script scope
@@ -3330,6 +3350,15 @@ native bool L4D_TakeOverBot(int client);
  * @return			True or false
  */
 native bool L4D_CanBecomeGhost(int client);
+
+/**
+ * @brief Set a dead Special Infected players time until they transition into ghost state. Can be used when the "ghost_spawn_time" event triggers.
+ *
+ * @param client	Client ID to check
+ *
+ * @return			True or false
+ */
+native void L4D_SetBecomeGhostAt(int client, float time);
 
 /**
  * @brief Sets a client as idle, afk - away from keyboard.

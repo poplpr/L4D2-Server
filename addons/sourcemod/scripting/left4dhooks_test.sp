@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION		"1.121"
+#define PLUGIN_VERSION		"1.123"
 
 /*=======================================================================================
 	Plugin Info:
@@ -307,6 +307,19 @@ Action sm_l4dd(int client, int args)
 	PrintToServer("Must test individual sections on their own otherwise you'll receive errors about symbols already defined..");
 
 
+
+
+
+	// L4D_SetBecomeGhostAt(client, GetGameTime() + 15.0); // Working
+
+
+
+	/*
+	if( GetFeatureStatus(FeatureType_Native, "Left4DHooks_Version") == FeatureStatus_Available )
+		PrintToServer("Left4DHooks_Version = %d", Left4DHooks_Version());
+	else
+		PrintToServer("Left4DHooks_Version = Unable to determine, could break down version cvar instead.", Left4DHooks_Version());
+	*/
 
 
 
@@ -945,7 +958,6 @@ Action sm_l4dd(int client, int args)
 
 	// WORKS
 	PrintToServer("L4D_IsFinaleEscapeInProgress %d",				L4D_IsFinaleEscapeInProgress());
-	PrintToChatAll("L4D_IsFinaleEscapeInProgress %d",				L4D_IsFinaleEscapeInProgress());
 	// */
 
 
@@ -1964,7 +1976,7 @@ void GetGroundAngles(float vOrigin[3])
 	if( TR_DidHit(trace) )
 	{
 		TR_GetEndPosition(vOrigin, trace); // retrieve our trace endpoint
-		PrintToChatAll("trace B (%0.0f %0.0f %0.0f)", vOrigin[0], vOrigin[1], vOrigin[2]);
+		PrintToChatAll("Trace (%0.0f %0.0f %0.0f)", vOrigin[0], vOrigin[1], vOrigin[2]);
 	}
 
 	delete trace;
@@ -3839,7 +3851,7 @@ public Action L4D2_CInsectSwarm_CanHarm(int acid, int spitter, int entity)
 		if( called == 0 ) g_iForwards++;
 		called++;
 
-		ForwardCalled("\"L4D2_CInsectSwarm_CanHarm\" %d %N > Acid: %d > Ent: %d", spitter, spitter != -1 ? spitter : 0, acid, entity);
+		ForwardCalled("\"L4D2_CInsectSwarm_CanHarm\" %d %N > Acid: %d > Ent: %d", spitter, spitter < 1 ? 0 : spitter, acid, entity);
 	}
 
 	// WORKS
@@ -3856,7 +3868,7 @@ public void L4D2_CInsectSwarm_CanHarm_Post(int acid, int spitter, int entity)
 		if( called == 0 ) g_iForwards++;
 		called++;
 
-		ForwardCalled("\"L4D2_CInsectSwarm_CanHarm_Post\" %d %N > Acid: %d > Ent: %d", spitter, spitter, acid, entity);
+		ForwardCalled("\"L4D2_CInsectSwarm_CanHarm_Post\" %d %N > Acid: %d > Ent: %d", spitter, spitter < 1 ? 0 : spitter, acid, entity);
 	}
 }
 
