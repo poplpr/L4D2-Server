@@ -184,10 +184,10 @@ void printinfo(int client = 0, bool All = true){
 	if(FindConVar("ReturnBlood") && GetConVarInt(FindConVar("ReturnBlood")) > 0)
 		Format(buffer2, sizeof(buffer2), "%s \x03回血\x05[\x04开启\x05]", buffer2);
 	if(FindConVar("ai_TankConsume") && GetConVarInt(FindConVar("ai_TankConsume")) > 0)
-		Format(buffer2, sizeof(buffer2), "%s \x03坦克消耗\x05[\x04开启\x05]");
+		Format(buffer2, sizeof(buffer2), "%s \x03坦克消耗\x05[\x04开启\x05]", buffer2);
 	else if(FindConVar("ai_TankSneakTime") && GetConVarFloat(FindConVar("ai_TankSneakTime")) > 0.0)
 	{
-		Format(buffer2, sizeof(buffer2), "%s \x03狡猾坦克\x05[\x04开启\x05]");
+		Format(buffer2, sizeof(buffer2), "%s \x03狡猾坦克\x05[\x04开启\x05]", buffer2);
 	}
 	if(All){
 		PrintToChatAll(buffer);

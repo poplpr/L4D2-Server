@@ -25,6 +25,13 @@
 					"verify"	"\x0F\x85"
 					"patch"		"\x90\x90\x90\x90\x90\x90"
 				}
+
+				"windows"
+				{
+					"offset"	"1DFh"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
 			}
 
 			"SwapTeams::Patch2"
@@ -36,6 +43,13 @@
 					"offset"	"1Ah"
 					"verify"	"\x75"
 					"patch"		"\x90\x90"
+				}
+
+				"windows"
+				{
+					"offset"	"10h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
 				}
 			}
 
@@ -49,17 +63,30 @@
 					"verify"	"\x75"
 					"patch"		"\x90\x90"
 				}
+
+				"windows"
+				{
+					"offset"	"11h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
 			}
 		}
 
 		"Offsets"
 		{
+			/**
+			* 搜索字符串 "#L4D_Scenario_Restart"
+			**/
 			/* CDirector->m_bIsFirstRoundFinished (CDirector::OnEndScenario) */
 			"m_bIsFirstRoundFinished"
 			{
 				"linux"		"1061"
 			}
 
+			/**
+			* 搜索字符串 "#L4D_Scenario_Restart"
+			**/
 			/* CDirector->m_bIsSecondRoundFinished (CDirector::OnEndScenario) */
 			"m_bIsSecondRoundFinished"
 			{
@@ -83,6 +110,8 @@
 			{
 				"library"	"server"
 				"linux"		"@_ZN19CDirectorVersusMode24RestartVersusLevelOnVoteEv"
+				"windows"	"\xC6\x41\x18\x00"
+				/* C6 41 18 00 */
 			}
 
 			/* CTerrorGameRules::CleanUpMap(void)::CTerrorMapEntityFilter::ShouldCreateEntity(int, char *) */
@@ -90,6 +119,8 @@
 			{
 				"library"	"server"
 				"linux"		"@_ZZN16CTerrorGameRules10CleanUpMapEvEN22CTerrorMapEntityFilter18ShouldCreateEntityEPKc"
+				"windows"	"\x55\x8B\xEC\x56\x57\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x7D\x08\x84\xC0\x74\x2A\xA1\x2A\x2A\x2A\x2A"
+				/* 55 8B EC 56 57 8B F1 E8 ? ? ? ? 8B 7D 08 84 C0 74 ? A1 ? ? ? ? */
 			}
 
 			/* CDirectorVersusMode::RestartVsMode(CDirectorVersusMode *__hidden this) */
@@ -97,6 +128,8 @@
 			{
 				"library"	"server"
 				"linux"		"@_ZN19CDirectorVersusMode13RestartVsModeEv"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x14\x57\x8B\xF9\x80\x7F\x06\x00
+				/* 55 8B EC 83 EC 14 57 8B F9 80 7F 06 00 */
 			}
 		}
 	}

@@ -5,25 +5,25 @@
 #include <left4dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_NAME					"Versus Coop Mode"
-#define PLUGIN_AUTHOR				"sorallll"
-#define PLUGIN_DESCRIPTION			""
-#define PLUGIN_VERSION				"1.0.1"
-#define PLUGIN_URL					""
+#define PLUGIN_NAME						"Versus Coop Mode"
+#define PLUGIN_AUTHOR					"sorallll"
+#define PLUGIN_DESCRIPTION				""
+#define PLUGIN_VERSION					"1.0.3"
+#define PLUGIN_URL						""
 
-#define GAMEDATA					"versus_coop_mode"
+#define GAMEDATA						"versus_coop_mode"
 
-#define OFFSET_FIRSTROUNDFINISHED	"m_bIsFirstRoundFinished"
-#define OFFSET_SECONDROUNDFINISHED	"m_bIsSecondRoundFinished"
+#define OFFSET_ISFIRSTROUNDFINISHED		"m_bIsFirstRoundFinished"
+#define OFFSET_ISSECONDROUNDFINISHED	"m_bIsSecondRoundFinished"
 
-#define PATCH_SWAPTEAMS_PATCH1		"SwapTeams::Patch1"
-#define PATCH_SWAPTEAMS_PATCH2		"SwapTeams::Patch2"
-#define PATCH_CLEANUPMAP_PATCH		"CleanUpMap::ShouldCreateEntity::Patch"
+#define PATCH_SWAPTEAMS_PATCH1			"SwapTeams::Patch1"
+#define PATCH_SWAPTEAMS_PATCH2			"SwapTeams::Patch2"
+#define PATCH_CLEANUPMAP_PATCH			"CleanUpMap::ShouldCreateEntity::Patch"
 
-#define DETOUR_RESTARTVSMODE		"DD::CDirectorVersusMode::RestartVsMode"
+#define DETOUR_RESTARTVSMODE			"DD::CDirectorVersusMode::RestartVsMode"
 
 bool
-	g_bTransition;
+	g_bTransitionFired;
 
 int
 	m_bIsFirstRoundFinished,
@@ -41,7 +41,8 @@ public void OnPluginStart() {
 	InitGameData();
 	CreateConVar("versus_coop_mode_version", PLUGIN_VERSION, "Versus Coop Mode plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	HookUserMessage(GetUserMessageId("VGUIMenu"), umVGUIMenu, true);
-	HookEvent("map_transition", Event_MapTransition, EventHookMode_PostNoCopy);
+	HookEvent("round_start",	Event_RoundStart,		EventHookMode_PostNoCopy);
+	HookEvent("map_transition", Event_MapTransition,	EventHookMode_Pre);
 }
 
 void InitGameData() {
@@ -62,33 +63,29 @@ void InitGameData() {
 }
 
 void GetOffsets(GameData hGameData = null) {
-	m_bIsFirstRoundFinished = hGameData.GetOffset(OFFSET_FIRSTROUNDFINISHED);
-	if (m_bIsFirstRoundFinished == -1)
-		SetFailState("Failed to find offset: \"%s\"", OFFSET_FIRSTROUNDFINISHED);
+	Offset(hGameData, OFFSET_ISFIRSTROUNDFINISHED, m_bIsFirstRoundFinished);
+	Offset(hGameData, OFFSET_ISSECONDROUNDFINISHED, m_bIsSecondRoundFinished);
+}
 
-	m_bIsSecondRoundFinished = hGameData.GetOffset(OFFSET_SECONDROUNDFINISHED);
-	if (m_bIsSecondRoundFinished == -1)
-		SetFailState("Failed to find offset: \"%s\"", OFFSET_SECONDROUNDFINISHED);
+void Offset(GameData hGameData = null, const char[] name, int &offset) {
+	offset = hGameData.GetOffset(name);
+	if (offset == -1)
+		SetFailState("Failed to find offset: \"%s\"", name);
 }
 
 void InitPatchs(GameData hGameData = null) {
-	MemoryPatch patch = MemoryPatch.CreateFromConf(hGameData, PATCH_SWAPTEAMS_PATCH1);
-	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_SWAPTEAMS_PATCH1);
-	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_SWAPTEAMS_PATCH1);
+	MemoryPatch patch;
+	Patch(hGameData, patch, PATCH_SWAPTEAMS_PATCH1);
+	Patch(hGameData, patch, PATCH_SWAPTEAMS_PATCH2);
+	Patch(hGameData, patch, PATCH_CLEANUPMAP_PATCH);
+}
 
-	patch = MemoryPatch.CreateFromConf(hGameData, PATCH_SWAPTEAMS_PATCH2);
+void Patch(GameData hGameData = null, MemoryPatch &patch, const char[] name) {
+	patch = MemoryPatch.CreateFromConf(hGameData, name);
 	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_SWAPTEAMS_PATCH2);
+		SetFailState("Failed to verify patch: \"%s\"", name);
 	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_SWAPTEAMS_PATCH2);
-
-	patch = MemoryPatch.CreateFromConf(hGameData, PATCH_CLEANUPMAP_PATCH);
-	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_CLEANUPMAP_PATCH);
-	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_CLEANUPMAP_PATCH);
+		PrintToServer("[%s] Enabled patch: \"%s\"", PLUGIN_NAME, name);
 }
 
 void SetupDetours(GameData hGameData = null) {
@@ -104,29 +101,47 @@ void SetupDetours(GameData hGameData = null) {
 }
 
 MRESReturn DD_CDirectorVersusMode_RestartVsMode_Pre(Address pThis, DHookReturn hReturn) {
-	StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(m_bIsFirstRoundFinished), g_bTransition ? 1 : 0, NumberType_Int32);
+	StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(m_bIsFirstRoundFinished), g_bTransitionFired ? 1 : 0, NumberType_Int32);
 	return MRES_Ignored;
 }
 
 MRESReturn DD_CDirectorVersusMode_RestartVsMode_Post(Address pThis, DHookReturn hReturn) {
-	if (!g_bTransition) {
+	if (!g_bTransitionFired) {
 		StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(m_bIsFirstRoundFinished), 0, NumberType_Int32);
 		StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(m_bIsSecondRoundFinished), 0, NumberType_Int32);
 	}
 
-	g_bTransition = false;
+	g_bTransitionFired = false;
 	return MRES_Ignored;
 }
 
 Action umVGUIMenu(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init) {
-	static char buffer[254];
-	msg.ReadString(buffer, sizeof buffer);
+	static char buffer[26];
+	msg.ReadString(buffer, sizeof buffer, true);
 	if (strcmp(buffer, "fullscreen_vs_scoreboard") == 0)
 		return Plugin_Handled;
 
 	return Plugin_Continue;
 }
 
-void Event_MapTransition(Event event, const char[] name, bool dontBroadcast) {
-	g_bTransition = true;
+void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
+	g_bTransitionFired = false;
+}
+
+Action Event_MapTransition(Event event, const char[] name, bool dontBroadcast) {
+	if (!L4D_IsVersusMode())
+		return Plugin_Continue;
+
+	if (!OnChangelevelStart()) {
+		g_bTransitionFired = false;
+		return Plugin_Handled;
+	}
+
+	g_bTransitionFired = true;
+	return Plugin_Continue;
+}
+
+/* ZombieManager::OnChangelevelStart(ZombieManager *__hidden this) */
+bool OnChangelevelStart() {
+	return !LoadFromAddress(L4D_GetPointer(POINTER_ZOMBIEMANAGER) + view_as<Address>(4), NumberType_Int32);
 }
