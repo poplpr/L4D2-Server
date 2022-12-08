@@ -7,6 +7,8 @@
 #include <colors>
 #include <left4dhooks>
 #include <treeutil>
+#undef REQUIRE_PLUGIN
+#include <infected_control>
 
 #define CVAR_FLAG FCVAR_NOTIFY
 #define NAV_MESH_HEIGHT 20.0								// 有效 Nav 位置高度
@@ -99,7 +101,7 @@ stock void ConsumePosInit(int client, bool function_pos = true, bool ray_pos = t
 // ConVars
 ConVar g_hAllowBhop, g_hBhopSpeed, g_hAirAngleRestrict,	g_hTankStopDistance,														// 控制坦克连跳，防止跳过头
 g_hAllowThrow, g_hAllowThrowRange,																				// 控制坦克是否可以扔石头
-g_hAllowConsume, g_hConsumeInfSub, g_hConsumeHealth, g_hRayRaidus, g_hConsumeDist, g_hFindNewPosDist,
+g_hAllowConsume, g_hConsumeInfSub, g_hConsumeHealth, g_hRayRaidus, g_hConsumeDist, g_hFindNewPosDist, g_hSneakTank,
 g_hConsumePosRaidus, g_hForceAttackDist, g_hForceAttackProgress, g_hVomitAttackNum, g_hConsumeIncap,
 g_hConsumeRockInterval,																							// 控制坦克消耗
 g_hAllowTreeDetect, g_hAntiTreeMethod, g_hTargetChoose,															// 控制坦克目标选择
@@ -112,6 +114,8 @@ highest_health_target = -1, lowest_health_target = -1;
 Handle hPosCheckTimer[MAXPLAYERS + 1] = { null };
 // List
 ArrayList ladderList = null;
+//bool
+bool g_bSISystem = false;
 
 public void OnPluginStart()
 {
@@ -121,6 +125,7 @@ public void OnPluginStart()
 	g_hTankStopDistance = CreateConVar("ai_Tank_StopDistance", "135", "Tank在距离目标多远位置停下连跳", FCVAR_NOTIFY, true, 0.0);
 	// 消耗相关
 	g_hAllowConsume = CreateConVar("ai_TankConsume", "0", "是否开启坦克消耗", CVAR_FLAG, true, 0.0, true, 1.0);
+	g_hSneakTank = CreateConVar("ai_TankSneakTime", "0", "tank会消耗到下一波生成时间小于ai_TankSneakTime,0为关闭，消耗开启的时候不启用", CVAR_FLAG, true, 0.0, true, 28.0);
 	g_hConsumeInfSub = CreateConVar("ai_TankConsumeInfSub", "1", "当前特感少于等于特感上限减去这个值的时，坦克可以消耗", CVAR_FLAG, true, 0.0);
 	g_hRayRaidus = CreateConVar("ai_TankConsumeRayRaidus", "1800", "射线找消耗位的范围，从坦克当前位置开始计算", CVAR_FLAG, true, 0.0);
 	g_hConsumeDist = CreateConVar("ai_TankConsumeDistance", "1200", "射线找到的消耗位需要离生还者这么远", CVAR_FLAG, true, 0.0);
@@ -160,6 +165,18 @@ public void OnPluginStart()
 	#if(DEBUG_ALL)
 		RegAdminCmd("sm_checkladder", CalculateLadderNum, ADMFLAG_ROOT, "测试当前地图有多少个梯子");
 	#endif
+}
+
+public void OnAllPluginsLoaded(){
+	g_bSISystem = LibraryExists("infected_control");
+}
+public void OnLibraryAdded(const char[] name)
+{
+    if ( StrEqual(name, "infected_control") ) { g_bSISystem = true; }
+}
+public void OnLibraryRemoved(const char[] name)
+{
+    if ( StrEqual(name, "infected_control") ) { g_bSISystem = false; }
 }
 
 #if(DEBUG_ALL)
@@ -528,6 +545,7 @@ public void evt_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 		eTankStructure[client].struct_Init();
 		eTankStructure[client].setTankStopDistance(GetConVarFloat(g_hTankStopDistance));
 		CreateTimer(1.0, Timer_SpawnCheckConsume, client, TIMER_REPEAT);
+		CreateTimer(1.0, Timer_SneakCheck, client, TIMER_REPEAT);
 		CreateTimer(2.0, checkLadderAroundHandler, client, TIMER_REPEAT);
 		// 创建坦克位置检测时钟，如果坦克在有目标前就卡住，则不会检测，所以在刷出来的时候就需要创建
 		if (!eTankStructure[client].bHasCreatePosTimer)
@@ -537,6 +555,38 @@ public void evt_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 }
+
+public Action Timer_SneakCheck(Handle timer, int client)
+{
+	if (IsAiTank(client) && g_hSneakTank.FloatValue > 0.0 && !g_hAllowConsume.BoolValue && g_bSISystem)
+	{
+		#if (DEBUG_ALL)
+			PrintToConsoleAll("[Ai-Tank]：SneakTank开启，Tank将在特感刷新前%f秒消耗， 当前特感生成时间为%f秒后", g_hSneakTank.FloatValue, GetNextSpawnTime());
+		#endif
+		if(GetNextSpawnTime() < g_hSneakTank.FloatValue)
+		{
+			eTankStructure[client].bCanConsume = false;
+			throw_min_range = 250;
+			throw_max_range = 500;
+			#if (DEBUG_ALL)
+				PrintToConsoleAll("[Ai-Tank]：SneakTank关闭，已到tank压制时间，关闭消耗，最小扔石头距离改为250，最大改为500");
+			#endif
+			return Plugin_Stop;
+		}
+		else if(eTankStructure[client].bCanConsume != true || throw_min_range != 400 || throw_max_range != 2000)
+		{
+			eTankStructure[client].bCanConsume = true;
+			throw_min_range = 400;
+			throw_max_range = 2000;
+			#if (DEBUG_ALL)
+				PrintToConsoleAll("[Ai-Tank]：SneakTank开启，未到tank压制时间，开启消耗，最小扔石头距离改为400，最大改为2000");
+			#endif
+			return Plugin_Continue;
+		}
+	}
+	return Plugin_Stop;
+}
+
 public Action Timer_SpawnCheckConsume(Handle timer, int client)
 {
 	if (IsAiTank(client))

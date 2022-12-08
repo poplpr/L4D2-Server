@@ -457,6 +457,14 @@
 		{
 			"message" "关闭Tank连跳"
 		}
+		"sm_cvar ai_TankSneakTime 6.0"
+		{
+			"message" "开启狡猾Tank（特感生成6s前才压制，）"
+		}
+		"sm_cvar ai_TankSneakTime 0.0"
+		{
+			"message" "关闭狡猾Tank[22-12版本起有效]"
+		}
 		"exec vote/Consume_on.cfg"
 		{
 			"message" "开启消耗克[22-7版本起有效]"

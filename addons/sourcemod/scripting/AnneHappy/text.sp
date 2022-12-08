@@ -177,15 +177,18 @@ void printinfo(int client = 0, bool All = true){
 	Format(buffer, sizeof(buffer), "%s \x03特感\x05[\x04%i特%i秒\x05] \x03电信服\x05[\x04%s\x05]", buffer, CommonLimit, CommonTime, PLUGIN_VERSION);
 	int max_dist = GetConVarInt(FindConVar("inf_SpawnDistanceMin"));
 	Format(buffer2, sizeof(buffer2), "\x03特感最近生成距离\x05[\x04%d\x05]", max_dist);
-	if(FindConVar("inf_TeleportCheckTime") && FindConVar("inf_TeleportDistance")){
+	if(FindConVar("inf_TeleportCheckTime")){
 		int Teleport_CheckTime = GetConVarInt(FindConVar("inf_TeleportCheckTime"));
-		int Teleport_distance = GetConVarInt(FindConVar("inf_TeleportDistance"));
-		Format(buffer2, sizeof(buffer2), "%s \x03特感传送条件\x05[\x04%d单位%d秒\x05]", buffer2, Teleport_distance, Teleport_CheckTime);
+		Format(buffer2, sizeof(buffer2), "%s \x03特感传送条件\x05[\x04%d秒不可见\x05]", buffer2, Teleport_CheckTime);
 	}
-	if(FindConVar("ReturnBlood") && GetConVarInt(FindConVar("ReturnBlood"))>0)
+	if(FindConVar("ReturnBlood") && GetConVarInt(FindConVar("ReturnBlood")) > 0)
 		Format(buffer2, sizeof(buffer2), "%s \x03回血\x05[\x04开启\x05]", buffer2);
-	if(FindConVar("ai_TankConsume") && GetConVarInt(FindConVar("ai_TankConsume"))>0)
+	if(FindConVar("ai_TankConsume") && GetConVarInt(FindConVar("ai_TankConsume")) > 0)
 		Format(buffer2, sizeof(buffer2), "%s \x03坦克消耗\x05[\x04开启\x05]");
+	else if(FindConVar("ai_TankSneakTime") && GetConVarFloat(FindConVar("ai_TankSneakTime")) > 0.0)
+	{
+		Format(buffer2, sizeof(buffer2), "%s \x03狡猾坦克\x05[\x04开启\x05]");
+	}
 	if(All){
 		PrintToChatAll(buffer);
 		PrintToChatAll(buffer2);
