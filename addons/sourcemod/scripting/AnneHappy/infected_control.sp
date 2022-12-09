@@ -136,14 +136,17 @@ public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_max
 
 public any Native_GetNextSpawnTime(Handle plugin, int numParams)
 {
+	float time = 0.0;
 	if (g_hSiInterval.FloatValue > 9.0)
 	{
-		return g_fSiInterval + 8.0 - (GetGameTime() - g_fLastSISpawnTime);
+		time = g_fSiInterval + 8.0 - (GetGameTime() - g_fLastSISpawnTime);
 	}
 	else
 	{
-		return g_fSiInterval + 4.0 - (GetGameTime() - g_fLastSISpawnTime);
+		time = g_fSiInterval + 4.0 - (GetGameTime() - g_fLastSISpawnTime);
 	}
+	Debug_Print("下一波特感生成时间是%.2f秒后", time);
+	return time;
 }
 
 public void OnAllPluginsLoaded(){

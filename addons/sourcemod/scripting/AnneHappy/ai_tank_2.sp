@@ -371,7 +371,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 		}
 		// 消耗相关，判断是否允许消耗
-		if (g_hAllowConsume.BoolValue)
+		if (g_hAllowConsume.BoolValue || (g_hSneakTank.FloatValue > 0.0 && eTankStructure[client].bCanConsume))
 		{
 			if (IsValidSurvivor(nearest_target))
 			{
@@ -583,6 +583,7 @@ public Action Timer_SneakCheck(Handle timer, int client)
 			#endif
 			return Plugin_Continue;
 		}
+		return Plugin_Continue;
 	}
 	return Plugin_Stop;
 }
@@ -676,7 +677,7 @@ bool ClientPush(int client, float vec[3])
 	float curvel[3] = {0.0};
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", curvel);
 	AddVectors(curvel, vec, curvel);
-	if(g_hAllowConsume.BoolValue){
+	if(eTankStructure[client].bCanConsume){
 		if (Dont_HitWall_Or_Fall(client, curvel))
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, curvel);
