@@ -1586,6 +1586,8 @@ public Action Event_RoundEnd(Handle:event, String:event_name[], bool:dontBroadca
 	}else{
 		return Plugin_Handled;
 	}
+	if(!L4D_HasAnySurvivorLeftSafeArea())
+		return Plugin_Continue;
 	if(!Isstart)
 		return Plugin_Continue;
 	UpdateMapStat("restarts", 1);
