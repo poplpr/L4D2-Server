@@ -55,7 +55,10 @@ ConVar
 	hCvarEnableAutoupdate,
 	hCvarEnableInf,
 	hCvarKickFamilyAccount,
-	g_cvSvAllowLobbyCo,
+	hCvarLobbyControl,
+	hCvarSteamgroupExclusive,
+	hCvarGamemode,
+	hCvarSvAllowLobbyCo,
 	hCvarEnableAutoRemoveLobby,
 	hCvarIPUrl;
 
@@ -65,11 +68,16 @@ public void OnPluginStart()
 	hCvarEnableInf = CreateConVar("join_enable_inf", "1", "是否可以开启加入特感", _, true, 0.0, true, 1.0);
 	hCvarEnableAutoRemoveLobby = CreateConVar("join_enable_autoremovelobby", "0", "大厅满了是否自动删除大厅", _, true, 0.0, true, 1.0);
 	hCvarKickFamilyAccount = CreateConVar("join_enable_kickfamilyaccount", "1", "是否开启踢出家庭共享账户", _, true, 0.0, true, 1.0);
+	hCvarLobbyControl = CreateConVar("join_enable_autolobbycontrol", "0", "是否开启自动大厅控制，战役模式开启好友大厅，对抗模式开启公共大厅（server.cfg中删去sv_steamgroup_exclusive）", _, true, 0.0, true, 1.0);
 	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "1", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 3.0);
-	g_cvSvAllowLobbyCo =	FindConVar("sv_allow_lobby_connect_only");
+	hCvarSvAllowLobbyCo = FindConVar("sv_allow_lobby_connect_only");
+	hCvarSteamgroupExclusive = FindConVar("sv_steamgroup_exclusive");
+	hCvarGamemode = FindConVar("mp_gamemode");
 	hCvarMotdTitle = CreateConVar("sm_cfgmotd_title", "AnneHappy电信服");
 	hCvarMotdUrl = CreateConVar("sm_cfgmotd_url", "http://dl.trygek.com/l4d_stats/index.php");  // 以后更换为数据库控制
 	hCvarIPUrl = CreateConVar("sm_cfgip_url", "http://dl.trygek.com/index.php");	// 以后更换为数据库控制
+	hCvarGamemode.AddChangeHook(GamemodeChange);
+	hCvarLobbyControl.AddChangeHook(GamemodeChange);
 	RegConsoleCmd("sm_away", AFKTurnClientToSpe);
 	RegConsoleCmd("sm_afk", AFKTurnClientToSpe);
 	RegConsoleCmd("sm_spec", AFKTurnClientToSpe);
@@ -92,6 +100,28 @@ public void OnPluginStart()
 	RegAdminCmd("sm_restartmap", RestartMap, ADMFLAG_ROOT, "restarts map");
 	HookEvent("player_disconnect", PlayerDisconnect_Event, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
+	ChangeLobby();
+}
+
+public void GamemodeChange(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	ChangeLobby();
+}
+void ChangeLobby()
+{
+	if(hCvarLobbyControl.BoolValue)
+	{
+		char g_sCurrentGameMode[64];
+		GetConVarString(hCvarGamemode, g_sCurrentGameMode, sizeof(g_sCurrentGameMode));
+		if(StrContains(g_sCurrentGameMode, "versus", false) != -1)
+		{
+			SetConVarInt(hCvarSteamgroupExclusive, 0);
+		}
+		else
+		{
+			SetConVarInt(hCvarSteamgroupExclusive, 1);
+		}
+	}
 }
 
 public void OnAllPluginsLoaded(){
@@ -595,5 +625,5 @@ int GetConnectedPlayer() {
 }
 
 void SetAllowLobby(int value) {
-	g_cvSvAllowLobbyCo.IntValue = value;
+	hCvarSvAllowLobbyCo.IntValue = value;
 }
