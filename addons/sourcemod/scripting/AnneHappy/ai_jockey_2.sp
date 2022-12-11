@@ -8,7 +8,7 @@
 #include <treeutil>
 
 #define CVAR_FLAG FCVAR_NOTIFY
-#define SPECIAL_JUMP_DIST 250.0
+#define SPECIAL_JUMP_DIST 200.0
 #define BACK_JUMP_DIST 70.0
 #define FREEZE_MAX_TIME 0.8
 #define SHOVE_INTERVAL 1.0
@@ -171,7 +171,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 						&& actionPercent <= g_iActionArray[ACTION_JUMP_BACK]
 						&& (fDistance > 0.0 && fDistance <= SPECIAL_JUMP_DIST))
 					{
-						// 距离大于 BACK_JUMP_DIST 且小于 250，Jockey 向后跳
+						// 距离大于 BACK_JUMP_DIST 且小于 SPECIAL_JUMP_DIST，Jockey 向后跳
 						float subtractVec[3] = {0.0};
 						SubtractVectors(fTargetPos, fJockeyPos, subtractVec);
 						NegateVector(subtractVec);
@@ -208,7 +208,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 		}
 		else
 		{
-			// Jockey 和生还者距离超过 250，正常连跳靠近生还者
+			// Jockey 和生还者距离超过 SPECIAL_JUMP_DIST，正常连跳靠近生还者
 			buttons |= IN_JUMP;
 			SetState(jockey, 0, IN_JUMP);
 			// 目标正在看着 Jockey

@@ -43,9 +43,10 @@ public Plugin myinfo =
 	version = "1.1",
 	url = "https://github.com/fantasylidong/CompetitiveWithAnne"
 };
-#define UPDATE_URL_ANNE "http://dl.trygek.com/left4dead2/addons/sourcemod/Anne_Updater.txt"
+#define UPDATE_URL_ANNE "http://dl.trygek.com/left4dead2/addons/sourcemod/Anne_Updater_All.txt"
 #define UPDATE_URL_NEKO "http://dl.trygek.com/left4dead2/addons/sourcemod/Neko_Updater.txt"
 #define UPDATE_URL_VERSUS "http://dl.trygek.com/left4dead2/addons/sourcemod/Versus_Updater.txt"
+#define UPDATE_URL_ANNEALL "http://dl.trygek.com/left4dead2/addons/sourcemod/Anne_Updater.txt"
 
 bool  g_bUpdateSystemAvailable = false, g_bGroupSystemAvailable = false;
 
@@ -69,7 +70,7 @@ public void OnPluginStart()
 	hCvarEnableAutoRemoveLobby = CreateConVar("join_enable_autoremovelobby", "0", "大厅满了是否自动删除大厅", _, true, 0.0, true, 1.0);
 	hCvarKickFamilyAccount = CreateConVar("join_enable_kickfamilyaccount", "1", "是否开启踢出家庭共享账户", _, true, 0.0, true, 1.0);
 	hCvarLobbyControl = CreateConVar("join_enable_autolobbycontrol", "0", "是否开启自动大厅控制，战役模式开启好友大厅，对抗模式开启公共大厅（server.cfg中删去sv_steamgroup_exclusive）", _, true, 0.0, true, 1.0);
-	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "1", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 3.0);
+	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "1", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 4.0);
 	hCvarSvAllowLobbyCo = FindConVar("sv_allow_lobby_connect_only");
 	hCvarSteamgroupExclusive = FindConVar("sv_steamgroup_exclusive");
 	hCvarGamemode = FindConVar("mp_gamemode");
@@ -130,7 +131,7 @@ public void OnAllPluginsLoaded(){
 	if(g_bUpdateSystemAvailable && hCvarEnableAutoupdate.IntValue){
 		if(hCvarEnableAutoupdate.IntValue == 1)
 		{
-			Updater_AddPlugin(UPDATE_URL_ANNE);
+			Updater_AddPlugin(UPDATE_URL_ANNEALL);
 		}	
 		else if(hCvarEnableAutoupdate.IntValue == 2)
 		{
@@ -138,6 +139,10 @@ public void OnAllPluginsLoaded(){
 		}else if(hCvarEnableAutoupdate.IntValue == 3)
 		{
 			Updater_AddPlugin(UPDATE_URL_VERSUS);
+		}
+		else if(hCvarEnableAutoupdate.IntValue == 4)
+		{
+			Updater_AddPlugin(UPDATE_URL_ANNE);
 		}
 		Updater_ForceUpdate();
 	}
@@ -152,7 +157,7 @@ public void OnLibraryAdded(const char[] name)
 			g_bUpdateSystemAvailable = true;
 			if(hCvarEnableAutoupdate.IntValue == 1)
 			{
-				Updater_AddPlugin(UPDATE_URL_ANNE);
+				Updater_AddPlugin(UPDATE_URL_ANNEALL);
 			}	
 			else if(hCvarEnableAutoupdate.IntValue == 2)
 			{
@@ -160,6 +165,10 @@ public void OnLibraryAdded(const char[] name)
 			}else if(hCvarEnableAutoupdate.IntValue == 3)
 			{
 				Updater_AddPlugin(UPDATE_URL_VERSUS);
+			}
+			else if(hCvarEnableAutoupdate.IntValue == 4)
+			{
+				Updater_AddPlugin(UPDATE_URL_ANNE);
 			}
 			Updater_ForceUpdate();
 		}
