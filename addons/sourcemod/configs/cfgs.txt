@@ -45,7 +45,7 @@
 			"message" "牛牛冲刺大逃亡"
 		}
 	}
-	"开关hud"
+	"杂项"
 	{
 		"sm_cvar l4d2_scripted_hud_enable 1"
 		{
@@ -54,6 +54,10 @@
 		"sm_cvar l4d2_scripted_hud_enable 0"
 		{
 			"message" "关闭hud"
+		}
+		"sm_cvar specrates_fulltickspecnum 1"
+		{
+			"message" "限制旁观tick"
 		}
 	}
 }

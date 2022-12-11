@@ -23,7 +23,7 @@ new Handle:sv_minrate;
 new Handle:sv_maxrate;
 new Handle:sv_client_min_interp_ratio;
 new Handle:sv_client_max_interp_ratio;
-
+new Handle:sv_fullratespecnum;
 new String:netvars[8][8];
 
 new Float:fLastAdjusted[MAXPLAYERS + 1];
@@ -47,9 +47,22 @@ public OnPluginStart()
     sv_maxrate = FindConVar("sv_maxrate");
     sv_client_min_interp_ratio = FindConVar("sv_client_min_interp_ratio");
     sv_client_max_interp_ratio = FindConVar("sv_client_max_interp_ratio");
+    sv_fullratespecnum = CreateConVar("specrates_fulltickspecnum", "4", "旁观超过这个数量之后除管理员和玩家，其余人全部30tick，无视积分");
+    HookConVarChange(sv_fullratespecnum, ResetSpecRate);
     RegConsoleCmd("sm_specrates", SetRates, "当你分数大于30w可以手动输入这个指令来设置旁观100tick");
     RegAdminCmd("sm_adminrates", AdminSetRates, ADMFLAG_GENERIC, "管理员手动提升100tick");
     HookEvent("player_team", OnTeamChange);
+}
+
+public void ResetSpecRate(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if(getSpecNum() > GetConVarInt(sv_fullratespecnum)){
+		for(int i = 1; i <= MaxClients; i++){
+			if(IsValidClient(i) && IsClientInGame(i) && GetClientTeam(i) == 1 && GetUserAdmin(i) == INVALID_ADMIN_ID){
+				SetSpectatorRates(i);
+			}
+    	}
+    }
 }
 
 public Action SetRates(int client, int args)
@@ -61,7 +74,7 @@ public Action SetRates(int client, int args)
 		PrintToChat(client, "你的分数小于30W，无法设置旁观速率");
 		return Plugin_Handled;
 	}
-	if( getSpecNum() > 4)
+	if( getSpecNum() > GetConVarInt(sv_fullratespecnum))
 	{
 		PrintToChat(client, "旁观超过4人无法设置100tick旁观速率");
 		return Plugin_Handled;
@@ -125,7 +138,7 @@ public OnConfigsExecuted()
 public OnClientPutInServer(client)
 {
 	fLastAdjusted[client] = 0.0;
-	if(getSpecNum() > 4){
+	if(getSpecNum() > GetConVarInt(sv_fullratespecnum)){
 		for(int i = 1; i <= MaxClients; i++){
 			if(IsValidClient(i) && IsClientInGame(i) && GetClientTeam(i) == 1 && GetUserAdmin(i) == INVALID_ADMIN_ID){
 				SetSpectatorRates(i);

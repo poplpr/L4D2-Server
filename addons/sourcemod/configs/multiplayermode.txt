@@ -312,6 +312,10 @@
 		{
 			"message" "关闭特感属性增强"
 		}
+		"sm_cvar specrates_fulltickspecnum 1"
+		{
+			"message" "限制旁观tick"
+		}
 		"sm_cvar sb_fix_enabled 1"
 		{
 			"message" "开启高级人机"

@@ -330,6 +330,10 @@
 		{
 			"message" "关闭特感属性增强"
 		}
+		"sm_cvar specrates_fulltickspecnum 1"
+		{
+			"message" "限制旁观tick"
+		}
 	}
 	"武器配置"
 	{
