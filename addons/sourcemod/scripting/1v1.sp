@@ -27,8 +27,26 @@
 #include <colors>
 #include <l4d2util_constants>
 
+#define TAUNT_HIGH_THRESHOLD            0.4
+#define TAUNT_MID_THRESHOLD             0.2
+#define TAUNT_LOW_THRESHOLD             0.04
+
+static char SINames[6][] =
+{
+    "gas",          // smoker
+    "exploding",    // boomer
+    "hunter",
+    "spitter",
+    "jockey",
+    "charger",
+};
+
 ConVar
+	g_hCvarPvEMode = null,
 	g_hCvarDmgThreshold = null;
+
+int
+	g_iSpecialInfectedHP[6];
 
 public Plugin myinfo =
 {
@@ -41,8 +59,15 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+	char buffer[17];
+	for (int i = 1; i < 6; i++)
+	{
+		Format(buffer, sizeof(buffer), "z_%s_health", SINames[i]);
+		g_iSpecialInfectedHP[i] = FindConVar(buffer).IntValue;
+	}
 	LoadTranslations("1v1.phrases");
 	g_hCvarDmgThreshold = CreateConVar("sm_1v1_dmgthreshold", "24", "Amount of damage done (at once) before SI suicides.", _, true, 1.0);
+	g_hCvarPvEMode = CreateConVar("sm_1v1_PvEMode", "0", "Is this Mode Is PvE.", _, true, 0.0, true, 1.0);
 
 	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
 }
@@ -81,13 +106,32 @@ public void Event_PlayerHurt(Event hEvent, const char[] sEventName, bool bDontBr
 	} else {
 		GetClientName(iAttacker, sName, sizeof(sName));
 	}
-	
-	CPrintToChatAll("%t %t", "Tag", "HealthRemaining", sName, L4D2_InfectedNames[iZclass], iRemainingHealth);
+	if(g_hCvarPvEMode.BoolValue)
+	{
+		CPrintToChatAll("%t %t", "TagPvE", "HealthRemaining", sName, L4D2_InfectedNames[iZclass], iRemainingHealth);
+	}
+	else
+	{
+		CPrintToChatAll("%t %t", "Tag", "HealthRemaining", sName, L4D2_InfectedNames[iZclass], iRemainingHealth);
+	}
 	
 	ForcePlayerSuicide(iAttacker);
 	
+	int maxHealth = g_iSpecialInfectedHP[iZclass];
 	if (iRemainingHealth == 1) {
 		CPrintToChat(iVictim, "%t", "UMad");
+	}
+	else if (iRemainingHealth <= RoundToCeil(maxHealth * TAUNT_LOW_THRESHOLD))
+    {
+		CPrintToChat(iVictim, "%t", "Sad");
+	}
+	else if (iRemainingHealth <= RoundToCeil(maxHealth * TAUNT_MID_THRESHOLD))
+    {
+		CPrintToChat(iVictim, "%t", "Close");
+    }
+	else if (iRemainingHealth <= RoundToCeil(maxHealth * TAUNT_HIGH_THRESHOLD))
+	{
+		CPrintToChat(iVictim, "%t", "NBad");
 	}
 }
 

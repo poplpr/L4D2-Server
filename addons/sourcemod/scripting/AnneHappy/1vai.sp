@@ -25,8 +25,6 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#include <colors>
-#include <l4d2util_constants>
 #include <left4dhooks>
 
 public Plugin myinfo =
@@ -34,38 +32,11 @@ public Plugin myinfo =
 	name = "1v1 instand stand up",
 	author = "东",
 	description = "A plugin designed to support 1vAI.",
-	version = "1.0",
+	version = "1.1",
 	url = "https://github.com/fantasylidong/CompetitiveWithAnne"
 };
 
-public void OnPluginStart()
-{
-	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
-}
-public void Event_PlayerHurt(Event hEvent, const char[] sEventName, bool bDontBroadcast)
-{
-
-	
-	int iAttacker = GetClientOfUserId(hEvent.GetInt("attacker"));
-	if (!IsClientAndInGame(iAttacker) || GetClientTeam(iAttacker) != L4D2Team_Infected) {
-		return;
-	}
-	
-	int iZclass = GetEntProp(iAttacker, Prop_Send, "m_zombieClass");
-	
-	if (iZclass < L4D2Infected_Smoker || iZclass > L4D2Infected_Charger) {
-		return;
-	}
-	
-	int iVictim = GetClientOfUserId(hEvent.GetInt("userid"));
-	if (!IsClientAndInGame(iVictim) || GetClientTeam(iVictim) != L4D2Team_Survivor) {
-		return;
-	}
-	
-	SDKHook(iVictim, SDKHook_PostThinkPost, CancelGetup);
-}
-
-public Action CancelGetup(int client)
+public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
 	if (IsClientAndInGame(client))
 	{
