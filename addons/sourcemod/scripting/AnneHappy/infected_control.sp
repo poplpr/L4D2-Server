@@ -5,6 +5,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <left4dhooks>
+#include <treeutil>
 #undef REQUIRE_PLUGIN
 #include <ai_smoker_new>
 #include <si_target_limit>
@@ -58,7 +59,7 @@ public Plugin myinfo =
 	name 			= "Direct InfectedSpawn",
 	author 			= "Caibiii, 夜羽真白，东",
 	description 	= "特感刷新控制，传送落后特感",
-	version 		= "2022.12.01",
+	version 		= "2022.12.15",
 	url 			= "https://github.com/fantasylidong/CompetitiveWithAnne"
 }
 
@@ -124,6 +125,7 @@ Handle
 ArrayList 
 	aThreadHandle, 						//刷特线程
 	aTeleportQueue,						//传送队列
+	aSpawnNavList,						//储存特感生成的navid，用来限制特感不能生成在同一块Navid上
 	aSpawnQueue;						//刷特队列
 
 public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_max)
@@ -210,6 +212,7 @@ public void OnPluginStart()
 	aThreadHandle = new ArrayList();
 	aSpawnQueue = new ArrayList();
 	aTeleportQueue = new ArrayList();
+	aSpawnNavList = new ArrayList();
 	// GetCvars
 	GetCvars();
 	GetSiLimit();
@@ -374,6 +377,7 @@ public void InitStatus(){
 	aThreadHandle.Clear();
 	aSpawnQueue.Clear();
 	aTeleportQueue.Clear();
+	aSpawnNavList.Clear();
 	g_iQueueIndex = 0;
 	g_iTeleportIndex = 0;
 	g_iWaveTime=0;
@@ -471,7 +475,13 @@ public void OnGameFrame()
 	}
 	if (g_bIsLate)
 	{
-		if (g_iSiLimit > g_iTotalSINum)
+		// 当nav存储长度超过特感生成上限时，删去第一个
+		if (aSpawnNavList.Length > g_iSiLimit)
+		{
+			//Debug_Print("<nav记录> 当前队列长度：%d, 超过特感上限，清除队列第一个元素", aSpawnNavList.Length);
+			aSpawnNavList.Erase(0);
+		}
+		if (g_iTotalSINum < g_iSiLimit)
 		{
 			if(g_iTeleportIndex > 0)
 			{
@@ -603,6 +613,16 @@ stock bool GetSpawnPos(float fSpawnPos[3], int g_iTargetSurvivor, float SpawnDis
 	return false;
 }
 
+stock bool Is_Nav_already_token(Address nav)
+{
+	for(int i = 0; i < aSpawnNavList.Length; i++)
+	{
+		if(nav == aSpawnNavList.Get(i))
+			return true;
+	}
+	return false;
+}
+
 stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieClass, bool IsTeleport = false)
 {
 
@@ -644,6 +664,8 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 				int entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({0.0, 0.0, 0.0}));
 				if (IsValidEntity(entityindex) && IsValidEdict(entityindex))
 				{
+					aSpawnNavList.Push(nav1);
+					//Debug_Print("<nav记录> 当前入队nav：%d，当前队列长度：%d", nav1, aSpawnNavList.Length);
 					return true;
 				}
 			}
@@ -875,7 +897,7 @@ bool IsInfectedBot(int client)
 bool IsOnValidMesh(float fReferencePos[3])
 {
 	Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
-	if (pNavArea != Address_Null)
+	if (pNavArea != Address_Null && !Is_Nav_already_token(pNavArea))
 	{
 		return true;
 	}
@@ -1160,8 +1182,8 @@ public Action Timer_PositionSi(Handle timer)
 			GetClientEyePosition(client, fSelfPos);
 			if (!PlayerVisibleToSDK(fSelfPos, true))
 			{
-				// 如果特感在最远的生还者前面，那肯定不需要传送
-				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()))
+				// 如果特感在最远的生还者前面，或者隔生还者小于g_fSpawnDistanceMin，那肯定不需要传送
+				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()) && GetClosetSurvivorDistance(client) >= g_fSpawnDistanceMin)
 				{
 					int type = GetInfectedClass(client);
 					if(type >= 1 && type <= 6){
@@ -1317,68 +1339,6 @@ void StartForward(bool IsRush){
 	Call_StartForward(g_hRushManNotifyForward);//转发触发
 	Call_PushCell(IsRush);//按顺序将参数push进forward传参列表里
 	Call_Finish();//转发结束
-}
-
-// 判断是否有效玩家 id，有效返回 true，无效返回 false
-stock bool IsValidClient(int client)
-{
-	if (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-// 判断生还者是否有效，有效返回 true，无效返回 false
-stock bool IsValidSurvivor(int client)
-{
-	if (IsValidClient(client) && GetClientTeam(client) == view_as<int>(TEAM_SURVIVOR))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-// 判断玩家是否倒地，倒地返回 true，未倒地返回 false
-stock bool IsClientIncapped(int client)
-{
-	if (IsValidClient(client))
-	{
-		return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
-	}
-	else
-	{
-		return false;
-	}
-}
-
-// 获取特感类型，成功返回特感类型，失败返回 0
-stock int GetInfectedClass(int client)
-{
-	if (IsValidInfected(client))
-	{
-		return GetEntProp(client, Prop_Send, "m_zombieClass");
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-stock bool IsValidInfected(int client)
-{
-	if (IsValidClient(client) && GetClientTeam(client) == view_as<int>(TEAM_INFECTED))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }
 
 stock bool IsAiSmoker(int client)

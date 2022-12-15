@@ -400,6 +400,40 @@ public Action PlayerLeftStartArea(Handle event, const char[] name, bool dontBroa
 {
 	// if RUP active, now we can start tracking FF
 	bPlayerLeftStartArea = true;
+	int i, maxplayers = MaxClients;
+	for (i = 1; i <= maxplayers; i++)
+	{
+		iGotKills[i]       = 0;
+		iGotCommon[i]      = 0;
+		iDidDamage[i]      = 0;
+		iDidDamageAll[i]   = 0;
+		iDidDamageWitch[i] = 0;
+		iDidDamageTank[i]  = 0;
+		iDidFF[i]          = 0;
+
+		//@todo detailed statistics init to 0
+		for (int siClass = ZC_SMOKER; siClass <= ZC_TANK; siClass++)
+		{
+			iDidDamageClass[i][siClass] = 0;
+			timesPinned[i][siClass]     = 0;
+		}
+		pillsUsed[i]              = 0;
+		boomerPops[i]             = 0;
+		damageReceived[i]         = 0;
+		totalPinned[i]            = 0;
+		commonKilledDuringTank[i] = 0;
+		siDmgDuringTank[i]        = 0;
+		rocksEaten[i]             = 0;
+		ttlPinnedDuringTank[i]    = 0;
+	}
+	iTotalKills               = 0;
+	iTotalCommon              = 0;
+	iTotalDamageAll           = 0;
+	iTotalFF                  = 0;
+	ttlCommonKilledDuringTank = 0;
+	tankThrow                 = false;
+
+	tankSpawned = false;
 	return Plugin_Continue;
 }
 
