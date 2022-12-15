@@ -31,8 +31,9 @@
 #define TAUNT_MID_THRESHOLD             0.2
 #define TAUNT_LOW_THRESHOLD             0.04
 
-static char SINames[6][] =
+static char SINames[7][] =
 {
+	"",
     "gas",          // smoker
     "exploding",    // boomer
     "hunter",
@@ -43,10 +44,8 @@ static char SINames[6][] =
 
 ConVar
 	g_hCvarPvEMode = null,
+	g_hSpecialInfectedHP[7],
 	g_hCvarDmgThreshold = null;
-
-int
-	g_iSpecialInfectedHP[6];
 
 public Plugin myinfo =
 {
@@ -60,10 +59,10 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	char buffer[17];
-	for (int i = 1; i < 6; i++)
+	for (int i = 1; i < 7; i++)
 	{
 		Format(buffer, sizeof(buffer), "z_%s_health", SINames[i]);
-		g_iSpecialInfectedHP[i] = FindConVar(buffer).IntValue;
+		g_hSpecialInfectedHP[i] = FindConVar(buffer);
 	}
 	LoadTranslations("1v1.phrases");
 	g_hCvarDmgThreshold = CreateConVar("sm_1v1_dmgthreshold", "24", "Amount of damage done (at once) before SI suicides.", _, true, 1.0);
@@ -117,7 +116,7 @@ public void Event_PlayerHurt(Event hEvent, const char[] sEventName, bool bDontBr
 	
 	ForcePlayerSuicide(iAttacker);
 	
-	int maxHealth = g_iSpecialInfectedHP[iZclass];
+	int maxHealth = g_hSpecialInfectedHP[iZclass].IntValue;
 	if (iRemainingHealth == 1) {
 		CPrintToChat(iVictim, "%t", "UMad");
 	}

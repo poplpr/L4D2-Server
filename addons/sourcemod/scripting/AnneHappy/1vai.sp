@@ -38,6 +38,12 @@ public Plugin myinfo =
 
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
+	SDKHook(client, SDKHook_PostThinkPost, CancelGetup);	
+	return Plugin_Continue;
+}
+
+public Action CancelGetup(int client)
+{
 	if (IsClientAndInGame(client))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flCycle", 1000.0, 0);

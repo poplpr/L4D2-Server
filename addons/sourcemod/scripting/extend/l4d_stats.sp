@@ -9781,7 +9781,7 @@ public CheckSurvivorsWin()
 	if (SinglePlayerMode())
 	{
 		int addScore = 0;
-		if( GetAnneInfectedNumber() > 3){
+		if( GetAnneInfectedNumber() > 3 && AnneValidGame){
 			addScore = (GetAnneInfectedNumber() - 3) * 100;
 		}
 		char buffer[256];
@@ -9850,6 +9850,11 @@ public CheckSurvivorsWin()
 
 stock int GetAnneInfectedNumber(){
 	return GetConVarInt(FindConVar("l4d_infected_limit"));
+}
+
+stock int GetAnneSISpawnTime()
+{
+	return GetConVarInt(FindConVar("versus_special_respawn_interval"));
 }
 
 IsSingleTeamGamemode()
@@ -11087,6 +11092,13 @@ public StopMapTiming()
 	{
 		return;
 	}
+	if(!AnneValidGame)
+	{
+		if (GetConVarInt(cvar_AnnounceMode))
+		{
+			StatsPrintToChatAll("此次回合修改过难度，故结果 \x04无效 \x01，不记录这张地图游戏时间!");
+		}
+	}
 
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
 	MapTimingStartTime = -1.0;
@@ -11174,7 +11186,7 @@ public StopMapTiming()
 						}
 						if(mode > 0)
 						{
-							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), mode);
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
 						}
 						else
 						{
@@ -11245,7 +11257,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			}
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), mode);
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
 			}
 			else
 			{
@@ -11262,7 +11274,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), mode);
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
 			}
 			else
 			{
@@ -11283,7 +11295,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 		if(mode > 0)
 		{
-			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, mode, modified,created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), mode);
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, mode, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
 		}
 		else
 		{
