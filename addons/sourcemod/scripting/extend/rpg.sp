@@ -28,7 +28,7 @@ enum struct PlayerStruct{
 	CustomTags tags;
 }
 PlayerStruct player[MAXPLAYERS + 1];
-bool valid=true;
+bool valid = true, UseBuy = false;
 bool IsStart=false;
 bool IsAllowBigGun = false;
 bool IsAnne = false;
@@ -92,16 +92,17 @@ public Plugin myinfo =
 	author = "东",
 	description = "购买游戏道具,幸存者轮廓，帽子保存,生还者皮肤颜色",
 	version = PLUGIN_VERSION,
-	url = "http://sb.trygek.com:18443"
+	url = "http://sb.trygek.com"
 }
 
-Handle IsValid;
+Handle IsValid, IsUseBuy;
 //Startup
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	//API
 	RegPluginLibrary("rpg");
 	IsValid = CreateGlobalForward("OnValidValveChange", ET_Ignore, Param_Cell);
+	IsUseBuy = CreateGlobalForward("OnBuyValveChange", ET_Ignore, Param_Cell);
 	return APLRes_Success;
 }
 /*
@@ -174,6 +175,7 @@ public void OnMapStart()
 			player[i].ClientPoints=0;
 		IsStart=false;
 		valid=true;
+		UseBuy = false;
 	}
 }
 
@@ -245,7 +247,7 @@ void ConVarChanged_Cvars(ConVar convar, const char[] oldValue, const char[] newV
 
 	if(IsStart)
 	{
-		PrintToChatAll("\x04[RANK]判断额外积分所需变量发生变化，此局无法获得额外积分, 过关也不奖励额外分数");
+		PrintToChatAll("\x01[\x04RANK\x01]\x04判断额外积分所需变量发生变化，此局无法获得额外积分, 过关也不奖励额外分数");
 		valid=false;
 		Call_StartForward(IsValid);//转发触发
 		Call_PushCell(false);//按顺序将参数push进forward传参列表里
@@ -359,8 +361,9 @@ public Action EventMapChange(Handle event, const char []name, bool dontBroadcast
 		player[i].ClientFirstBuy=true;
 		player[i].CanBuy=true;
 	}
-	IsStart=false;
-	valid=true;
+	IsStart = false;
+	valid = true;
+	UseBuy = false;
 	return Plugin_Continue;
 }
 
@@ -370,14 +373,15 @@ public void RewardScore(){
 	char pluginsname[64];
 	int renji=0;
 	GetConVarString(FindConVar("sv_tags"), pluginsname, sizeof(pluginsname));
-	if(StrContains(pluginsname,"anne")==-1)
-		return;
 	renji=GetConVarInt(FindConVar("sb_fix_enabled"));
 	if(renji){
-		PrintToChatAll("\x04[RANK]由于开启了高级人机，不能获得额外过关积分");
+		PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
 		return;
 	}
-	if(valid){
+	if(StrContains(pluginsname,"anne") !=-1 || StrContains(pluginsname, "witchparty")!=-1 || StrContains(pluginsname,"allcharger")!=-1 )
+	{
+		if(valid)
+		{
 			if(InfectedNumber==5)
 				AddReward(200);
 			if(InfectedNumber==6)
@@ -391,7 +395,7 @@ public void RewardScore(){
 			if(InfectedNumber>9)
 				AddReward(2000);
 		}
-	valid=true;
+	}
 }
 
 public void AddReward(int Score){
@@ -401,17 +405,18 @@ public void AddReward(int Score){
 		if(IsSurvivor(i))
 			ClientMapChangeWithoutBuyReward(i,Score);
 	}
-	PrintToChatAll("\x04[RANK]幸存者强势通过当前关卡，没花费任何B数，获得额外%d过关积分",Score);
+	PrintToChatAll("\x01[\x04RANK\x01]\x04幸存者强势通过当前关卡，没花费任何B数，获得额外%d过关积分",Score);
 }
 
 public Action EventMissionLost(Handle event, const char []name, bool dontBroadcast){
 	for(int i=1;i<MaxClients;i++){
-				player[i].ClientPoints=500;
-				player[i].ClientFirstBuy=true;
-				player[i].CanBuy=true;
+		player[i].ClientPoints=500;
+		player[i].ClientFirstBuy=true;
+		player[i].CanBuy=true;
 	}
 	IsStart=false;
 	valid=true;
+	UseBuy = false;
 	return Plugin_Continue;
 }
 
@@ -697,7 +702,6 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 		}
 	}
 	IsStart=true;
-	valid=true;
 	return Plugin_Stop;
 }
 
@@ -711,6 +715,7 @@ public Action EventRoundStart(Handle event, const char []name, bool dontBroadcas
 	}
 	IsStart = false;
 	valid = true;
+	UseBuy = false;
 	return Plugin_Continue;
 }
 
@@ -955,6 +960,13 @@ public bool RemovePoints(int client, int costpoints,char bitem[64])
 		return false;
 	}
 	int actuallypoints = player[client].ClientPoints - costpoints;
+	if(!UseBuy && actuallypoints < 500)
+	{
+		Call_StartForward(IsUseBuy);//转发触发
+		Call_PushCell(false);//按顺序将参数push进forward传参列表里
+		Call_Finish();//转发结束
+		UseBuy = true;
+	}
 	if(IsVaildClient(client) && actuallypoints >= 0)
 	{	
 		GiveItems(client,bitem);

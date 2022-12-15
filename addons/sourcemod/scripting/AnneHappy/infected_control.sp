@@ -834,6 +834,11 @@ public Action SpawnNewInfected(Handle timer)
 			}
 		}
 		g_fSpawnDistance = g_fSpawnDistanceMin;
+		//优化性能，每波刷新前清除aSpawnNavList队列中的值，但是如果刷特时间很短，这个优化估计起的作用不大
+		if(g_iSpawnMaxCount == 0)
+		{
+			aSpawnNavList.Clear();
+		}
 
 		g_iSpawnMaxCount += 1;
 		if (g_iSiLimit == g_iSpawnMaxCount){
@@ -1183,7 +1188,7 @@ public Action Timer_PositionSi(Handle timer)
 			if (!PlayerVisibleToSDK(fSelfPos, true))
 			{
 				// 如果特感在最远的生还者前面，或者隔生还者小于g_fSpawnDistanceMin，那肯定不需要传送
-				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()) && GetClosetSurvivorDistance(client) >= g_fSpawnDistanceMin)
+				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()) && GetClosetSurvivorDistance(client, GetClosetMobileSurvivor(client)) >= g_fSpawnDistanceMin)
 				{
 					int type = GetInfectedClass(client);
 					if(type >= 1 && type <= 6){

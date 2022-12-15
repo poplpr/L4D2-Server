@@ -138,6 +138,7 @@ new bool:CampaignOver = false;
 new bool:WitchExists = false;
 new bool:WitchDisturb = false;
 new bool:AnneValidGame = true;
+new bool:UseBuy = false;
 
 // Anti-Stat Whoring vars
 new CurrentPoints[MAXPLAYERS + 1];
@@ -415,7 +416,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 forward void OnValidValveChange(bool IsValid);
-
+forward void OnBuyValveChange(bool buy);
+public void OnBuyValveChange(bool buy)
+{
+	UseBuy = buy;
+}
 public void OnValidValveChange(bool IsValid){
 	AnneValidGame = IsValid;
 }
@@ -1283,6 +1288,7 @@ public OnMapStart()
 	SetCurrentGamemodeName();
 	ResetVars();
 	AnneValidGame = true;
+	UseBuy = false;
 }
 
 // Init player on connect, and update total rank and client rank.
@@ -1665,6 +1671,7 @@ public Action:event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	Isstart=true;
 	g_broundend = false;
 	AnneValidGame = true;
+	UseBuy = false;
 	ResetRankChangeCheck();
 }
 
@@ -11186,7 +11193,7 @@ public StopMapTiming()
 						}
 						if(mode > 0)
 						{
-							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i AND usebuy = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode, UseBuy);
 						}
 						else
 						{
@@ -11257,7 +11264,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			}
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i AND usebuy = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode, UseBuy);
 			}
 			else
 			{
@@ -11274,7 +11281,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND mode = %i AND usebuy = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode, UseBuy);
 			}
 			else
 			{
@@ -11295,7 +11302,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 		if(mode > 0)
 		{
-			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, mode, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode);
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, mode, uesbuy, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), mode, UseBuy);
 		}
 		else
 		{
