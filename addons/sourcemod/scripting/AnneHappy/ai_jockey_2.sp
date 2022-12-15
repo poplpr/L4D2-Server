@@ -39,8 +39,8 @@ public Plugin myinfo =
 }
 
 // ConVars
-ConVar g_hBhopSpeed, g_hStartHopDistance, g_hJockeyStumbleRadius, g_hJockeyLeapTime,
-		g_hSpecialJumpAngle, g_hSpecialJumpChance, g_hActionChance, g_hAllowInterControl, g_hBackVision, g_hJockeySpeed;
+ConVar g_hBhopSpeed, g_hStartHopDistance, g_hJockeyStumbleRadius, g_hJockeyLeapTime, g_hJockeyAirAngles,
+		g_hSpecialJumpAngle, g_hSpecialJumpChance, g_hActionChance, g_hAllowInterControl, g_hJockeySpeed;
 // Ints
 int g_iState[MAXPLAYERS + 1][8], g_iActionArray[ACTION_COUNT];
 // Float
@@ -60,7 +60,7 @@ public void OnPluginStart()
 	g_hSpecialJumpChance = CreateConVar("ai_JockeySpecialJumpChance", "60", "Jockey 有多少概率执行骗推", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hActionChance = CreateConVar("ai_jockeyNoActionChance", "20,20,60", "Jockey 执行以下行为的概率（冻结行动 [时间 0 - FREEZE_MAX_TIME 秒随机]，向后跳，高跳）逗号分割", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hAllowInterControl = CreateConVar("ai_JockeyAllowInterControl", "0", "Jockey 优先找被这些特感控制的生还者，抢控或补控（不想要这个功能可以设置为 0）", CVAR_FLAG);
-	g_hBackVision = CreateConVar("ai_JockeyBackVision", "50", "Jockey 在空中时将会以这个概率向当前视角反方向看", CVAR_FLAG, true, 0.0, true, 100.0);
+	g_hJockeyAirAngles = CreateConVar("ai_JockeyAirAngles", "60.0", "Jockey的速度方向与到目标的向量方向的距离大于这个角度，改变方向", FCVAR_NOTIFY, true, 0.0, true, 180.0);
 	g_hJockeyLeapTime =	FindConVar("z_jockey_leap_time");
 	// 其他
 	g_hJockeySpeed = FindConVar("z_jockey_speed");
@@ -253,17 +253,44 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 		buttons &= ~IN_JUMP;
 		buttons &= ~IN_ATTACK;
 		// 距离 <= 2 * SPECIAL_JUMP_DIST 时，概率跳的时候向后看,如果不向后看，就看目标生还者
-		if (fDistance <= SPECIAL_JUMP_DIST * 2.0 && g_hBackVision.IntValue > 0)
+		if (fDistance <= SPECIAL_JUMP_DIST * 2.0)
 		{
 			float subtractVec[3] = {0.0}, eyeAngleVec[3] = {0.0};
 			SubtractVectors(fTargetPos, fJockeyPos, subtractVec);
-			if(getRandomIntInRange(0, 100) <= g_hBackVision.IntValue)
-			{
-				NegateVector(subtractVec);
-			}
+			NegateVector(subtractVec);
 			NormalizeVector(subtractVec, subtractVec);
 			GetVectorAngles(subtractVec, eyeAngleVec);
 			TeleportEntity(jockey, NULL_VECTOR, eyeAngleVec, NULL_VECTOR);
+			//太近不允许强制换方向
+			if(fDistance > 150.0){
+				//PrintToConsoleAll("检测猴子在空中");
+				float fAngles[3], new_velvec[3] = {0.0}, self_target_vec[3] = {0.0};
+				GetVectorAngles(fSpeed, fAngles);
+				fAngles[0] = fAngles[2] = 0.0;
+				GetAngleVectors(fAngles, new_velvec, NULL_VECTOR, NULL_VECTOR);
+				NormalizeVector(new_velvec, new_velvec);
+				// 保存当前位置
+				// 生还比特感高，关闭z方向
+				if(fTargetPos[2] > fTargetPos[2])
+					fJockeyPos[2] = fTargetPos[2] = 0.0;
+				MakeVectorFromPoints(fJockeyPos, fTargetPos, self_target_vec);
+				NormalizeVector(self_target_vec, self_target_vec);
+				float fAngleDifference = RadToDeg(ArcCosine(GetVectorDotProduct(new_velvec, self_target_vec)));
+				//PrintToConsoleAll("速度夹角：%f", fAngleDifference);
+				// 计算距离
+				if (fAngleDifference > g_hJockeyAirAngles.IntValue && fAngleDifference < 120.0)
+				{
+					//重新设置方向
+					MakeVectorFromPoints(fJockeyPos, fTargetPos, new_velvec);
+					GetVectorAngles(new_velvec, fAngles);
+					NormalizeVector(new_velvec, new_velvec);
+					NegateVector(new_velvec);
+					// 按照原来速度向量长度 + 缩放长度缩放修正后的速度向量，觉得太阴间了可以修改
+					ScaleVector(new_velvec, fCurrentSpeed * 0.9);
+					//PrintToConsoleAll("方向夹角为： %f,强制转向后的速度: %f", fAngleDifference, GetVectorLength(new_velvec));
+					TeleportEntity(jockey, NULL_VECTOR, fAngles, new_velvec);
+				}
+			}
 		}
 	}
 	return Plugin_Continue;
