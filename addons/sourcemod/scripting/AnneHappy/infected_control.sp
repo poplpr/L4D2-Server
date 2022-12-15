@@ -412,7 +412,9 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	if (IsInfectedBot(client))
 	{
 		int type = GetEntProp(client, Prop_Send, "m_zombieClass");
-		RequestFrame(nextFrameKickBotHandler, client);
+		//口水不踢，防止无声口水
+		if(type != 4)
+			RequestFrame(nextFrameKickBotHandler, client);
 		if(type >= 1 && type <=6){
 			if(g_iSINum[type - 1] > 0)
 			{
