@@ -31,7 +31,8 @@
 
 // Spitter吐口水之后能传送的时间
 #define SPIT_INTERVAL 2.0
-
+//确认为跑男的距离
+#define RushManDistance 1500.0
 
 stock const char InfectedName[10][] =
 {
@@ -407,11 +408,7 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	if (IsInfectedBot(client))
 	{
 		int type = GetEntProp(client, Prop_Send, "m_zombieClass");
-		//防止无声口水
-		if (type != ZC_SPITTER)
-		{
-			CreateTimer(0.5, Timer_KickBot, client);
-		}
+		RequestFrame(nextFrameKickBotHandler, client);
 		if(type >= 1 && type <=6){
 			if(g_iSINum[type - 1] > 0)
 			{
@@ -434,14 +431,11 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	}	
 }
 
-public Action Timer_KickBot(Handle timer, int client)
+public void nextFrameKickBotHandler(int client)
 {
-	if (IsClientInGame(client) && !IsClientInKickQueue(client) && IsFakeClient(client))
-	{
-		//Debug_Print("踢出特感%N",client);
-		KickClient(client, "You are worthless and was kicked by console");
-	}
-	return Plugin_Continue;
+	if (!IsValidInfected(client) || !IsFakeClient(client) || IsClientInKickQueue(client)) { return; }
+	KickClientEx(client, "踢出死亡感染者");
+	g_iTeleCount[client] = 0;
 }
 
 // *********************
@@ -1262,7 +1256,7 @@ bool CheckRushManAndAllPinned()
 	{
 		GetClientAbsOrigin(target, OriginTemp);
 		for(int i =0; i < iSurvivorIndex; i++){
-			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(iSurvivorsOrigin[i], OriginTemp) <= 1000.0))
+			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(iSurvivorsOrigin[i], OriginTemp) <= RushManDistance))
 			{
 				g_bPickRushMan = false;
 				g_iRushManIndex = -1;
