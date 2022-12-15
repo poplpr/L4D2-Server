@@ -252,12 +252,15 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 	{
 		buttons &= ~IN_JUMP;
 		buttons &= ~IN_ATTACK;
-		// 距离 <= 2 * SPECIAL_JUMP_DIST 时，概率跳的时候向后看
-		if (fDistance <= SPECIAL_JUMP_DIST * 2.0 && (g_hBackVision.IntValue > 0 && getRandomIntInRange(0, 100) <= g_hBackVision.IntValue))
+		// 距离 <= 2 * SPECIAL_JUMP_DIST 时，概率跳的时候向后看,如果不向后看，就看目标生还者
+		if (fDistance <= SPECIAL_JUMP_DIST * 2.0 && g_hBackVision.IntValue > 0)
 		{
 			float subtractVec[3] = {0.0}, eyeAngleVec[3] = {0.0};
 			SubtractVectors(fTargetPos, fJockeyPos, subtractVec);
-			NegateVector(subtractVec);
+			if(getRandomIntInRange(0, 100) <= g_hBackVision.IntValue)
+			{
+				NegateVector(subtractVec);
+			}
 			NormalizeVector(subtractVec, subtractVec);
 			GetVectorAngles(subtractVec, eyeAngleVec);
 			TeleportEntity(jockey, NULL_VECTOR, eyeAngleVec, NULL_VECTOR);

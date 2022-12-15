@@ -1166,7 +1166,8 @@ public Action Timer_PositionSi(Handle timer)
 			GetClientEyePosition(client, fSelfPos);
 			if (!PlayerVisibleToSDK(fSelfPos, true))
 			{
-				if (g_iTeleCount[client] > g_iTeleportCheckTime)
+				// 如果特感在最远的生还者前面，那肯定不需要传送
+				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()))
 				{
 					int type = GetInfectedClass(client);
 					if(type >= 1 && type <= 6){
