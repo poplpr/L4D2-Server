@@ -568,11 +568,6 @@ public int Native_AddClientScore(Handle plugin, int numParams)
 // Here we go!
 public OnPluginStart()
 {
-	GameData temp = new GameData("dhooks-test.games");
-	if(temp == INVALID_HANDLE)
-	{
-		SetFailState("Why you no has gamedata?");
-	}
 	CommandsRegistered = false;
 	// Require Left 4 Dead (2)
 	decl String:game_name[64];
@@ -11160,8 +11155,32 @@ public StopMapTiming()
 						WritePackCell(dp, GameDifficulty);
 						WritePackString(dp, CurrentMutation);
 
-						Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s'", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID);
-
+						int mode = 0;
+						if(IsAnne())
+						{
+							mode = 1;
+						}else if(IsWitchParty())
+						{
+							mode = 2;
+						}else if(IsAllCharger())
+						{
+							mode = 3;
+						}else if(IsAlone())
+						{
+							mode = 4;
+						}else if(Is1vht())
+						{
+							mode = 5;
+						}
+						if(mode > 0)
+						{
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), mode);
+						}
+						else
+						{
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, mode);
+						}
+							
 						SQL_TQuery(db, UpdateMapTimingStat, query, dp);
 					}
 				}
@@ -11174,7 +11193,23 @@ public StopMapTiming()
 
 public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:dp)
 {
-	if (!IsAnne())return;
+	int mode = 0;
+	if(IsAnne())
+	{
+		mode = 1;
+	}else if(IsWitchParty())
+	{
+		mode = 2;
+	}else if(IsAllCharger())
+	{
+		mode = 3;
+	}else if(IsAlone())
+	{
+		mode = 4;
+	}else if(Is1vht())
+	{
+		mode = 5;
+	}
 	ResetPack(dp);
 
 	decl String:MapName[MAX_LINE_WIDTH], String:ClientID[MAX_LINE_WIDTH], String:query[512], String:TimeLabel[32], String:Mutation[MAX_LINE_WIDTH];
@@ -11206,21 +11241,34 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			if (Mode)
 			{
 				SetTimeLabel(OldTime, TimeLabel, sizeof(TimeLabel));
-				StatsPrintToChat(Client, "下次继续努力哦，这张图的最快完成时间 \x04%s \x01 并没有提升!", TimeLabel);
+				StatsPrintToChat(Client, "下次继续努力哦，这张图该难度的最快完成时间 \x04%s \x01 并没有提升!", TimeLabel);
 			}
-
-			Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s'", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID);
+			if(mode > 0)
+			{
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), mode);
+			}
+			else
+			{
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND mode = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, mode);
+			}
 		}
 		else
 		{
 			if (Mode)
 			{
 				SetTimeLabel(TotalTime, TimeLabel, sizeof(TimeLabel));
-				StatsPrintToChat(Client, "牛逼，你刷新了你这张图的最快完成时间，目前是 \x04%s\x01!", TimeLabel);
+				StatsPrintToChat(Client, "牛逼，你刷新了你这张图该难度的最快完成时间，目前是 \x04%s\x01!", TimeLabel);
 			}
 
-			Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s'", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID);
-
+			if(mode > 0)
+			{
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND mode = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), mode);
+			}
+			else
+			{
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND mode = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, mode);
+			}
+			
 			if (EnableSounds_Maptime_Improve && GetConVarBool(cvar_SoundsEnabled))
 				EmitSoundToClient(Client, StatsSound_MapTime_Improve);
 		}
@@ -11233,7 +11281,14 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			StatsPrintToChat(Client, "你花费了 \x04%s \x01来完成这张地图!", TimeLabel);
 		}
 
-		Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter);
+		if(mode > 0)
+		{
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, mode, modified,created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), mode);
+		}
+		else
+		{
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, mode, modified,created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, mode);
+		}
 	}
 
 	SendSQLUpdate(query);
