@@ -70,13 +70,14 @@ public void OnPluginStart()
 	hCvarEnableAutoRemoveLobby = CreateConVar("join_enable_autoremovelobby", "0", "大厅满了是否自动删除大厅", _, true, 0.0, true, 1.0);
 	hCvarKickFamilyAccount = CreateConVar("join_enable_kickfamilyaccount", "1", "是否开启踢出家庭共享账户", _, true, 0.0, true, 1.0);
 	hCvarLobbyControl = CreateConVar("join_enable_autolobbycontrol", "0", "是否开启自动大厅控制，战役模式开启好友大厅，对抗模式开启公共大厅（server.cfg中删去sv_steamgroup_exclusive）", _, true, 0.0, true, 1.0);
-	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "1", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 4.0);
+	hCvarEnableAutoupdate = CreateConVar("join_autoupdate", "0", "是否开启AnneHappy核心插件自动更新（不常更新插件包的建议关闭）", _, true, 0.0, true, 4.0);
 	hCvarSvAllowLobbyCo = FindConVar("sv_allow_lobby_connect_only");
 	hCvarSteamgroupExclusive = FindConVar("sv_steamgroup_exclusive");
 	hCvarGamemode = FindConVar("mp_gamemode");
 	hCvarMotdTitle = CreateConVar("sm_cfgmotd_title", "AnneHappy电信服");
 	hCvarMotdUrl = CreateConVar("sm_cfgmotd_url", "http://dl.trygek.com/l4d_stats/index.php");  // 以后更换为数据库控制
 	hCvarIPUrl = CreateConVar("sm_cfgip_url", "http://dl.trygek.com/index.php");	// 以后更换为数据库控制
+	hCvarEnableAutoupdate.AddChangeHook(UpdateStatuChange);
 	hCvarGamemode.AddChangeHook(GamemodeChange);
 	hCvarLobbyControl.AddChangeHook(GamemodeChange);
 	RegConsoleCmd("sm_away", AFKTurnClientToSpe);
@@ -102,6 +103,28 @@ public void OnPluginStart()
 	HookEvent("player_disconnect", PlayerDisconnect_Event, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
 	ChangeLobby();
+}
+
+public void UpdateStatuChange(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if(g_bUpdateSystemAvailable && hCvarEnableAutoupdate.IntValue){
+		if(hCvarEnableAutoupdate.IntValue == 1)
+		{
+			Updater_AddPlugin(UPDATE_URL_ANNEALL);
+		}	
+		else if(hCvarEnableAutoupdate.IntValue == 2)
+		{
+			Updater_AddPlugin(UPDATE_URL_NEKO);
+		}else if(hCvarEnableAutoupdate.IntValue == 3)
+		{
+			Updater_AddPlugin(UPDATE_URL_VERSUS);
+		}
+		else if(hCvarEnableAutoupdate.IntValue == 4)
+		{
+			Updater_AddPlugin(UPDATE_URL_ANNE);
+		}
+		Updater_ForceUpdate();
+	}
 }
 
 public void GamemodeChange(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -177,7 +200,7 @@ public void OnLibraryAdded(const char[] name)
 public void OnLibraryRemoved(const char[] name)
 {
     if ( StrEqual(name, "veterans") ) { g_bGroupSystemAvailable = false; }
-	else if (StrEqual(name, "updater")){ g_bUpdateSystemAvailable = false; }
+	else if (StrEqual(name, "updater")){ g_bUpdateSystemAvailable = false; Updater_RemovePlugin();}
 }
 
 public void SteamWorks_OnValidateClient(int ownerauthid, int authid)

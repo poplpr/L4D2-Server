@@ -179,7 +179,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 					&& actionPercent <= g_iActionArray[ACTION_JUMP_HIGH])
 				{
 					// 高跳
-					angles[0] = getRandomFloatInRange(45.0, 75.0) * -1.0;
+					angles[0] = getRandomFloatInRange(35.0, 50.0) * -1.0;
 					TeleportEntity(jockey, NULL_VECTOR, angles, NULL_VECTOR);
 					buttons |= IN_ATTACK;
 					SetState(jockey, 0, IN_ATTACK);
@@ -198,8 +198,8 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 				float eyeAngles[3] = {0.0}, eyeAngleVec[3] = {0.0};
 				GetClientEyeAngles(jockey, eyeAngles);
 				// 50% 概率向左向右跳
-				if (getRandomIntInRange(0, 1)) { eyeAngles[1] += getRandomIntInRange(30, 180); }
-				else { eyeAngles[1] -= getRandomIntInRange(30, 180); }
+				if (getRandomIntInRange(0, 1)) { eyeAngles[1] += getRandomIntInRange(10, 45); }
+				else { eyeAngles[1] -= getRandomIntInRange(10, 45); }
 				GetAngleVectors(eyeAngles, eyeAngleVec, NULL_VECTOR, NULL_VECTOR);
 				NormalizeVector(eyeAngleVec, eyeAngleVec);
 				eyeAngleVec[2] = 0.0;

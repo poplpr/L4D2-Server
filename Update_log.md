@@ -187,12 +187,14 @@ PS：这种处理方式相比原来的换成写实处理有以下几点好处
 - 增加一个Nav记录队列，限制特感不生成在同一个nav区域
 - 确认为跑男的距离由1000更改为1200，更改刷特插件踢出死亡特感方式（感谢树树子）
 - 当刷特生成距离大于等于最大生成距离时，不再要求在同一块navid，防止卡特
+- nav区域间要大于100码
+- 修改了nav_build_path条件
 
 #### ai_jockey_2插件
-- 猴子空中往后看删除，空中修正删除
+- 同步上游更新并修改合理设置
 
 #### l4d_stats 插件
-- 地图记录功能数据库新增4列，分别是sinum(特感数量), sitime(特感生成时间), mode(1 Anne 2 WitchParty 3 AllCharger 4 Alone 5 1vht), usebuy(1用了商店, 0没用商店)
+- 地图记录功能数据库新增5列，分别是sinum(特感数量), sitime(特感生成时间), mode(1 Anne 2 WitchParty 3 AllCharger 4 Alone 5 1vht), usebuy(1用了商店, 0没用商店), anneversion 完成使用的Anne版本
 - 未开局团灭不扣分
 
 #### rpg插件

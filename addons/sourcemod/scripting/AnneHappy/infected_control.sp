@@ -417,9 +417,11 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	if (IsInfectedBot(client))
 	{
 		int type = GetEntProp(client, Prop_Send, "m_zombieClass");
-		//口水不踢，防止无声口水
-		if(type != 4)
-			RequestFrame(nextFrameKickBotHandler, client);
+		//防止无声口水
+		if (type != ZC_SPITTER)
+		{
+			CreateTimer(0.5, Timer_KickBot, client);
+		}
 		if(type >= 1 && type <=6){
 			if(g_iSINum[type - 1] > 0)
 			{
@@ -442,11 +444,14 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	}	
 }
 
-public void nextFrameKickBotHandler(int client)
+public Action Timer_KickBot(Handle timer, int client)
 {
-	if (!IsValidInfected(client) || !IsFakeClient(client) || IsClientInKickQueue(client)) { return; }
-	KickClientEx(client, "踢出死亡感染者");
-	g_iTeleCount[client] = 0;
+	if (IsClientInGame(client) && !IsClientInKickQueue(client) && IsFakeClient(client))
+	{
+		//Debug_Print("踢出特感%N",client);
+		KickClient(client, "You are worthless and was kicked by console");
+	}
+	return Plugin_Continue;
 }
 
 // *********************
