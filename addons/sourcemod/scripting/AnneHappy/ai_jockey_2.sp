@@ -282,13 +282,13 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 				{
 					//重新设置方向
 					MakeVectorFromPoints(fJockeyPos, fTargetPos, new_velvec);
-					GetVectorAngles(new_velvec, fAngles);
+					//GetVectorAngles(new_velvec, fAngles);
 					NormalizeVector(new_velvec, new_velvec);
-					NegateVector(new_velvec);
+					//NegateVector(new_velvec);
 					// 按照原来速度向量长度 + 缩放长度缩放修正后的速度向量，觉得太阴间了可以修改
 					ScaleVector(new_velvec, fCurrentSpeed * 0.9);
 					//PrintToConsoleAll("方向夹角为： %f,强制转向后的速度: %f", fAngleDifference, GetVectorLength(new_velvec));
-					TeleportEntity(jockey, NULL_VECTOR, fAngles, new_velvec);
+					TeleportEntity(jockey, NULL_VECTOR, NULL_VECTOR, new_velvec);
 				}
 			}
 		}

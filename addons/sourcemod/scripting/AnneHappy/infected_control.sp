@@ -33,7 +33,7 @@
 // Spitter吐口水之后能传送的时间
 #define SPIT_INTERVAL 2.0
 //确认为跑男的距离
-#define RushManDistance 1500.0
+#define RushManDistance 1200.0
 
 stock const char InfectedName[10][] =
 {
@@ -592,7 +592,7 @@ stock bool GetSpawnPos(float fSpawnPos[3], int g_iTargetSurvivor, float SpawnDis
 		// 找位条件，可视，是否在有效 NavMesh，是否卡住，否则先会判断是否在有效 Mesh 与是否卡住导致某些位置刷不出特感
 		int count2=0;
 		//生成的时候只能在有跑男情况下才特意生成到幸存者前方
-		while (PlayerVisibleToSDK(fSpawnPos, IsTeleport) || !IsOnValidMesh(fSpawnPos) || IsPlayerStuck(fSpawnPos) || ((g_bPickRushMan || IsTeleport) && !Is_Pos_Ahead(fSpawnPos, g_iTargetSurvivor)))
+		while (PlayerVisibleToSDK(fSpawnPos, IsTeleport) || !IsOnValidMesh(fSpawnPos, IsTeleport) || IsPlayerStuck(fSpawnPos) || ((g_bPickRushMan || IsTeleport) && !Is_Pos_Ahead(fSpawnPos, g_iTargetSurvivor)))
 		{
 			count2++;
 			if(count2 > 30)
@@ -901,10 +901,19 @@ bool IsInfectedBot(int client)
 	}
 }
 
-bool IsOnValidMesh(float fReferencePos[3])
+bool IsOnValidMesh(float fReferencePos[3], bool IsTeleport = false)
 {
 	Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
-	if (pNavArea != Address_Null && !Is_Nav_already_token(pNavArea))
+	float distance = g_fSpawnDistanceMin;
+	if(IsTeleport)
+	{
+		distance = g_fTeleportDistance;
+	}
+	else
+	{
+		distance = g_fSpawnDistance;
+	}
+	if (pNavArea != Address_Null && (distance >= g_fSpawnDistanceMax || !Is_Nav_already_token(pNavArea)))
 	{
 		return true;
 	}
