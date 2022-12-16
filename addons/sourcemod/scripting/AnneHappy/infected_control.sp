@@ -59,7 +59,7 @@ public Plugin myinfo =
 	name 			= "Direct InfectedSpawn",
 	author 			= "Caibiii, 夜羽真白，东",
 	description 	= "特感刷新控制，传送落后特感",
-	version 		= "2022.12.15",
+	version 		= "2022.12.16",
 	url 			= "https://github.com/fantasylidong/CompetitiveWithAnne"
 }
 
@@ -846,6 +846,7 @@ public Action SpawnNewInfected(Handle timer)
 		if (g_iSiLimit == g_iSpawnMaxCount){
 			g_iWaveTime++;
 			Debug_Print("开始第%d波刷特", g_iWaveTime);
+			BypassAndExecuteCommand("nb_assault");
 		}
 			
 		// 当一定时间内刷不出特感，触发时钟使 g_iSpawnMaxCount 超过 g_iSiLimit 值时，最多允许刷出 g_iSiLimit + 2 只特感，防止连续刷 2-3 波的情况
@@ -853,12 +854,20 @@ public Action SpawnNewInfected(Handle timer)
 		{
 
 			g_iSpawnMaxCount = g_iSiLimit;
-			
+			BypassAndExecuteCommand("nb_assault");
 			Debug_Print("当前特感数量达到上限");
 		}
 
 	}
 	return Plugin_Continue;
+}
+
+stock void BypassAndExecuteCommand(char []strCommand)
+{
+	int flags = GetCommandFlags(strCommand);
+	SetCommandFlags(strCommand, flags & ~ FCVAR_CHEAT);
+	FakeClientCommand(GetRandomSurvivor(), "%s", strCommand);
+	SetCommandFlags(strCommand, flags);
 }
 
 // 开局重置特感状态
