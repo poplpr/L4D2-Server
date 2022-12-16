@@ -167,7 +167,7 @@ void Event_AbilityUse(Event event, const char[] name, bool dontBroadcast) {
 	static char ability[16];
 	event.GetString("ability", ability, sizeof ability);
 	if (strcmp(ability, "ability_lunge") == 0)
-		Hunter_OnPounce(client);
+		HunterPounce(client);
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons) {
@@ -221,19 +221,19 @@ float NearestSurDistance(int client, const float vPos[3]) {
 	return minDist;
 }
 
-void Hunter_OnPounce(int client) {
-	static int ent;
+void HunterPounce(int client) {
+	static int iEnt;
 	static float vPos[3];
 	GetClientAbsOrigin(client, vPos);
 	if (g_fWallDetectionDistance > 0.0 && HitWall(client, vPos)) {
-		ent = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-		AngleLunge(ent, Math_GetRandomInt(0, 1) ? 45.0 : 315.0);
+		iEnt = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+		AngleLunge(iEnt, Math_GetRandomInt(0, 1) ? 45.0 : 315.0);
 	}
 	else {
-		if (IsBeingWatched(client, g_fAimOffsetSensitivityHunter) && NearestSurDistance(client, vPos) > g_fStraightPounceProximity) {
-			ent = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-			AngleLunge(ent, GaussianRNG(g_fPounceAngleMean, g_fPounceAngleStd));
-			LimitLungeVerticality(ent);
+		if (WithinViewAngle(client, g_fAimOffsetSensitivityHunter)/*IsBeingWatched(client, g_fAimOffsetSensitivityHunter)*/ && NearestSurDistance(client, vPos) > g_fStraightPounceProximity) {
+			iEnt = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+			AngleLunge(iEnt, GaussianRNG(g_fPounceAngleMean, g_fPounceAngleStd));
+			LimitLungeVerticality(iEnt);
 		}	
 	}
 }
@@ -265,22 +265,10 @@ bool HitWall(int client, float vStart[3]) {
 	return false;
 }
 
-bool TraceEntityFilter(int entity, int contentsMask) {
-	if (!entity || entity > MaxClients) {
-		static char cls[5];
-		GetEdictClassname(entity, cls, sizeof cls);
-		return cls[3] != 'e' && cls[3] != 'c';
-	}
-
-	return false;
-}
-
-bool IsBeingWatched(int client, float offsetThreshold) {
+stock bool IsBeingWatched(int client, float offsetThreshold) {
 	static int target;
-	if (IsAliveSur((target = GetClientAimTarget(client))) && GetPlayerAimOffset(client, target) > offsetThreshold)
-		return false;
-
-	return true;
+	target = GetClientAimTarget(client);
+	return !IsAliveSur(target) || GetPlayerAimOffset(client, target) <= offsetThreshold;
 }
 
 float GetPlayerAimOffset(int client, int target) {
@@ -301,9 +289,9 @@ float GetPlayerAimOffset(int client, int target) {
 	return RadToDeg(ArcCosine(GetVectorDotProduct(vAng, vDir)));
 }
 
-void AngleLunge(int ent, float turnAngle) {
+void AngleLunge(int iEnt, float turnAngle) {
 	static float vLunge[3];
-	GetEntPropVector(ent, Prop_Send, "m_queuedLunge", vLunge);
+	GetEntPropVector(iEnt, Prop_Send, "m_queuedLunge", vLunge);
 	turnAngle = DegToRad(turnAngle);
 
 	static float vForcedLunge[3];
@@ -311,12 +299,12 @@ void AngleLunge(int ent, float turnAngle) {
 	vForcedLunge[1] = vLunge[0] * Sine(turnAngle) + vLunge[1] * Cosine(turnAngle);
 	vForcedLunge[2] = vLunge[2];
 
-	SetEntPropVector(ent, Prop_Send, "m_queuedLunge", vForcedLunge);
+	SetEntPropVector(iEnt, Prop_Send, "m_queuedLunge", vForcedLunge);
 }
 
-void LimitLungeVerticality(int ent) {
+void LimitLungeVerticality(int iEnt) {
 	static float vLunge[3];
-	GetEntPropVector(ent, Prop_Send, "m_queuedLunge", vLunge);
+	GetEntPropVector(iEnt, Prop_Send, "m_queuedLunge", vLunge);
 
 	static float fVertAngle;
 	fVertAngle = DegToRad(g_fPounceVerticalAngle);
@@ -327,7 +315,7 @@ void LimitLungeVerticality(int ent) {
 	vFlatLunge[0] = vLunge[0] * Cosine(fVertAngle) + vLunge[2] * Sine(fVertAngle);
 	vFlatLunge[2] = vLunge[0] * -Sine(fVertAngle) + vLunge[2] * Cosine(fVertAngle);
 	
-	SetEntPropVector(ent, Prop_Send, "m_queuedLunge", vFlatLunge);
+	SetEntPropVector(iEnt, Prop_Send, "m_queuedLunge", vFlatLunge);
 }
 
 /** 
@@ -367,37 +355,112 @@ bool IsAliveSur(int client) {
 }
 
 // https://github.com/bcserv/smlib/blob/transitional_syntax/scripting/include/smlib/math.inc
-/**
- * Returns a random, uniform Integer number in the specified (inclusive) range.
- * This is safe to use multiple times in a function.
- * The seed is set automatically for each plugin.
- * Rewritten by MatthiasVance, thanks.
- *
- * @param min			Min value used as lower border
- * @param max			Max value used as upper border
- * @return				Random Integer number between min and max
- */
-int Math_GetRandomInt(int min, int max)
-{
+#define SIZE_OF_INT	2147483647 // without 0
+int Math_GetRandomInt(int min, int max) {
 	int random = GetURandomInt();
-
-	if (random == 0) {
+	if (random == 0)
 		random++;
+
+	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
+}
+
+float Math_GetRandomFloat(float min, float max) {
+	return (GetURandomFloat() * (max  - min)) + min;
+}
+
+bool WithinViewAngle(int client, float offsetThreshold) {
+	static int target;
+	target = GetClientAimTarget(client);
+	if (!IsAliveSur(target))
+		return true;
+	
+	static float vSrc[3];
+	static float vTar[3];
+	static float vAng[3];
+	GetClientEyePosition(target, vSrc);
+	GetClientEyePosition(client, vTar);
+	if (IsVisibleTo(vSrc, vTar)) {
+		GetClientEyeAngles(target, vAng);
+		return PointWithinViewAngle(vSrc, vTar, vAng, GetFOVDotProduct(offsetThreshold));
 	}
 
-	return RoundToCeil(float(random) / (float(2147483647) / float(max - min + 1))) + min - 1;
+	return false;
+}
+
+// credits = "AtomicStryker"
+bool IsVisibleTo(const float vPos[3], const float vTarget[3]) {
+	static float vLookAt[3];
+	MakeVectorFromPoints(vPos, vTarget, vLookAt);
+	GetVectorAngles(vLookAt, vLookAt);
+
+	static Handle hndl;
+	hndl = TR_TraceRayFilterEx(vPos, vLookAt, MASK_VISIBLE, RayType_Infinite, TraceEntityFilter);
+
+	static bool isVisible;
+	isVisible = false;
+	if (TR_DidHit(hndl)) {
+		static float vStart[3];
+		TR_GetEndPosition(vStart, hndl);
+
+		if ((GetVectorDistance(vPos, vStart, false) + 25.0) >= GetVectorDistance(vPos, vTarget))
+			isVisible = true;
+	}
+
+	delete hndl;
+	return isVisible;
+}
+
+bool TraceEntityFilter(int entity, int contentsMask) {
+	if (!entity || entity > MaxClients) {
+		static char cls[5];
+		GetEdictClassname(entity, cls, sizeof cls);
+		return cls[3] != 'e' && cls[3] != 'c';
+	}
+
+	return false;
+}
+
+// https://github.com/nosoop/stocksoup
+
+/**
+ * Checks if a point is in the field of view of an object.  Supports up to 180 degree FOV.
+ * I forgot how the dot product stuff works.
+ * 
+ * Direct port of the function of the same name from the Source SDK:
+ * https://github.com/ValveSoftware/source-sdk-2013/blob/beaae8ac45a2f322a792404092d4482065bef7ef/sp/src/public/mathlib/vector.h#L461-L477
+ * 
+ * @param vecSrcPosition	Source position of the view.
+ * @param vecTargetPosition	Point to check if within view angle.
+ * @param vecLookDirection	The direction to look towards.  Note that this must be a forward
+ * 							angle vector.
+ * @param flCosHalfFOV		The width of the forward view cone as a dot product result. For
+ * 							subclasses of CBaseCombatCharacter, you can use the
+ * 							`m_flFieldOfView` data property.  To manually calculate for a
+ * 							desired FOV, use `GetFOVDotProduct(angle)` from math.inc.
+ * @return					True if the point is within view from the source position at the
+ * 							specified FOV.
+ */
+bool PointWithinViewAngle(const float vecSrcPosition[3], const float vecTargetPosition[3], const float vecLookDirection[3], float flCosHalfFOV) {
+	static float vecDelta[3];
+	SubtractVectors(vecTargetPosition, vecSrcPosition, vecDelta);
+	static float cosDiff;
+	cosDiff = GetVectorDotProduct(vecLookDirection, vecDelta);
+	if (cosDiff < 0.0)
+		return false;
+
+	// a/sqrt(b) > c  == a^2 > b * c ^2
+	return cosDiff * cosDiff >= GetVectorLength(vecDelta, true) * flCosHalfFOV * flCosHalfFOV;
 }
 
 /**
- * Returns a random, uniform Float number in the specified (inclusive) range.
- * This is safe to use multiple times in a function.
- * The seed is set automatically for each plugin.
+ * Calculates the width of the forward view cone as a dot product result from the given angle.
+ * This manually calculates the value of CBaseCombatCharacter's `m_flFieldOfView` data property.
  *
- * @param min			Min value used as lower border
- * @param max			Max value used as upper border
- * @return				Random Float number between min and max
+ * For reference: https://github.com/ValveSoftware/source-sdk-2013/blob/master/sp/src/game/server/hl2/npc_bullseye.cpp#L151
+ *
+ * @param angle     The FOV value in degree
+ * @return          Width of the forward view cone as a dot product result
  */
-float Math_GetRandomFloat(float min, float max)
-{
-	return (GetURandomFloat() * (max  - min)) + min;
+float GetFOVDotProduct(float angle) {
+	return Cosine(DegToRad(angle) / 2.0);
 }

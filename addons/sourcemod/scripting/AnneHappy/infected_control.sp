@@ -21,6 +21,11 @@
 #define NAV_MESH_HEIGHT 20.0
 #define PLAYER_HEIGHT 72.0
 #define PLAYER_CHEST 45.0
+// 生成NAV之间nav距离应该大于 NAV_DISTANCE
+#define NAV_DISTANCE 100.0
+#define HIGHERPOS 500.0
+#define HIGHERPOSMULT 1.9
+#define NORMALPOSMULT 1.4
 
 // 启用特感类型
 #define ENABLE_SMOKER			(1 << 0)		
@@ -472,7 +477,7 @@ public void OnGameFrame()
 			aSpawnQueue.Set(g_iQueueIndex, zombieclass, 0, false);
 			g_ArraySIlimit[zombieclass - 1] -= 1;
 			g_iQueueIndex += 1;
-			Debug_Print("<刷特队列> 当前入队特感：%s，当前队列长度：%d，当前队列索引位置：%d", InfectedName[zombieclass], aSpawnQueue.Length, g_iQueueIndex);
+			//Debug_Print("<刷特队列> 当前入队特感：%s，当前队列长度：%d，当前队列索引位置：%d", InfectedName[zombieclass], aSpawnQueue.Length, g_iQueueIndex);
 		}
 	}
 	if (g_bIsLate)
@@ -619,7 +624,7 @@ stock bool Is_Nav_already_token(Address nav)
 {
 	for(int i = 0; i < aSpawnNavList.Length; i++)
 	{
-		if(nav == aSpawnNavList.Get(i))
+		if(nav == aSpawnNavList.Get(i) || L4D2_NavAreaBuildPath(nav, aSpawnNavList.Get(i), NAV_DISTANCE, TEAM_INFECTED, false))
 			return true;
 	}
 	return false;
@@ -652,8 +657,18 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 		//获取nav地址
 		Address nav1 = L4D_GetNearestNavArea(fSpawnPos, 120.0, false, false, false, TEAM_INFECTED);
 		Address nav2 = L4D_GetNearestNavArea(fSurvivorPos, 120.0, false, false, false, TEAM_INFECTED);
-		//nav1 和 nav2 必须有网格相连的路，并且生成距离大于SpawnDistance，增加不能是通nav网格的要求
-		if (L4D2_NavAreaBuildPath(nav1, nav2, SpawnDistance * 1.73, TEAM_INFECTED, false) && GetVectorDistance(fSurvivorPos, fSpawnPos) >= g_fSpawnDistanceMin && nav1 != nav2)
+
+		//这一段是对高处生成位置进行的补偿
+		float distance = SpawnDistance;
+		if(fSpawnPos[2] - fSpawnPos[2] > HIGHERPOS)
+		{
+			distance *= HIGHERPOSMULT;
+		}else
+		{
+			distance *= NORMALPOSMULT;
+		}
+		//nav1 和 nav2 必须有网格相连的路，并且生成距离大于distance，增加不能是同nav网格的要求
+		if (L4D2_NavAreaBuildPath(nav1, nav2, distance, TEAM_INFECTED, false) && GetVectorDistance(fSurvivorPos, fSpawnPos) >= g_fSpawnDistanceMin && nav1 != nav2)
 		{
 			if (iZombieClass > 0 && !HasReachedLimit(iZombieClass) && CheckSIOption(iZombieClass))
 			{
