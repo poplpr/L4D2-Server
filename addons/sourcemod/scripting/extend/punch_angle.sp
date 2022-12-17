@@ -2,11 +2,12 @@
 #pragma newdecls required
 #include <sourcemod>
 #include <dhooks>
-
+#undef REQUIRE_PLUGIN
+#include <rpg>
 #define PLUGIN_NAME				"Punch Angle"
-#define PLUGIN_AUTHOR			"sorallll"
+#define PLUGIN_AUTHOR			"sorallll, 东"
 #define PLUGIN_DESCRIPTION		"去除开枪抖动"
-#define PLUGIN_VERSION			"1.0.0"
+#define PLUGIN_VERSION			"1.1.0"
 #define PLUGIN_URL				""
 
 #define GAMEDATA				"punch_angle"
@@ -21,6 +22,28 @@ public Plugin myinfo = {
 	version = PLUGIN_VERSION,
 	url = PLUGIN_URL
 };
+bool
+	g_bRPGSystemAvailable = false;
+
+//Startup
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	//API
+	RegPluginLibrary("punch_angle");
+	return APLRes_Success;
+}
+
+public void OnAllPluginsLoaded(){
+	g_bRPGSystemAvailable = LibraryExists("rpg");
+}
+public void OnLibraryAdded(const char[] name)
+{
+    if ( StrEqual(name, "rpg") ) { g_bRPGSystemAvailable = true; }
+}
+public void OnLibraryRemoved(const char[] name)
+{
+    if ( StrEqual(name, "rpg") ) { g_bRPGSystemAvailable = false; }
+}
 
 public void OnPluginStart() {
 	char buffer[PLATFORM_MAX_PATH];
@@ -56,7 +79,7 @@ MRESReturn DD_CBasePlayer_SetPunchAngle_Pre(int pThis, DHookReturn hReturn, DHoo
 	/*if (pThis < 1 || pThis > MaxClients || !IsClientInGame(pThis))
 		return MRES_Ignored;*/
 
-	if (GetClientTeam(pThis) != 2 || !IsPlayerAlive(pThis))
+	if (GetClientTeam(pThis) != 2 || !IsPlayerAlive(pThis) || (g_bRPGSystemAvailable && L4D_RPG_GetValue(pThis ,INDEX_RECOIL)))
 		return MRES_Ignored;
 
 	hReturn.Value = 0;

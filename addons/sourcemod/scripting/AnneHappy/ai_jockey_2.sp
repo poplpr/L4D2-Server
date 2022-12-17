@@ -12,7 +12,7 @@
 #define BACK_JUMP_DIST 70.0
 #define FREEZE_MAX_TIME 0.8
 #define SHOVE_INTERVAL 1.0
-#define DEBUG_ALL 1
+#define DEBUG_ALL 0
 
 enum AimType
 {
@@ -105,9 +105,8 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 	}
 	if (!bHasSight || !IsValidSurvivor(iTarget) || !IsPlayerAlive(iTarget) || g_bHasBeenShoved[jockey]) { return Plugin_Continue; }
 	// 当前 Jockey 有效，目标有效，进行其他操作
-	float fBuffer[3] = {0.0}, fTargetPos[3] = {0.0}, fDistance = NearestSurvivorDistance(jockey);
+	float fTargetPos[3] = {0.0}, fDistance = NearestSurvivorDistance(jockey);
 	GetClientAbsOrigin(iTarget, fTargetPos);
-	fBuffer = UpdatePosition(jockey, iTarget, g_hBhopSpeed.FloatValue);
 	// 当前速度不大于 130.0 或距离大于 StartHopDistance，不进行操作
 	if (fCurrentSpeed <= 130.0 || fDistance > g_hStartHopDistance.FloatValue) { return Plugin_Continue; }
 	if (iFlags & FL_ONGROUND)
@@ -137,7 +136,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 				SubtractVectors(fTargetPos, fJockeyPos, subtractVec);
 				NormalizeVector(subtractVec, subtractVec);
 				GetVectorAngles(subtractVec, eyeAngleVec);
-				ScaleVector(subtractVec, g_hBhopSpeed.FloatValue * 2.5);
+				ScaleVector(subtractVec, g_hBhopSpeed.FloatValue * 2.5);			
 				TeleportEntity(jockey, NULL_VECTOR, eyeAngleVec, subtractVec);
 				SetState(jockey, 0, IN_ATTACK);
 				return Plugin_Changed;
@@ -192,20 +191,21 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 		}
 		else
 		{
+			float eyeAngles[3] = {0.0}, eyeAngleVec[3] = {0.0};
+			SubtractVectors(fTargetPos, fJockeyPos, eyeAngleVec);
+			GetVectorAngles(eyeAngleVec, eyeAngles);
 			// Jockey 和生还者距离超过 SPECIAL_JUMP_DIST，正常连跳靠近生还者
 			if (IsTargetWatchingAttacker(jockey, iTarget, g_hSpecialJumpAngle.IntValue))
-			{
-				float eyeAngles[3] = {0.0}, eyeAngleVec[3] = {0.0};
-				GetClientEyeAngles(jockey, eyeAngles);
+			{				
 				// 50% 概率向左向右跳
-				if (getRandomIntInRange(0, 1)) { eyeAngles[1] += getRandomIntInRange(10, 45); }
-				else { eyeAngles[1] -= getRandomIntInRange(10, 45); }
+				if (getRandomIntInRange(0, 1)) { eyeAngles[1] += getRandomIntInRange(10, 30); }
+				else { eyeAngles[1] -= getRandomIntInRange(10, 30); }
 				GetAngleVectors(eyeAngles, eyeAngleVec, NULL_VECTOR, NULL_VECTOR);
 				NormalizeVector(eyeAngleVec, eyeAngleVec);
 				eyeAngleVec[2] = 0.0;
-				ScaleVector(eyeAngleVec, g_hBhopSpeed.FloatValue);
+				ScaleVector(eyeAngleVec, fCurrentSpeed + g_hBhopSpeed.FloatValue);
 				buttons |= IN_JUMP;
-				if (jockeyDoBhop(jockey, buttons, eyeAngleVec))
+				if (jockeyDoBhop(jockey, buttons, eyeAngles, eyeAngleVec))
 				{
 					SetState(jockey, 0, IN_JUMP);
 					#if DEBUG_ALL
@@ -214,9 +214,13 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 				}
 				return Plugin_Changed;
 			}
-			else if (!g_bCanAttackPinned[jockey] && jockeyDoBhop(jockey, buttons, fBuffer))
+			else if (!g_bCanAttackPinned[jockey])
 			{
-				SetState(jockey, 0, IN_JUMP);
+				NormalizeVector(eyeAngleVec, eyeAngleVec);
+				eyeAngleVec[2] = 0.0;
+				ScaleVector(eyeAngleVec, fCurrentSpeed + g_hBhopSpeed.FloatValue);
+				if(jockeyDoBhop(jockey, buttons, eyeAngleVec, eyeAngleVec))
+					SetState(jockey, 0, IN_JUMP);
 				return Plugin_Changed;
 			}
 		}
@@ -424,34 +428,14 @@ int GetState(int client, int no)
 	return g_iState[client][no];
 }
 
-float[] UpdatePosition(int jockey, int target, float fForce)
-{
-	float fBuffer[3] = {0.0}, fTankPos[3] = {0.0}, fTargetPos[3] = {0.0};
-	GetClientAbsOrigin(jockey, fTankPos);
-	GetClientAbsOrigin(target, fTargetPos);
-	SubtractVectors(fTargetPos, fTankPos, fBuffer);
-	NormalizeVector(fBuffer, fBuffer);
-	ScaleVector(fBuffer, fForce);
-	fBuffer[2] = 0.0;
-	return fBuffer;
-}
-
-bool jockeyDoBhop(int client, int &buttons, float vec[3])
+bool jockeyDoBhop(int client, int &buttons, float ang[3], float vec[3])
 {
 	if (buttons & IN_FORWARD || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT)
 	{
-		ClientPush(client, vec);
+		TeleportEntity(client, NULL_VECTOR, ang, vec);
 		return true;
 	}
 	return false;
-}
-
-void ClientPush(int client, float fForwardVec[3])
-{
-	float fCurVelVec[3];
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fCurVelVec);
-	AddVectors(fCurVelVec, fForwardVec, fCurVelVec);
-	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fCurVelVec);
 }
 
 int getRandomIntInRange(int min, int max)

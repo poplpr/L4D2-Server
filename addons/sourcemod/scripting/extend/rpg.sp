@@ -5,12 +5,13 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <colors>
+#include <rpg>
 #undef REQUIRE_PLUGIN
 #include <l4dstats>
 #include <hextags>
 #include <l4d_hats>
 #include <godframecontrol>
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 #define MAX_LINE_WIDTH 64
 
 // 进行 MySQL 连接相关变量
@@ -20,6 +21,7 @@ enum struct PlayerStruct{
 	int ClientBlood;
 	int ClientMelee;
 	int ClientHat;
+	int ClientRecoil;
 	int GlowType;
 	int SkinType;
 	bool ClientFirstBuy;
@@ -35,7 +37,7 @@ bool IsAnne = false;
 int InfectedNumber=6;
 bool g_bEnableGlow = true;
 ConVar GaoJiRenJi, AllowBigGun, g_InfectedNumber, g_cShopEnable, g_hEnableGlow;
-bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false;
+bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bpunchangelSystemAvailable = false;
 //new lastpoints[MAXPLAYERS + 1];
 
 //枚举变量,修改武器消耗积分在此。
@@ -103,16 +105,52 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("rpg");
 	IsValid = CreateGlobalForward("OnValidValveChange", ET_Ignore, Param_Cell);
 	IsUseBuy = CreateGlobalForward("OnBuyValveChange", ET_Ignore, Param_Cell);
+
+	//Native
+	CreateNative("L4D_RPG_GetValue", Native_GetValue);
+	CreateNative("L4D_RPG_GetGlobalValue", Native_GetGlobalValue);
 	return APLRes_Success;
 }
-/*
-//API
-public int Native_HaveOwnTags(Handle plugin, int numParams)
+
+public any Native_GetValue(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	return IsNullString(player[client].tags.ChatTag);
+	int option = GetNativeCell(2);
+	if (client < 1 || client > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client);
+	}
+	if (!IsClientConnected(client))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not connected", client);
+	}
+	//Debug_Print("GetClientTargetNum Native called");
+	switch( view_as<TARGET_VALUE_INDEX>(option) )
+	{
+		case INDEX_POINTS:			return player[client].ClientPoints;
+		case INDEX_BLOOD:			return player[client].ClientBlood;
+		case INDEX_MELEE:			return player[client].ClientMelee;
+		case INDEX_HAT:				return player[client].ClientHat;
+		case INDEX_GLOW:			return player[client].GlowType;
+		case INDEX_SKIN:			return player[client].SkinType;
+		case INDEX_FIRSTBUY:		return player[client].ClientFirstBuy;
+		case INDEX_RECOIL:			return player[client].ClientRecoil;
+	}
+	return -1;
 }
-*/
+
+public any Native_GetGlobalValue(Handle plugin, int numParams)
+{
+	int option = GetNativeCell(1);
+	//Debug_Print("GetClientTargetNum Native called");
+	switch( view_as<TARGET_VALUE_INDEX>(option) )
+	{
+		case INDEX_VALID:		return valid;
+		case INDEX_USEBUY:			return UseBuy;
+	}
+	return -1;
+}
+
 public bool IsSurvivor(int client)
 {
     return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Survivor));
@@ -127,6 +165,7 @@ public void OnAllPluginsLoaded(){
 	g_bHatSystemAvailable = LibraryExists("l4d_hats");
 	g_bl4dstatsSystemAvailable = LibraryExists("l4d_stats");
 	g_bHextagsSystemAvailable = LibraryExists("hextags");
+	g_bpunchangelSystemAvailable = LibraryExists("punch_angle");
 }
 public void OnLibraryAdded(const char[] name)
 {
@@ -134,6 +173,7 @@ public void OnLibraryAdded(const char[] name)
 	else if ( StrEqual(name, "l4d_hats") ) { g_bHatSystemAvailable = true; }
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = true; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = true; }
+	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = true; }
 }
 public void OnLibraryRemoved(const char[] name)
 {
@@ -141,6 +181,7 @@ public void OnLibraryRemoved(const char[] name)
 	else if ( StrEqual(name, "l4d_hats") ) { g_bHatSystemAvailable = false; }
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = false; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = false; }
+	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = false; }
 }
 
 //god frame send forward implement
@@ -182,13 +223,13 @@ public void OnMapStart()
 public void  OnPluginStart()
 {
 //	LoadTranslations("menu_shop.phrases.txt");
-	HookEvent("round_start",EventRoundStart);
-	HookEvent("player_death", EventReturnBlood);
-	HookEvent("player_spawn", 	Event_Player_Spawn);
-	HookEvent("mission_lost",EventMissionLost);
-	HookEvent("map_transition", EventMapChange);
-	HookEvent("player_afk", 	Event_PlayerAFK, EventHookMode_Pre);
-	HookEvent("player_team", 	Event_PlayerDisconnectOrAFK, EventHookMode_Post);
+	HookEvent("round_start", 	EventRoundStart, 				EventHookMode_Pre);
+	HookEvent("player_death", 	EventReturnBlood, 				EventHookMode_Pre);
+	HookEvent("player_spawn", 	Event_Player_Spawn, 			EventHookMode_Pre);
+	HookEvent("mission_lost", 	EventMissionLost , 				EventHookMode_Post);
+	HookEvent("map_transition", EventMapChange, 				EventHookMode_Pre);
+	HookEvent("player_afk", 	Event_PlayerAFK, 				EventHookMode_Pre);
+	HookEvent("player_team", 	Event_PlayerDisconnectOrAFK, 	EventHookMode_Post);
 	//HookEvent("player_team", 	Event_PlayerTeam, EventHookMode_Pre);
 	g_cShopEnable =  CreateConVar("shop_enable", "0", "是否打开商店购买", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AllowBigGun = CreateConVar("rpg_allow_biggun", "0", "商店是否允许购买大枪", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -356,14 +397,6 @@ public int IsPlayerIncap(int client)
 public Action EventMapChange(Handle event, const char []name, bool dontBroadcast){
 	if(CheckAllMoney() && valid && IsAnne)
 		RewardScore();
-	for(int i=1;i<MaxClients;i++){
-		player[i].ClientPoints=500;
-		player[i].ClientFirstBuy=true;
-		player[i].CanBuy=true;
-	}
-	IsStart = false;
-	valid = true;
-	UseBuy = false;
 	return Plugin_Continue;
 }
 
@@ -373,8 +406,7 @@ public void RewardScore(){
 	char pluginsname[64];
 	int renji=0;
 	GetConVarString(FindConVar("sv_tags"), pluginsname, sizeof(pluginsname));
-	renji=GetConVarInt(FindConVar("sb_fix_enabled"));
-	if(renji){
+	if(GaoJiRenJi != null && GaoJiRenJi.IntValue == 1){
 		PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
 		return;
 	}
@@ -516,6 +548,7 @@ public void OnClientPostAdminCheck(int client)
 	player[client].GlowType = 0;
 	player[client].SkinType = 0;
 	player[client].ClientFirstBuy = true;
+	player[client].ClientRecoil = 1;
 	player[client].CanBuy=true;
 	player[client].ClientPoints = 500;
 	player[client].Check = false;
@@ -644,7 +677,7 @@ public void ClientSaveToFileLoad(int Client)
 	char SteamID[64];
 	GetClientAuthId(Client, AuthId_Steam2,SteamID, sizeof(SteamID));
 	if(StrEqual(SteamID,"BOT"))return;
-	Format(query, sizeof(query), "SELECT MELEE_DATA,BLOOD_DATA,HAT,GLOW,SKIN,CHATTAG FROM RPG WHERE steamid = '%s'", SteamID);	
+	Format(query, sizeof(query), "SELECT MELEE_DATA,BLOOD_DATA,HAT,GLOW,SKIN,RECOIL,CHATTAG FROM RPG WHERE steamid = '%s'", SteamID);	
 	SQL_TQuery(db, ShowMelee, query, Client);
 	return;
 }
@@ -657,7 +690,7 @@ public void ClientSaveToFileCreate(int Client)
 	char SteamID[64];
 	GetClientAuthId(Client, AuthId_Steam2,SteamID, sizeof(SteamID));
 	if(StrEqual(SteamID,"BOT"))return;
-	Format(query, sizeof(query), "INSERT INTO RPG (steamid,MELEE_DATA,BLOOD_DATA,HAT,GLOW,SKIN)  VALUES ('%s',%d,%d,%d,%d,%d)", SteamID, player[Client].ClientMelee,player[Client].ClientBlood, 0, 0, 0);	
+	Format(query, sizeof(query), "INSERT INTO RPG (steamid,MELEE_DATA,BLOOD_DATA,HAT,GLOW,SKIN,RECOIL)  VALUES ('%s',%d,%d,%d,%d,%d,%d)", SteamID, 0, 0, 0, 0, 0, 1);	
 	SendSQLUpdate(query);
 	return;
 }
@@ -670,7 +703,7 @@ public void ClientSaveToFileSave(int Client)
 	char SteamID[64];
 	GetClientAuthId(Client, AuthId_Steam2,SteamID, sizeof(SteamID));
 	if(StrEqual(SteamID,"BOT"))return;
-	Format(query, sizeof(query), "UPDATE RPG SET MELEE_DATA=%d,BLOOD_DATA=%d,HAT=%d,GLOW=%d,SKIN=%d WHERE steamid = '%s'",player[Client].ClientMelee,player[Client].ClientBlood, player[Client].ClientHat, player[Client].GlowType, player[Client].SkinType, SteamID);	
+	Format(query, sizeof(query), "UPDATE RPG SET MELEE_DATA=%d,BLOOD_DATA=%d,HAT=%d,GLOW=%d,SKIN=%d,RECOIL=%d WHERE steamid = '%s'",player[Client].ClientMelee,player[Client].ClientBlood, player[Client].ClientHat, player[Client].GlowType, player[Client].SkinType, player[Client].ClientRecoil, SteamID);	
 	SendSQLUpdate(query);
 	return;
 }
@@ -700,6 +733,10 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 				CreateTimer(0.5, Timer_AutoGive, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
+	}
+	if(GaoJiRenJi != null && GaoJiRenJi.IntValue == 1){
+		PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外积分，也不会更新地图记录");
+		valid = false;
 	}
 	IsStart=true;
 	return Plugin_Stop;
@@ -737,7 +774,8 @@ public Action RpgInfo(int client,int args)
 {
 	if(IsVaildClient(client) && IsPlayerAlive(client)  )
 	{
-    	PrintToConsole(client,"melee:%d blood:%d glow:%d hat:%d skin:%d", player[client].ClientMelee, player[client].ClientBlood, player[client].GlowType, player[client].ClientHat, player[client].SkinType);
+		PrintToConsole(client,"melee:%d blood:%d glow:%d hat:%d skin:%d recoil:%d", player[client].ClientMelee, player[client].ClientBlood, player[client].GlowType, player[client].ClientHat, player[client].SkinType, player[client].ClientRecoil);
+		PrintToConsole(client,"valid:%d uesbuy:%d", valid, UseBuy);
 	}
 	return Plugin_Continue;
 }
@@ -990,23 +1028,21 @@ public void ShowMelee(Handle owner, Handle hndl, const char []error, any data)
     if (!client || hndl == INVALID_HANDLE&&IsFakeClient(client))
         return;
 
-    if (SQL_FetchRow(hndl)){
-        player[client].ClientMelee = SQL_FetchInt(hndl, 0);
-        player[client].ClientBlood = SQL_FetchInt(hndl, 1);
-        player[client].ClientHat = SQL_FetchInt(hndl, 2);
-        player[client].GlowType = SQL_FetchInt(hndl, 3);
-        player[client].SkinType = SQL_FetchInt(hndl, 4);
-        /*if(SQL_IsFieldNull(hndl,4))
-        	strcopy(player[client].tags.ChatTag,32,"NULL");
-        else*/
-        SQL_FetchString(hndl, 5, player[client].tags.ChatTag, 24);
-		//PrintToChat(client,"\x03返回的ClientMelee：%d",player[client].ClientMelee);
-		//PrintToChat(client,"\x03返回的ClientBlood：%d",player[client].ClientBlood);
-		}
-		else{
-			PrintToChat(client,"\x04新用户，正在创建数据库",player[client].ClientBlood);
-			ClientSaveToFileCreate(client);
-		}
+    if (SQL_FetchRow(hndl))
+	{
+ 		player[client].ClientMelee = SQL_FetchInt(hndl, 0);
+ 		player[client].ClientBlood = SQL_FetchInt(hndl, 1);
+ 		player[client].ClientHat = SQL_FetchInt(hndl, 2);
+ 		player[client].GlowType = SQL_FetchInt(hndl, 3);
+ 		player[client].SkinType = SQL_FetchInt(hndl, 4);
+		player[client].ClientRecoil = SQL_FetchInt(hndl, 5);
+ 		SQL_FetchString(hndl, 6, player[client].tags.ChatTag, 24);
+	}
+	else
+	{
+		PrintToChat(client,"\x04新用户，正在创建数据库");
+		ClientSaveToFileCreate(client);
+	}
 }
 //实现给予物品
 public void GiveItems(int client, char bitem[64])
@@ -1058,6 +1094,12 @@ public void BuildMenu(int client)
 			FormatEx(binfo, sizeof(binfo),  "回血技能", client); //技能菜单
 			menu.AddItem("Blood", binfo);
 		}
+		/*
+		if (g_bpunchangelSystemAvailable){
+			FormatEx(binfo, sizeof(binfo),  "枪械抖动设置", client); //技能菜单
+			menu.AddItem("Recoil", binfo);
+		}
+		*/
 		if(g_bHextagsSystemAvailable){
 			FormatEx(binfo, sizeof(binfo),  "称号菜单", client); //称号菜单
 			menu.AddItem("ChatTags", binfo);
@@ -1079,8 +1121,7 @@ public void BuildMenu(int client)
 			FormatEx(binfo, sizeof(binfo),  "生还者皮肤", client); //生还者轮廓菜单
 			menu.AddItem("Survivor_skin", binfo);
 		}
-		
-		
+				
 		menu.Display(client, 20);
 
 	}
@@ -1110,6 +1151,8 @@ public int TopMenu(Menu menu, MenuAction action, int param1, int param2)
 				Survivor_glow(param1);
 			else if( StrEqual(bitem, "Survivor_skin") )
 				Survivor_skin(param1);
+			else if( StrEqual(bitem, "Recoil") )
+				Recoil(param1);
 		}
 		case MenuAction_End:
 			delete menu;
@@ -1991,6 +2034,7 @@ public void Blood(int client)
 		menu.Display(client, 20);
 	}
 }
+
 public int Blood_back(Menu menu, MenuAction action, int param1, int param2)
 {
 	switch(action)
@@ -2009,6 +2053,52 @@ public int Blood_back(Menu menu, MenuAction action, int param1, int param2)
 				player[param1].ClientBlood=0;
 				ClientSaveToFileSave(param1);
 				PrintToChat(param1,"\x04你已经关闭了杀特回血.");
+			}
+		}
+		case MenuAction_End:
+			delete menu;
+	}
+	return 0;
+}
+
+
+//创建购买菜单>>主菜单--技能界面
+public void Recoil(int client)
+{
+	if( IsVaildClient(client) )
+	{
+		char binfo[64];
+		Menu menu = new Menu(Recoil_back);
+		if(player[client].ClientRecoil)
+			menu.SetTitle("是否开启枪械抖动,当前状态：是\n——————————");
+		else
+			menu.SetTitle("是否开启枪械抖动,当前状态：否\n——————————");
+		FormatEx(binfo, sizeof(binfo),  "是", client);
+		menu.AddItem("Yes", binfo);
+
+		FormatEx(binfo, sizeof(binfo),  "否", client);
+		menu.AddItem("No", binfo);
+		menu.Display(client, 20);
+	}
+}
+
+public int Recoil_back(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char bitem[64];
+			menu.GetItem(param2, bitem, sizeof(bitem));
+			if( StrEqual(bitem, "Yes") ){	
+				player[param1].ClientRecoil=1;
+				ClientSaveToFileSave(param1);
+				PrintToChat(param1,"\x04你已经开启了枪械抖动");
+			}
+			else {				
+				player[param1].ClientRecoil=0;
+				ClientSaveToFileSave(param1);
+				PrintToChat(param1,"\x04你已经关闭了枪械抖动.");
 			}
 		}
 		case MenuAction_End:

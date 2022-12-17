@@ -196,9 +196,11 @@ PS：这种处理方式相比原来的换成写实处理有以下几点好处
 #### l4d_stats 插件
 - 地图记录功能数据库新增5列，分别是sinum(特感数量), sitime(特感生成时间), mode(1 Anne 2 WitchParty 3 AllCharger 4 Alone 5 1vht), usebuy(1用了商店, 0没用商店), anneversion 完成使用的Anne版本
 - 未开局团灭不扣分
+- 有效检查更改为rpg插件的native
 
 #### rpg插件
 - 增加一个forward，如果有玩家b数小于500发出
+- 增加2个native，方便其他插件查看用户属性和全局属性
 
 #### L4d2-Si-Push-When-Spawn
 - 测试一个插件，特感生成在高出跳出来
@@ -221,6 +223,9 @@ l4d2_tank_announce增大tank生成时的声音
 
 #### ai_tank_2
 - 增加狡猾tank，tank会在特感生成前6秒内才会压制，和消耗冲突
+
+#### punch_angle
+- 枪械抖动增加rpg属性限制，也是通过rpg插件的native函数限制
 
 #### 其他
 - 更新Leftdhooks
