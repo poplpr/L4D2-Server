@@ -377,6 +377,14 @@ stock int IsInGhostState(int client)
 // *************************
 // 			其他类
 // *************************
+// 粗略判断本地图是不是三方图
+stock bool IsOfficalMap(){
+	char mapname[256];
+	GetCurrentMap(mapname, sizeof(mapname));
+	if(( (mapname[0]=='c') && (mapname[2]=='m') &&(mapname[4]=='_'))||((mapname[0]=='c')&&(mapname[3]=='m')&&(mapname[5]=='_')))
+		return true;
+	return false;
+}
 // 获取生还者数量，可指定是否包含 bot 和死亡的玩家
 stock int GetSurvivorCount(bool include_bot = true, bool include_death = false)
 {

@@ -5,6 +5,7 @@
 #include <builtinvotes>
 #include <colors>
 #include <left4dhooks>
+#include <treeutil>
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util_rounds>
 #undef REQUIRE_PLUGIN
@@ -108,7 +109,7 @@ bool RunVoteChecks(int client)
 		CPrintToChat(client, "%t %t", "Tag", "CannotBeCalled");
 		return false;
 	}
-	if(!Reachlimit() && GetUserAdmin(client) == INVALID_ADMIN_ID)
+	if(!Reachlimit() && GetUserAdmin(client) == INVALID_ADMIN_ID && IsOfficalMap())
 	{
 		CPrintToChat(client, "%t %t", "Tag", "RoundNotReachLimit", g_hCvarBossVotingLimit.IntValue - g_iRound);
 		return false;
