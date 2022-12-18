@@ -22,7 +22,7 @@
 #define PLAYER_HEIGHT 72.0
 #define PLAYER_CHEST 45.0
 #define HIGHERPOS 300.0
-#define HIGHERPOSMULT 2.0
+#define HIGHERPOSMULT 1.8
 #define NORMALPOSMULT 1.4
 
 // 启用特感类型
@@ -581,11 +581,11 @@ stock bool GetSpawnPos(float fSpawnPos[3], int g_iTargetSurvivor, float SpawnDis
 		//增加高度，增加刷房顶的几率
 		if(SpawnDistance < 500.0)
 		{
-			fMaxs[2] = fSurvivorPos[2] + 1000.0;
+			fMaxs[2] = fSurvivorPos[2] + 800.0;
 		}
 		else
 		{
-			fMaxs[2] = fSurvivorPos[2] + SpawnDistance + 500.0;
+			fMaxs[2] = fSurvivorPos[2] + SpawnDistance + 300.0;
 		}
 		fMins[0] = fSurvivorPos[0] - SpawnDistance;
 		fMaxs[0] = fSurvivorPos[0] + SpawnDistance;
@@ -665,7 +665,14 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 		Address nav2 = L4D_GetNearestNavArea(fSurvivorPos, 120.0, false, false, false, TEAM_INFECTED);
 
 		//这一段是对高处生成位置进行的补偿
-		float distance = SpawnDistance;
+		float distance;
+		if(IsTeleport)
+		{
+			distance = g_fTeleportDistance;
+		}else
+		{
+			distance = g_fSpawnDistance;
+		}
 		if(fSpawnPos[2] - fSurvivorPos[2] > HIGHERPOS)
 		{
 			distance *= HIGHERPOSMULT;
@@ -1203,7 +1210,13 @@ bool CanBeTeleport(int client)
 		{
 			return false;
 		}
+		// 防止无声口水
 		if(IsSpitter(client) && GetGameTime() - g_fSpitterSpitTime[client] < SPIT_INTERVAL)
+		{
+			return false;
+		}
+
+		if(GetClosetSurvivorDistance(client) < g_fSpawnDistanceMin)
 		{
 			return false;
 		}
@@ -1230,8 +1243,8 @@ public Action Timer_PositionSi(Handle timer)
 			GetClientEyePosition(client, fSelfPos);
 			if (!PlayerVisibleToSDK(fSelfPos, true))
 			{
-				// 如果特感在最远的生还者前面，或者隔生还者小于g_fSpawnDistanceMin，那肯定不需要传送
-				if (g_iTeleCount[client] > g_iTeleportCheckTime && !Is_Pos_Ahead(fSelfPos, L4D_GetHighestFlowSurvivor()) && GetClosetSurvivorDistance(client, GetClosetMobileSurvivor(client)) >= g_fSpawnDistanceMin)
+				// 如果是跑男状态，只要1s没被看到后就能传送
+				if ((g_iTeleCount[client] > g_iTeleportCheckTime || (g_bPickRushMan && g_iTeleCount[client] > 0)))
 				{
 					int type = GetInfectedClass(client);
 					if(type >= 1 && type <= 6){
@@ -1301,11 +1314,13 @@ stock bool IsSpitter(int client)
 	}
 }
 
+// 跑男定义为距离所有生还者或者特感超过RushManDistance距离
 bool CheckRushManAndAllPinned()
 {
 	bool TempRushMan = g_bPickRushMan;
 	int iSurvivors[8] = {0}, iSurvivorIndex = 0, PinnedNumber = 0;
-	float iSurvivorsOrigin[8][3], OriginTemp[3];
+	int iInfecteds[MAXPLAYERS] = {0}, iInfectedIndex = 0;
+	float fInfectedssOrigin[MAXPLAYERS][3], fSurvivorsOrigin[8][3], OriginTemp[3];
 	for (int client = 1; client <= MaxClients; client++)
 	{
 		if (IsValidSurvivor(client) && IsPlayerAlive(client))
@@ -1316,25 +1331,64 @@ bool CheckRushManAndAllPinned()
 			GetClientAbsOrigin(client, OriginTemp);
 			if(iSurvivorIndex < 8)
 			{
-				iSurvivorsOrigin[iSurvivorIndex] = OriginTemp;
+				fSurvivorsOrigin[iSurvivorIndex] = OriginTemp;
 				iSurvivors[iSurvivorIndex++] = client;
 			}		
 		}
+		else if(IsInfectedBot(client) && IsPlayerAlive(client))
+		{
+			iInfecteds[iInfectedIndex] = client;
+			GetClientAbsOrigin(client, OriginTemp);
+			fInfectedssOrigin[iInfectedIndex++] = OriginTemp;
+		}
 	}
 	int target = L4D_GetHighestFlowSurvivor();
-	if (iSurvivorIndex > 1 && IsValidClient(target))
+	if (iSurvivorIndex >= 1 && IsValidClient(target))
 	{
 		GetClientAbsOrigin(target, OriginTemp);
-		for(int i =0; i < iSurvivorIndex; i++){
-			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(iSurvivorsOrigin[i], OriginTemp) <= RushManDistance))
+		bool testSurvior = false;
+		if(iSurvivorIndex == 1)
+		{
+			testSurvior = true;
+		}
+		for(int i =0; i < iSurvivorIndex && !testSurvior; i++){
+			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(fSurvivorsOrigin[i], OriginTemp) <= RushManDistance))
 			{
-				g_bPickRushMan = false;
-				g_iRushManIndex = -1;
-				if(TempRushMan != g_bPickRushMan){
-					StartForward(g_bPickRushMan);
-				}
-				return PinnedNumber == iSurvivorIndex;
+				testSurvior = true;
+				break;
 			}
+		}
+		if(!testSurvior || g_iTotalSINum >= (g_iSiLimit / 2 + 1))
+		{
+			g_bPickRushMan = false;
+			g_iRushManIndex = -1;
+			if(TempRushMan != g_bPickRushMan){
+				StartForward(g_bPickRushMan);
+			}
+			return PinnedNumber == iSurvivorIndex;			
+		}
+		else
+		{
+			for(int i =0; i < iInfectedIndex; i++)
+			{
+				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance))
+				{
+					g_bPickRushMan = false;
+					g_iRushManIndex = -1;
+					if(TempRushMan != g_bPickRushMan){
+						StartForward(g_bPickRushMan);
+					}
+					return PinnedNumber == iSurvivorIndex;
+				}
+			}
+		}
+		if(!testSurvior)
+		{
+			Debug_Print("跑男由于和其他正常生还者过远触发")	;
+		}
+		else
+		{
+			Debug_Print("跑男由于和特感过远触发")	;
 		}
 		g_bPickRushMan = true;
 		g_iRushManIndex = target;
