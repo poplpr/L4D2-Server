@@ -89,6 +89,8 @@ void GetInterControl_Cvars(ConVar convar, const char[] oldValue, const char[] ne
 public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
 {
 	if (!IsAiJockey(jockey) || !IsPlayerAlive(jockey)) { return Plugin_Continue; }
+	if (L4D_IsPlayerStaggering(jockey) || IsPinningSurvivor(jockey))
+		return Plugin_Continue;
 	float fSpeed[3] = {0.0}, fCurrentSpeed = 0.0, fJockeyPos[3] = {0.0};
 	GetEntPropVector(jockey, Prop_Data, "m_vecVelocity", fSpeed);
 	fCurrentSpeed = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
@@ -178,7 +180,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 					&& actionPercent <= g_iActionArray[ACTION_JUMP_HIGH])
 				{
 					// 高跳
-					angles[0] = getRandomFloatInRange(30.0, 45.0) * -1.0;
+					angles[0] = getRandomFloatInRange(25.0, 40.0) * -1.0;
 					TeleportEntity(jockey, NULL_VECTOR, angles, NULL_VECTOR);
 					buttons |= IN_ATTACK;
 					SetState(jockey, 0, IN_ATTACK);
@@ -203,7 +205,10 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 				GetAngleVectors(eyeAngles, eyeAngleVec, NULL_VECTOR, NULL_VECTOR);
 				NormalizeVector(eyeAngleVec, eyeAngleVec);
 				eyeAngleVec[2] = 0.0;
-				ScaleVector(eyeAngleVec, fCurrentSpeed + g_hBhopSpeed.FloatValue);
+				float tempspeed = fCurrentSpeed;
+				if(tempspeed > 400.0)
+					tempspeed = 400.0;
+				ScaleVector(eyeAngleVec, tempspeed + g_hBhopSpeed.FloatValue);
 				buttons |= IN_JUMP;
 				if (jockeyDoBhop(jockey, buttons, eyeAngles, eyeAngleVec))
 				{
@@ -218,9 +223,15 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 			{
 				NormalizeVector(eyeAngleVec, eyeAngleVec);
 				eyeAngleVec[2] = 0.0;
-				ScaleVector(eyeAngleVec, fCurrentSpeed + g_hBhopSpeed.FloatValue);
+				float tempspeed = fCurrentSpeed;
+				if(tempspeed > 400.0)
+					tempspeed = 400.0;
+				ScaleVector(eyeAngleVec, tempspeed + g_hBhopSpeed.FloatValue);
 				if(jockeyDoBhop(jockey, buttons, eyeAngleVec, eyeAngleVec))
 					SetState(jockey, 0, IN_JUMP);
+				#if DEBUG_ALL
+					PrintToConsoleAll("[Ai-Jockey]：目标没有看着 Jockey，对着目标开始普通连跳");
+				#endif
 				return Plugin_Changed;
 			}
 		}

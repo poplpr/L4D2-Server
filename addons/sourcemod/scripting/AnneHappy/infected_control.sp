@@ -7,7 +7,6 @@
 #include <left4dhooks>
 #include <treeutil>
 #undef REQUIRE_PLUGIN
-#include <ai_smoker_new>
 #include <si_target_limit>
 
 
@@ -22,7 +21,7 @@
 #define PLAYER_HEIGHT 72.0
 #define PLAYER_CHEST 45.0
 #define HIGHERPOS 300.0
-#define HIGHERPOSMULT 1.8
+#define HIGHERPOSADDDISTANCE 400.0
 #define NORMALPOSMULT 1.4
 
 // 启用特感类型
@@ -602,7 +601,7 @@ stock bool GetSpawnPos(float fSpawnPos[3], int g_iTargetSurvivor, float SpawnDis
 		// 找位条件，可视，是否在有效 NavMesh，是否卡住，否则先会判断是否在有效 Mesh 与是否卡住导致某些位置刷不出特感
 		int count2=0;
 		//生成的时候只能在有跑男情况下才特意生成到幸存者前方
-		while (PlayerVisibleToSDK(fSpawnPos, IsTeleport) || !IsOnValidMesh(fSpawnPos, IsTeleport) || IsPlayerStuck(fSpawnPos) || ((g_bPickRushMan || IsTeleport) && !Is_Pos_Ahead(fSpawnPos, g_iTargetSurvivor)))
+		while (PlayerVisibleToSDK(fSpawnPos, IsTeleport) || !IsOnValidMesh(fSpawnPos) || IsPlayerStuck(fSpawnPos) || ((g_bPickRushMan || IsTeleport) && !Is_Pos_Ahead(fSpawnPos, g_iTargetSurvivor)))
 		{
 			count2++;
 			if(count2 > 30)
@@ -673,12 +672,17 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 		{
 			distance = g_fSpawnDistance;
 		}
-		if(fSpawnPos[2] - fSurvivorPos[2] > HIGHERPOS)
+		if(distance * (NORMALPOSMULT - 1) <= 250.0)
 		{
-			distance *= HIGHERPOSMULT;
-		}else
+			distance += 250.0;
+		}
+		else
 		{
 			distance *= NORMALPOSMULT;
+		}
+		if(fSpawnPos[2] - fSurvivorPos[2] > HIGHERPOS)
+		{
+			distance += HIGHERPOSADDDISTANCE;
 		}
 		//nav1 和 nav2 必须有网格相连的路，并且生成距离大于distance，增加不能是同nav网格的要求
 		if (L4D2_NavAreaBuildPath(nav1, nav2, distance, TEAM_INFECTED, false) && GetVectorDistance(fSurvivorPos, fSpawnPos) >= g_fSpawnDistanceMin && nav1 != nav2)
@@ -940,18 +944,9 @@ bool IsInfectedBot(int client)
 	}
 }
 
-bool IsOnValidMesh(float fReferencePos[3], bool IsTeleport = false)
+bool IsOnValidMesh(float fReferencePos[3])
 {
 	Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
-	float distance = g_fSpawnDistanceMin;
-	if(IsTeleport)
-	{
-		distance = g_fTeleportDistance;
-	}
-	else
-	{
-		distance = g_fSpawnDistance;
-	}
 	if (pNavArea != Address_Null)
 	{
 		return true;
@@ -1206,10 +1201,6 @@ bool CanBeTeleport(int client)
 {
 	if (IsInfectedBot(client) && IsClientInGame(client)&& IsPlayerAlive(client) && GetEntProp(client, Prop_Send, "m_zombieClass") != ZC_TANK && !IsPinningSomeone(client))
 	{
-		if(g_bSmokerAvailable && IsAiSmoker(client) && !IsSmokerCanUseAbility(client))
-		{
-			return false;
-		}
 		// 防止无声口水
 		if(IsSpitter(client) && GetGameTime() - g_fSpitterSpitTime[client] < SPIT_INTERVAL)
 		{
@@ -1273,7 +1264,7 @@ public Action Timer_PositionSi(Handle timer)
 							g_iTotalSINum = 0;
 						}
 						KickClient(client, "传送刷特，踢出");
-						Debug_Print("当前 <传送队列> 队列长度：%d 队列索引：%d 当前记录特感总数为：%d , 真实数量为：%d", aTeleportQueue.Length, g_iTeleportIndex, g_iTotalSINum, GetCurrentSINum());
+						//Debug_Print("当前 <传送队列> 队列长度：%d 队列索引：%d 当前记录特感总数为：%d , 真实数量为：%d", aTeleportQueue.Length, g_iTeleportIndex, g_iTotalSINum, GetCurrentSINum());
 						g_iTeleCount[client] = 0;
 					}
 				}
@@ -1358,7 +1349,7 @@ bool CheckRushManAndAllPinned()
 				break;
 			}
 		}
-		if(!testSurvior || g_iTotalSINum >= (g_iSiLimit / 2 + 1))
+		if(!testSurvior || g_iTotalSINum < (g_iSiLimit / 2 + 1))
 		{
 			g_bPickRushMan = false;
 			g_iRushManIndex = -1;
@@ -1371,7 +1362,7 @@ bool CheckRushManAndAllPinned()
 		{
 			for(int i =0; i < iInfectedIndex; i++)
 			{
-				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance))
+				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance * 1.5))
 				{
 					g_bPickRushMan = false;
 					g_iRushManIndex = -1;
@@ -1425,7 +1416,6 @@ int GetTargetSurvivor()
 				}
 			}
 		}
-		//遍历所有正常人，检测与进度最远的人的距离是否已经大于1000.0，如果是，开启针对跑男模式，否则选择随机未满目标的正常生还者
 		if (iSurvivorIndex > 0)
 		{
 			return iSurvivors[GetRandomInt(0, iSurvivorIndex - 1)];
