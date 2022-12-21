@@ -21,7 +21,7 @@
 #define PLAYER_HEIGHT 72.0
 #define PLAYER_CHEST 45.0
 #define HIGHERPOS 300.0
-#define HIGHERPOSADDDISTANCE 400.0
+#define HIGHERPOSADDDISTANCE 300.0
 #define NORMALPOSMULT 1.4
 
 // 启用特感类型
@@ -61,7 +61,7 @@ public Plugin myinfo =
 	name 			= "Direct InfectedSpawn",
 	author 			= "Caibiii, 夜羽真白，东",
 	description 	= "特感刷新控制，传送落后特感",
-	version 		= "2022.12.16",
+	version 		= "2022.12.21",
 	url 			= "https://github.com/fantasylidong/CompetitiveWithAnne"
 }
 
@@ -1211,6 +1211,13 @@ bool CanBeTeleport(int client)
 		{
 			return false;
 		}
+		
+		float fPos[3];
+		GetClientAbsOrigin(client, fPos);
+		if(Is_Pos_Ahead(fPos))
+		{
+			return false;
+		}
 		return true;
 	}
 	else
@@ -1561,7 +1568,7 @@ void GetSiLimit()
 }
 
 // 判断一个坐标是否在当前最高路程的生还者前面
-bool Is_Pos_Ahead(float refpos[3], int target)
+bool Is_Pos_Ahead(float refpos[3], int target = -1)
 {
 	int pos_flow = 0, target_flow = 0;
 	Address pNowNav = L4D2Direct_GetTerrorNavArea(refpos);
@@ -1570,7 +1577,10 @@ bool Is_Pos_Ahead(float refpos[3], int target)
 		pNowNav = view_as<Address>(L4D_GetNearestNavArea(refpos, 300.0));
 	}
 	pos_flow = Calculate_Flow(pNowNav);
-	//int target = L4D_GetHighestFlowSurvivor();
+	if(target == -1)
+	{
+		target = L4D_GetHighestFlowSurvivor();
+	}
 	if (IsValidSurvivor(target))
 	{
 		float targetpos[3] = {0.0};

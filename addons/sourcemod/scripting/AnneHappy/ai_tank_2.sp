@@ -127,9 +127,9 @@ public void OnPluginStart()
 	g_hAllowConsume = CreateConVar("ai_TankConsume", "0", "是否开启坦克消耗", CVAR_FLAG, true, 0.0, true, 1.0);
 	g_hSneakTank = CreateConVar("ai_TankSneakTime", "0", "tank会消耗到下一波生成时间小于ai_TankSneakTime,0为关闭，消耗开启的时候不启用", CVAR_FLAG, true, 0.0, true, 28.0);
 	g_hConsumeInfSub = CreateConVar("ai_TankConsumeInfSub", "1", "当前特感少于等于特感上限减去这个值的时，坦克可以消耗", CVAR_FLAG, true, 0.0);
-	g_hRayRaidus = CreateConVar("ai_TankConsumeRayRaidus", "1800", "射线找消耗位的范围，从坦克当前位置开始计算", CVAR_FLAG, true, 0.0);
-	g_hConsumeDist = CreateConVar("ai_TankConsumeDistance", "1200", "射线找到的消耗位需要离生还者这么远", CVAR_FLAG, true, 0.0);
-	g_hFindNewPosDist = CreateConVar("ai_TankFindNewConsumePosDistance", "750", "最近的生还者离坦克这么远坦克会重新找消耗位", CVAR_FLAG, true, 0.0);
+	g_hRayRaidus = CreateConVar("ai_TankConsumeRayRaidus", "1500", "射线找消耗位的范围，从坦克当前位置开始计算", CVAR_FLAG, true, 0.0);
+	g_hConsumeDist = CreateConVar("ai_TankConsumeDistance", "1000", "射线找到的消耗位需要离生还者这么远", CVAR_FLAG, true, 0.0);
+	g_hFindNewPosDist = CreateConVar("ai_TankFindNewConsumePosDistance", "600", "最近的生还者离坦克这么远坦克会重新找消耗位", CVAR_FLAG, true, 0.0);
 	g_hForceAttackDist = CreateConVar("ai_TankForceAttackDist", "350", "生还者距离坦克这么近坦克会强制攻击", CVAR_FLAG, true, 0.0);
 	g_hForceAttackProgress = CreateConVar("ai_TankForceAttackProgress", "10", "开始消耗时记录生还者路程，当超过路程加这个值时不允许消耗", CVAR_FLAG, true, 0.0);
 	g_hConsumePosRaidus = CreateConVar("ai_TankConsumePosRaidus", "100", "坦克走出了消耗位中心坐标以这个值为半径画圆的范围，会强制重新进入", CVAR_FLAG, true, 0.0);
