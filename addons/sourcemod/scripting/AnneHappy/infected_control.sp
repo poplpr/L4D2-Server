@@ -1369,7 +1369,7 @@ bool CheckRushManAndAllPinned()
 		{
 			for(int i =0; i < iInfectedIndex; i++)
 			{
-				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance * 1.5))
+				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance * 1.3))
 				{
 					g_bPickRushMan = false;
 					g_iRushManIndex = -1;
