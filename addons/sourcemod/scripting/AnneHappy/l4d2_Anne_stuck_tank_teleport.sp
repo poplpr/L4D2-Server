@@ -265,7 +265,7 @@ stock bool PlayerVisibleToSDK(float targetposition[3], bool IsTeleport = false){
 bool IsOnValidMesh(float fReferencePos[3])
 {
 	Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
-	if (pNavArea != Address_Null)
+	if (pNavArea != Address_Null && !(L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT))
 	{
 		return true;
 	}
@@ -531,7 +531,8 @@ public Action Timer_CheckRusher(Handle timer) {
 							g_iRushTimes[i] = 0;
 						}
 						else {
-							if(L4D2Direct_GetFlowDistance(tank)!= 0.0 && L4D2Direct_GetFlowDistance(i)!=0.0&& L4D2Direct_GetFlowDistance(tank)<L4D2Direct_GetFlowDistance(i) && !L4D_IsMissionFinalMap() && !SAFEDETECT_IsEntityInEndSaferoom(i) && !IsAllSurAheadTankFlow(tank))
+							Address nav = L4D_GetLastKnownArea(i);
+							if(L4D2Direct_GetFlowDistance(tank)!= 0.0 && L4D2Direct_GetFlowDistance(i)!=0.0&& L4D2Direct_GetFlowDistance(tank)<L4D2Direct_GetFlowDistance(i) && !L4D_IsMissionFinalMap() && !(L4D_GetNavArea_SpawnAttributes(nav) & CHECKPOINT) && !IsAllSurAheadTankFlow(tank))
 								g_iRushTimes[i]++;
 						}
 					}
