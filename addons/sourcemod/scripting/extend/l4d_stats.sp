@@ -11124,7 +11124,7 @@ public StopMapTiming()
 				if (enabled)
 					PlayerCounter++;
 			}
-			else if (ClientTeam == TEAM_INFECTED)
+			else if (!IsAnne && ClientTeam == TEAM_INFECTED)
 			{
 				InfectedCounter++;
 				if (GetTrieValue(MapTimingInfected, ClientID, enabled))

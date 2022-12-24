@@ -53,7 +53,7 @@ public void OnPluginStart()
 	HookEvent("player_death", player_death, EventHookMode_Post);
 	RegConsoleCmd("sm_zs", ZiSha);
 	RegConsoleCmd("sm_kill", ZiSha);
-	RegConsoleCmd("sm_killall", killall);
+	RegAdminCmd("sm_killall", killall, ADMFLAG_BAN, "处死所有玩家");
 }
 public Action player_death(Handle event, char[] name, bool dontBroadcast)
 {
