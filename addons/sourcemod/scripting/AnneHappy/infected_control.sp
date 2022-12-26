@@ -1583,10 +1583,12 @@ bool Is_Pos_Ahead(float refpos[3], int target = -1)
 	}
 	if (IsValidSurvivor(target))
 	{
-		Address pTargetNav;
+		float targetpos[3] = {0.0};
+		GetClientAbsOrigin(target, targetpos);
+		Address pTargetNav = L4D2Direct_GetTerrorNavArea(targetpos);
 		if (pTargetNav == Address_Null)
 		{
-			pTargetNav = L4D_GetLastKnownArea(target);
+			pTargetNav = view_as<Address>(L4D_GetNearestNavArea(refpos, 300.0));
 		}
 		target_flow = Calculate_Flow(pTargetNav);
 	}
