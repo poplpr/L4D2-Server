@@ -17,6 +17,14 @@
 		{
 			"message" "最新版本"
 		}
+		"exec vote/Anne/Anne22-12.cfg"
+		{
+			"message" "22-12月版本"
+		}
+		"exec vote/Anne/Anne22-11.cfg"
+		{
+			"message" "22-11月版本"
+		}
 		"exec vote/Anne/Anne22-10.cfg"
 		{
 			"message" "22-10月版本"
@@ -249,6 +257,17 @@
 		"sm_cvar versus_special_respawn_interval 20"
 		{
 			"message" "20秒"
+		}
+	}
+	"刷特模式"
+	{
+		"sm_cvar inf_EnableAutoSpawnTime 1"
+		{
+			"message" "自动时间刷特[23-01版本起有效]"
+		}
+		"sm_cvar inf_EnableAutoSpawnTime 0"
+		{
+			"message" "固定时间刷特[23-01版本起有效]"
 		}
 	}
 	"特感最低生成距离"

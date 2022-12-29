@@ -16,6 +16,7 @@ ConVar
 	g_hCvarTankBhop,
 	g_hCvarWeapon,
 	g_hCvarCoop,
+	g_hAutoSpawnTimeControl,
 	g_hCvarPluginVersion;
 
 int 
@@ -31,11 +32,12 @@ public void OnPluginStart()
 	g_hCvarInfectedTime = FindConVar("versus_special_respawn_interval");
 	g_hCvarInfectedLimit = FindConVar("l4d_infected_limit");
 	g_hCvarTankBhop = FindConVar("ai_Tank_Bhop");
+	g_hAutoSpawnTimeControl = FindConVar("inf_EnableAutoSpawnTime");
 	g_hCvarWeapon = CreateConVar("ZonemodWeapon", "0", "", 0, false, 0.0, false, 0.0);
 	g_hCvarPluginVersion = CreateConVar("AnnePluginVersion", "Latest", "Anne插件版本");
 	HookConVarChange(g_hCvarInfectedTime, Cvar_InfectedTime);
 	if(g_hCvarInfectedLimit != null)
-	HookConVarChange(g_hCvarInfectedLimit, Cvar_InfectedLimit);
+		HookConVarChange(g_hCvarInfectedLimit, Cvar_InfectedLimit);
 	if(g_hCvarTankBhop != null)
 		HookConVarChange(g_hCvarTankBhop, CvarTankBhop);
 	HookConVarChange(g_hCvarWeapon, CvarWeapon);
@@ -174,7 +176,7 @@ void printinfo(int client = 0, bool All = true){
 		
 	if(PLUGIN_VERSION[0] == '\0')
 	GetConVarString(g_hCvarPluginVersion, PLUGIN_VERSION, sizeof(PLUGIN_VERSION));
-	Format(buffer, sizeof(buffer), "%s \x03特感\x05[\x04%i特%i秒\x05] \x03电信服\x05[\x04%s\x05]", buffer, CommonLimit, CommonTime, PLUGIN_VERSION);
+	Format(buffer, sizeof(buffer), "%s \x03特感\x05[\%s%i特%i秒\x05] \x03电信服\x05[\x04%s\x05]", buffer, (g_hAutoSpawnTimeControl != null && g_hAutoSpawnTimeControl.BoolValue)?"自动":"固定", CommonLimit, CommonTime, PLUGIN_VERSION);
 	int max_dist = GetConVarInt(FindConVar("inf_SpawnDistanceMin"));
 	Format(buffer2, sizeof(buffer2), "\x03特感最近生成距离\x05[\x04%d\x05]", max_dist);
 	if(FindConVar("inf_TeleportCheckTime")){
