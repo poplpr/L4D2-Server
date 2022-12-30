@@ -27,7 +27,7 @@ bool g_bSpitterBhop, g_bInstantKill;
 #define TEAM_SURVIVOR 2
 #define TEAM_INFECTED 3
 #define ZC_SPITTER 4
-#define FL_JUMPING 65922
+
 
 public void OnPluginStart()
 {
@@ -85,13 +85,11 @@ public Action OnPlayerRunCmd(int spitter, int &buttons, int &impulse, float vel[
 		GetEntPropVector(spitter, Prop_Data, "m_vecVelocity", fSpeed);
 		fCurrentSpeed = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 		fDistance = NearestSurvivorDistance(spitter);
-		// 获取状态
-		int iFlags = GetEntityFlags(spitter);
 		if (fDistance < g_fSpitterStartBhopDistance && fCurrentSpeed > 150.0)
 		{
 			if (g_bSpitterBhop)
 			{
-				if (iFlags & FL_ONGROUND)
+				if (IsGrounded(spitter))
 				{
 					float fSpitterEyeAngles[3], fForwardVec[3];
 					GetClientEyeAngles(spitter, fSpitterEyeAngles);
@@ -105,7 +103,7 @@ public Action OnPlayerRunCmd(int spitter, int &buttons, int &impulse, float vel[
 						ClientPush(spitter, fForwardVec);
 					}
 				}
-				else if (iFlags == FL_JUMPING)
+				else
 				{
 					int iNearestTarget = NearestSurvivor(spitter);
 					// 获取位置
@@ -153,6 +151,11 @@ public Action OnPlayerRunCmd(int spitter, int &buttons, int &impulse, float vel[
 		}
 	}
 	return Plugin_Continue;
+}
+
+//是否在地上
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }
 
 public Action Timer_ForceSuicide(Handle timer, int client)

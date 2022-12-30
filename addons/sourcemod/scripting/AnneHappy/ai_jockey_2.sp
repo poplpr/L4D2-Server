@@ -96,7 +96,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 	fCurrentSpeed = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 	GetClientAbsOrigin(jockey, fJockeyPos);
 	// 获取jockey状态
-	int iFlags = GetEntityFlags(jockey), iTarget = g_bCanAttackPinned[jockey] ? GetClientAimTarget(jockey, true) : GetClosetMobileSurvivor(jockey);
+	int iTarget = g_bCanAttackPinned[jockey] ? GetClientAimTarget(jockey, true) : GetClosetMobileSurvivor(jockey);
 	bool bHasSight = view_as<bool>(GetEntProp(jockey, Prop_Send, "m_hasVisibleThreats"));
 	// 在梯子上，禁止跳与蹲
 	if (GetEntityMoveType(jockey) & MOVETYPE_LADDER)
@@ -111,7 +111,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 	GetClientAbsOrigin(iTarget, fTargetPos);
 	// 当前速度不大于 130.0 或距离大于 StartHopDistance，不进行操作
 	if (fCurrentSpeed <= 130.0 || fDistance > g_hStartHopDistance.FloatValue) { return Plugin_Continue; }
-	if (iFlags & FL_ONGROUND)
+	if (IsGrounded(jockey))
 	{
 		if (g_bCanBackVision[jockey]) { g_bCanBackVision[jockey] = false; }
 		// Jockey 距离目标的距离小于 SPECIAL_JUMP_DIST
@@ -164,13 +164,14 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 					&& (fDistance > 0.0 && fDistance <= SPECIAL_JUMP_DIST))
 				{
 					// 距离大于 BACK_JUMP_DIST 且小于 250，Jockey 向后跳
-					float subtractVec[3] = {0.0};
+					float subtractVec[3] = {0.0}, subAngel[3] = {0.0};
 					SubtractVectors(fTargetPos, fJockeyPos, subtractVec);
 					NegateVector(subtractVec);
 					NormalizeVector(subtractVec, subtractVec);
+					GetVectorAngles(subtractVec, subAngel);
 					ScaleVector(subtractVec, g_hBhopSpeed.FloatValue * 2.5);
 					buttons |= IN_JUMP;
-					TeleportEntity(jockey, NULL_VECTOR, NULL_VECTOR, subtractVec);
+					TeleportEntity(jockey, NULL_VECTOR, subAngel, subtractVec);
 					SetState(jockey, 0, IN_ATTACK);
 					#if DEBUG_ALL
 						PrintToConsoleAll("[Ai-Jockey]：目前概率：%d，Jockey 向后跳", actionPercent);
@@ -261,6 +262,10 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 		}
 	}
 	return Plugin_Continue;
+}
+
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }
 
 public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)

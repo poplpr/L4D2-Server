@@ -241,7 +241,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if (L4D_IsPlayerStaggering(client))
 			return Plugin_Continue;
 		bool bHasSight = false, bIsSurvivorFailed = true;
-		int vomit_survivor = 0, target = GetClientAimTarget(client, true), flags = GetEntityFlags(client), nearest_target = GetClosetMobileSurvivor(client), nearest_targetdist = GetClosetSurvivorDistance(client), current_seq = GetEntProp(client, Prop_Send, "m_nSequence");	sicount = GetSiCount_ExcludeTank(bIsSurvivorFailed, vomit_survivor);
+		int vomit_survivor = 0, target = GetClientAimTarget(client, true), nearest_target = GetClosetMobileSurvivor(client), nearest_targetdist = GetClosetSurvivorDistance(client), current_seq = GetEntProp(client, Prop_Send, "m_nSequence");	sicount = GetSiCount_ExcludeTank(bIsSurvivorFailed, vomit_survivor);
 		float selfpos[3] = {0.0}, eyeangles[3] = {0.0}, velbuffer[3] = {0.0}, vecspeed[3] = {0.0}, curspeed = 0.0;
 		GetClientAbsOrigin(client, selfpos);
 		GetClientEyeAngles(client, eyeangles);
@@ -274,7 +274,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// 连跳距离及防止跳过头控制，要改连跳距离改这里，默认坦克拳头长度 * 0.8 - 2500 距离允许连跳
 			if (!eTankStructure[client].bCanConsume && eTankStructure[client].fTankStopDistance <= targetdist <= 2500 && curspeed > 190.0)
 			{
-				if (g_hAllowBhop.BoolValue && (flags & FL_ONGROUND))
+				if (g_hAllowBhop.BoolValue && IsGrounded(client))
 				{
 					buttons |= IN_JUMP;
 					buttons |= IN_DUCK;
@@ -283,7 +283,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						return Plugin_Changed;
 					}
 				}
-				else if (!(flags & FL_ONGROUND))
+				else if (!IsGrounded(client))
 				{
 					float velangles[3] = {0.0}, new_velvec[3] = {0.0}, self_target_vec[3] = {0.0};
 					/* float speed_length = 0.0;
@@ -359,7 +359,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				GetAngleVectors(eyeangles, velbuffer, NULL_VECTOR, NULL_VECTOR);
 				NormalizeVector(velbuffer, velbuffer);
 				ScaleVector(velbuffer, g_hBhopSpeed.FloatValue);
-				if (g_hAllowBhop.BoolValue && (flags & FL_ONGROUND) && curspeed > 190.0)
+				if (g_hAllowBhop.BoolValue && IsGrounded(client) && curspeed > 190.0)
 				{
 					buttons |= IN_JUMP;
 					buttons |= IN_DUCK;
@@ -464,8 +464,8 @@ void NextFrame_JumpRock(int client)
 {
 	if (IsAiTank(client))
 	{
-		int flags = GetEntityFlags(client), target = GetClosetMobileSurvivor(client);
-		if (flags & FL_ONGROUND && IsValidSurvivor(target))
+		int target = GetClosetMobileSurvivor(client);
+		if (IsGrounded(client) && IsValidSurvivor(target))
 		{
 			if (!eTankStructure[client].bCanConsume)
 			{
@@ -1248,7 +1248,10 @@ int Calculate_Flow(Address pNavArea)
 	return RoundToNearest(now_nav_promixity * 100.0);
 }
 
-
+//是否在地上
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
+}
 
 // 检测坦克周围是否有梯子
 // @ Proposal by Morzlee

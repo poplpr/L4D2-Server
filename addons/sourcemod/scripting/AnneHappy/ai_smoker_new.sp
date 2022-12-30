@@ -192,7 +192,7 @@ public Action OnPlayerRunCmd(int smoker, int &buttons, int &impulse, float vel[3
 				fCurrentSpeed = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 				if (g_fDistancePercent * float(g_iTongueRange) < fDistance < 2000.0 && fCurrentSpeed > 190.0)
 				{
-					if (GetEntityFlags(smoker) & FL_ONGROUND)
+					if (IsGrounded(smoker))
 					{
 						float fSmokerEyeAngles[3], fForwardVec[3];
 						GetClientEyeAngles(smoker, fSmokerEyeAngles);
@@ -603,6 +603,11 @@ int GetRandomMobileSurvivor()
 		return survivors[GetRandomInt(0, index - 1)];
 	}
 	return 0;
+}
+
+//是否在地面
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }
 
 // 选择最近玩家

@@ -66,7 +66,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if (L4D_IsPlayerStaggering(client))
 			return Plugin_Continue;
 		bool has_sight = view_as<bool>(GetEntProp(client, Prop_Send, "m_hasVisibleThreats"));
-		int target = GetClientAimTarget(client, true), flags = GetEntityFlags(client), closet_survivor_distance = GetClosetSurvivorDistance(client), ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+		int target = GetClientAimTarget(client, true), closet_survivor_distance = GetClosetSurvivorDistance(client), ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
 		float self_pos[3] = {0.0}, target_pos[3] = {0.0}, vec_speed[3] = {0.0}, vel_buffer[3] = {0.0}, cur_speed = 0.0;
 		GetClientAbsOrigin(client, self_pos);
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", vec_speed);
@@ -100,7 +100,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					// 查找冲锋范围内是否有其他正在看着自身的玩家
 					for (int i = 0; i < ranged_index[client]; i++)
 					{
-						if (ranged_client[client][i] != target && !IsClientPinned(ranged_client[client][i]) && Is_Target_Watching_Attacker(client, ranged_client[client][i], g_hAimOffset.IntValue) && !Is_InGetUp_Or_Incapped(ranged_client[client][i]) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && (flags & FL_ONGROUND))
+						if (ranged_client[client][i] != target && !IsClientPinned(ranged_client[client][i]) && Is_Target_Watching_Attacker(client, ranged_client[client][i], g_hAimOffset.IntValue) && !Is_InGetUp_Or_Incapped(ranged_client[client][i]) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && IsGrounded(client))
 						{
 							SetCharge(client);
 							float new_target_pos[3] = {0.0};
@@ -115,7 +115,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					}
 				}
 				// 目标正在看着自身，自身可以冲锋，目标没有拿着近战，且不在倒地或起身状态时则直接冲锋，目标拿着近战，则转到 OnChooseVictim 处理，转移新目标或继续挥拳
-				else if (Is_Target_Watching_Attacker(client, target, g_hAimOffset.IntValue) && !Client_MeleeCheck(target) && !Is_InGetUp_Or_Incapped(target) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && (flags & FL_ONGROUND))
+				else if (Is_Target_Watching_Attacker(client, target, g_hAimOffset.IntValue) && !Client_MeleeCheck(target) && !Is_InGetUp_Or_Incapped(target) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && IsGrounded(client))
 				{
 					SetCharge(client);
 					buttons |= IN_ATTACK2;
@@ -139,7 +139,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					for (int i = 0; i < ranged_index[client]; i++)
 					{
 						// 循环时，由于 ranged_index 增加时，数组中一定为有效生还者，故无需判断是否是有效生还者
-						if (!IsClientPinned(ranged_client[client][i]) && Is_Target_Watching_Attacker(client, ranged_client[client][i], g_hAimOffset.IntValue) && !Is_InGetUp_Or_Incapped(ranged_client[client][i]) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && (flags & FL_ONGROUND))
+						if (!IsClientPinned(ranged_client[client][i]) && Is_Target_Watching_Attacker(client, ranged_client[client][i], g_hAimOffset.IntValue) && !Is_InGetUp_Or_Incapped(ranged_client[client][i]) && GetEntProp(ability, Prop_Send, "m_isCharging") != 1 && IsGrounded(client))
 						{
 							SetCharge(client);
 							float new_target_pos[3] = {0.0};
@@ -172,7 +172,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		int min_dist = can_attack_pinned[client] ? 60 : g_hChargeDist.IntValue;
 		if (has_sight && g_hAllowBhop.BoolValue && min_dist < closet_survivor_distance < 10000 && cur_speed > 175.0 && IsValidSurvivor(target))
 		{
-			if (flags & FL_ONGROUND)
+			if (IsGrounded(client))
 			{
 				GetClientAbsOrigin(target, target_pos);
 				vel_buffer = CalculateVel(self_pos, target_pos, g_hBhopSpeed.FloatValue);
@@ -604,4 +604,8 @@ float Get_Player_Aim_Offset(int client, int target)
 		return result_angle;
 	}
 	return -1.0;
+}
+//是否在地上
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }

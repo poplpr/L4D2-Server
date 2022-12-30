@@ -96,7 +96,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if (IsBoomer(client))
 	{
 		float self_pos[3] = {0.0}, self_eye_pos[3] = {0.0}, targetPos[3] = {0.0}, target_eye_pos[3] = {0.0}, vec_speed[3] = {0.0}, cur_speed = 0.0;
-		int flags = GetEntityFlags(client), target = GetClientAimTarget(client, true), closet_survivor_dist = GetClosetSurvivorDistance(client);
+		int target = GetClientAimTarget(client, true), closet_survivor_dist = GetClosetSurvivorDistance(client);
 		bool has_sight = view_as<bool>(GetEntProp(client, Prop_Send, "m_hasVisibleThreats"));
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", vec_speed);
 		cur_speed = SquareRoot(Pow(vec_speed[0], 2.0) + Pow(vec_speed[1], 2.0));
@@ -141,7 +141,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 		}
 		// 靠近生还者，立即喷吐
-		if ((flags & FL_ONGROUND) && IsValidSurvivor(target) && has_sight && closet_survivor_dist <= RoundToNearest(0.8 * g_hVomitRange.FloatValue) && !in_bile_interval[client] && can_bile[client] && Player_IsVisible_To(target, client))
+		if (IsGrounded(client) && IsValidSurvivor(target) && has_sight && closet_survivor_dist <= RoundToNearest(0.8 * g_hVomitRange.FloatValue) && !in_bile_interval[client] && can_bile[client] && Player_IsVisible_To(target, client))
 		{
 			buttons |= IN_FORWARD;
 			buttons |= IN_ATTACK;
@@ -177,7 +177,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			CreateTimer(g_hVomitInterval.FloatValue, Timer_ResetAbility, client);
 		}
 		// 连跳
-		if (g_hAllowBhop.BoolValue && has_sight && (flags & FL_ONGROUND) && 0.5 * g_hVomitRange.FloatValue < closet_survivor_dist < 10000.0 && cur_speed > 160.0 && IsValidSurvivor(target))
+		if (g_hAllowBhop.BoolValue && has_sight && IsGrounded(client) && 0.5 * g_hVomitRange.FloatValue < closet_survivor_dist < 10000.0 && cur_speed > 160.0 && IsValidSurvivor(target))
 		{
 			float vel_buffer[3] = {0.0};
 			GetClientAbsOrigin(target, targetPos);
@@ -198,6 +198,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	return Plugin_Continue;
 }
+
+//是否在地面
+bool IsGrounded(int client) {
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
+}
+
 // 重置胖子能力使用限制
 public Action Timer_ResetAbility(Handle timer, int client)
 {
