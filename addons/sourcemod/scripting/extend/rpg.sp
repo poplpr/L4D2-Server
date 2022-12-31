@@ -11,8 +11,9 @@
 #include <hextags>
 #include <l4d_hats>
 #include <godframecontrol>
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 #define MAX_LINE_WIDTH 64
+#define DB_CONF_NAME  "rpg"
 
 // 进行 MySQL 连接相关变量
 Handle db = INVALID_HANDLE;
@@ -37,7 +38,7 @@ bool IsAnne = false;
 int InfectedNumber=6;
 bool g_bEnableGlow = true;
 ConVar GaoJiRenJi, AllowBigGun, g_InfectedNumber, g_cShopEnable, g_hEnableGlow;
-bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bpunchangelSystemAvailable = false;
+bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bpunchangelSystemAvailable = false, g_bMysqlSystemAvailable = false;
 //new lastpoints[MAXPLAYERS + 1];
 
 //枚举变量,修改武器消耗积分在此。
@@ -267,12 +268,15 @@ public void  OnPluginStart()
 }
 public void OnConfigsExecuted()
 {
-
 	// Init MySQL connections
 	if (!ConnectDB())
 	{
-		SetFailState("Connecting to database failed. Read error log for further details.");
+		g_bMysqlSystemAvailable = false;
+		//SetFailState("Connecting to database failed. Read error log for further details.");
 		return;
+	}else
+	{
+		g_bMysqlSystemAvailable = true;
 	}
 }
 
@@ -307,6 +311,20 @@ public void Event_PlayerDisconnectOrAFK( Event hEvent, const char[] sName, bool 
 	if(IsValidClient(client) && (team == 3 || disconnect)){
 		DisableGlow(client);
 	}
+	if(IsValidClient(client) && disconnect){
+		player[client].ClientMelee = 0;
+		player[client].ClientBlood = 0;
+		player[client].ClientHat = 0;
+		player[client].GlowType = 0;
+		player[client].SkinType = 0;
+		player[client].ClientFirstBuy = true;
+		player[client].ClientRecoil = 1;
+		player[client].CanBuy=true;
+		player[client].ClientPoints = 500;
+		player[client].Check = false;
+		player[client].tags.ChatTag = NULL_STRING;
+	}
+
 }
 
 public void Event_PlayerAFK( Event hEvent, const char[] sName, bool bDontBroadcast )
@@ -395,7 +413,7 @@ public int IsPlayerIncap(int client)
 }
 
 public Action EventMapChange(Handle event, const char []name, bool dontBroadcast){
-	if(CheckAllMoney() && valid && IsAnne)
+	if(!UseBuy && valid && IsAnne)
 		RewardScore();
 	return Plugin_Continue;
 }
@@ -403,29 +421,32 @@ public Action EventMapChange(Handle event, const char []name, bool dontBroadcast
 public void RewardScore(){
 	if(!g_bl4dstatsSystemAvailable)
 		return;
-	char pluginsname[64];
-	int renji=0;
-	GetConVarString(FindConVar("sv_tags"), pluginsname, sizeof(pluginsname));
-	if(GaoJiRenJi != null && GaoJiRenJi.IntValue == 1){
-		PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
-		return;
-	}
-	if(StrContains(pluginsname,"anne") !=-1 || StrContains(pluginsname, "witchparty")!=-1 || StrContains(pluginsname,"allcharger")!=-1 )
+	if(FindConVar("l4d_ready_cfg_name"))
 	{
-		if(valid)
+		int renji=0;
+		if(GaoJiRenJi != null && GaoJiRenJi.IntValue == 1){
+			PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
+			return;
+		}
+		char pluginsname[64];
+		GetConVarString(FindConVar("l4d_ready_cfg_name"), pluginsname, sizeof(pluginsname));
+		if(StrContains(pluginsname,"AnneHappy") !=-1 || StrContains(pluginsname, "WitchParty") != -1 || StrContains(pluginsname,"AllCharger") != -1 )
 		{
-			if(InfectedNumber==5)
-				AddReward(200);
-			if(InfectedNumber==6)
-				AddReward(500);
-			if(InfectedNumber==7)
-				AddReward(800);
-			if(InfectedNumber==8)
-				AddReward(1100);
-			if(InfectedNumber==9)
-				AddReward(1500);
-			if(InfectedNumber>9)
-				AddReward(2000);
+			if(valid)
+			{
+				if(InfectedNumber==5)
+					AddReward(200);
+				if(InfectedNumber==6)
+					AddReward(500);
+				if(InfectedNumber==7)
+					AddReward(800);
+				if(InfectedNumber==8)
+					AddReward(1100);
+				if(InfectedNumber==9)
+					AddReward(1500);
+				if(InfectedNumber>9)
+					AddReward(2000);
+			}
 		}
 	}
 }
@@ -493,10 +514,10 @@ public bool ConnectDB()
 	if (db != INVALID_HANDLE)
 		return true;
 
-	if (SQL_CheckConfig("l4dstats"))
+	if (SQL_CheckConfig(DB_CONF_NAME))
 	{
 		char Error[256];
-		db = SQL_Connect("l4dstats", true, Error, sizeof(Error));
+		db = SQL_Connect(DB_CONF_NAME, true, Error, sizeof(Error));
 		if (db == INVALID_HANDLE)
 		{
 			LogError("Failed to connect to database: %s", Error);
@@ -515,7 +536,7 @@ public bool ConnectDB()
 	}
 	else
 	{
-		LogError("Databases.cfg missing '%s' entry!", "l4dstats");
+		LogError("Databases.cfg missing '%s' entry!", DB_CONF_NAME);
 		CloseHandle(db);
 		return false;
 	}
@@ -542,11 +563,6 @@ public void OnClientPostAdminCheck(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 		return;
-	player[client].ClientMelee = 0;
-	player[client].ClientBlood = 0;
-	player[client].ClientHat = 0;
-	player[client].GlowType = 0;
-	player[client].SkinType = 0;
 	player[client].ClientFirstBuy = true;
 	player[client].ClientRecoil = 1;
 	player[client].CanBuy=true;
@@ -658,6 +674,7 @@ public Action Timer_AutoGive(Handle timer, any client)
 	}	
 	return Plugin_Continue;
 }
+
 public void ClientMapChangeWithoutBuyReward(int Client,int RewordScore){
 	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bl4dstatsSystemAvailable)
 		return;
@@ -671,7 +688,7 @@ public void ClientMapChangeWithoutBuyReward(int Client,int RewordScore){
 }
 public void ClientSaveToFileLoad(int Client)
 {
-	if(!IsValidClient(Client) || IsFakeClient(Client))
+	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bMysqlSystemAvailable)
 		return;
 	char query[255];
 	char SteamID[64];
@@ -684,7 +701,7 @@ public void ClientSaveToFileLoad(int Client)
 
 public void ClientSaveToFileCreate(int Client)
 {
-	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bl4dstatsSystemAvailable)
+	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bMysqlSystemAvailable)
 	return;
 	char query[255];
 	char SteamID[64];
@@ -697,7 +714,7 @@ public void ClientSaveToFileCreate(int Client)
 
 public void ClientSaveToFileSave(int Client)
 {
-	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bl4dstatsSystemAvailable)
+	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bMysqlSystemAvailable)
 		return;
 	char query[255];
 	char SteamID[64];
@@ -710,7 +727,7 @@ public void ClientSaveToFileSave(int Client)
 
 public void ClientTagsSaveToFileSave(int Client)
 {
-	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bl4dstatsSystemAvailable)
+	if(!IsValidClient(Client) || IsFakeClient(Client) || !g_bMysqlSystemAvailable)
 		return;
 	char query[255];
 	char SteamID[64];
@@ -934,10 +951,7 @@ public Action ApplyTags(int client,int args)
 //设置称号指令
 public Action SetCH(int client,int args)
 { 
-	if(!g_bl4dstatsSystemAvailable){
-		return Plugin_Handled;
-	}
-	if(g_bl4dstatsSystemAvailable && l4dstats_GetClientScore(client) < 500000 || !g_bl4dstatsSystemAvailable)
+	if(g_bl4dstatsSystemAvailable && l4dstats_GetClientScore(client) < 500000)
 	{
 		ReplyToCommand(client,"你得积分小于50w，不能自定义称号");
 		return Plugin_Handled;
@@ -1053,18 +1067,6 @@ public void GiveItems(int client, char bitem[64])
 	SetCommandFlags("give", flags|FCVAR_CHEAT);
 }
 
-//检查通关后是不是钱都是满的
-public bool CheckAllMoney(){
-	for(int i=1;i<=MaxClients;i++)
-	{
-		if(IsValidClient(i)&&IsSurvivor(i)&&!IsFakeClient(i)&&player[i].ClientPoints!=500){
-			PrintToChatAll("\x04本回合使用了B数没有通关额外积分");
-			return false;
-		}
-
-	}
-	return true;	
-}
 //创建购买菜单>>主菜单
 /*public void BuildMenu定义的是这个菜单的具体内容，包括标题，选项。
 以下都是各个菜单的东西，不用修改。
@@ -1110,13 +1112,13 @@ public void BuildMenu(int client)
 			menu.AddItem("Hat", binfo);
 		}
 
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) && g_bEnableGlow || GetUserAdmin(client)!= INVALID_ADMIN_ID || player[client].GlowType > 0 || !g_bl4dstatsSystemAvailable)
+		if(g_bEnableGlow && ((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,20) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)) || player[client].GlowType > 0) || !g_bl4dstatsSystemAvailable)))
 		{
 			FormatEx(binfo, sizeof(binfo),  "生还者轮廓", client); //生还者轮廓菜单
 			menu.AddItem("Survivor_glow", binfo);
 		}
 
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,50))|| GetUserAdmin(client)!= INVALID_ADMIN_ID || player[client].SkinType > 0 || !g_bl4dstatsSystemAvailable)
+		if((g_bl4dstatsSystemAvailable && ( l4dstats_IsTopPlayer(client,50) || ((CheckCommandAccess(client, "", ADMFLAG_SLAY))) || player[client].SkinType > 0 )) || !g_bl4dstatsSystemAvailable)
 		{
 			FormatEx(binfo, sizeof(binfo),  "生还者皮肤", client); //生还者轮廓菜单
 			menu.AddItem("Survivor_skin", binfo);
@@ -1168,31 +1170,29 @@ public void Survivor_glow(int client)
 		Menu menu = new Menu(VIPAuraMenuHandler);
 		menu.SetTitle("生还者轮廓\n——————————");
 		menu.AddItem("option0", "关闭\n ", player[client].GlowType == 0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if(!((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) || GetUserAdmin(client)!= INVALID_ADMIN_ID) || !g_bl4dstatsSystemAvailable){
-			menu.Display(client, MENU_TIME_FOREVER);
-			return;
-		}
-		menu.AddItem("option1", "绿色", player[client].GlowType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option2", "蓝色", player[client].GlowType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option3", "藍紫色", player[client].GlowType == 3 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option4", "青色", player[client].GlowType == 4 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option5", "橘黄色", player[client].GlowType == 5 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option6", "红色", player[client].GlowType == 6 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option7", "灰色", player[client].GlowType == 7 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option8", "黄色", player[client].GlowType == 8 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option9", "酸橙色", player[client].GlowType == 9 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option10", "栗色", player[client].GlowType == 10 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option11", "藍綠色", player[client].GlowType == 11 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option12", "粉红色", player[client].GlowType == 12 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option13", "紫色", player[client].GlowType == 13 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option14", "白色", player[client].GlowType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		DumpAdminCache(AdminCache_Admins,true);
-		DumpAdminCache(AdminCache_Groups,true);
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,3)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-			menu.AddItem("option15", "金黄色", player[client].GlowType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,1)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-			menu.AddItem("option16", "彩虹色", player[client].GlowType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		
+		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,20) || (GetUserAdmin(client) != INVALID_ADMIN_ID && GetUserFlagBits(client) & ADMFLAG_SLAY))) || !g_bl4dstatsSystemAvailable)
+		{
+			menu.AddItem("option1", "绿色", player[client].GlowType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option2", "蓝色", player[client].GlowType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option3", "藍紫色", player[client].GlowType == 3 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option4", "青色", player[client].GlowType == 4 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option5", "橘黄色", player[client].GlowType == 5 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option6", "红色", player[client].GlowType == 6 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option7", "灰色", player[client].GlowType == 7 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option8", "黄色", player[client].GlowType == 8 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option9", "酸橙色", player[client].GlowType == 9 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option10", "栗色", player[client].GlowType == 10 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option11", "藍綠色", player[client].GlowType == 11 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option12", "粉红色", player[client].GlowType == 12 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option13", "紫色", player[client].GlowType == 13 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option14", "白色", player[client].GlowType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			DumpAdminCache(AdminCache_Admins,true);
+			DumpAdminCache(AdminCache_Groups,true);
+			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,3) || GetUserAdmin(client).ImmunityLevel == 100)) || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option15", "金黄色", player[client].GlowType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,1) || GetUserAdmin(client).ImmunityLevel == 100)) || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option16", "彩虹色", player[client].GlowType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		}	
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
 	}
@@ -1364,31 +1364,30 @@ public void Survivor_skin(int client)
 		menu.SetTitle("生还者皮肤颜色\n——————————");
 
 		menu.AddItem("option0", "关闭\n ", player[client].SkinType == 0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if(!((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,50)) || GetUserAdmin(client)!= INVALID_ADMIN_ID) || !g_bl4dstatsSystemAvailable){
-			menu.Display(client, MENU_TIME_FOREVER);
-			return;
+		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client, 50) || (GetUserAdmin(client) != INVALID_ADMIN_ID && GetUserFlagBits(client) & ADMFLAG_SLAY))) || !g_bl4dstatsSystemAvailable)
+		{
+			menu.AddItem("option1", "绿色", player[client].SkinType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option2", "蓝色", player[client].SkinType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option3", "藍紫色", player[client].SkinType == 3 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option4", "青色", player[client].SkinType == 4 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option5", "橘黄色", player[client].SkinType == 5 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option6", "红色", player[client].SkinType == 6 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option7", "灰色", player[client].SkinType == 7 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option8", "黄色", player[client].SkinType == 8 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option9", "酸橙色", player[client].SkinType == 9 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option10", "栗色", player[client].SkinType == 10 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option11", "藍綠色", player[client].SkinType == 11 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option12", "粉红色", player[client].SkinType == 12 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem("option13", "紫色", player[client].SkinType == 13 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option14", "黑色", player[client].SkinType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			DumpAdminCache(AdminCache_Admins,true);
+			DumpAdminCache(AdminCache_Groups,true);
+			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,5) || GetUserAdmin(client).ImmunityLevel == 100)) || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option15", "金黄色", player[client].SkinType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,3)) || GetUserAdmin(client).ImmunityLevel == 100) || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option16", "透明色", player[client].SkinType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 		}
-		menu.AddItem("option1", "绿色", player[client].SkinType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option2", "蓝色", player[client].SkinType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option3", "藍紫色", player[client].SkinType == 3 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option4", "青色", player[client].SkinType == 4 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option5", "橘黄色", player[client].SkinType == 5 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option6", "红色", player[client].SkinType == 6 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option7", "灰色", player[client].SkinType == 7 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option8", "黄色", player[client].SkinType == 8 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option9", "酸橙色", player[client].SkinType == 9 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option10", "栗色", player[client].SkinType == 10 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option11", "藍綠色", player[client].SkinType == 11 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option12", "粉红色", player[client].SkinType == 12 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		menu.AddItem("option13", "紫色", player[client].SkinType == 13 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-			menu.AddItem("option14", "黑色", player[client].SkinType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		DumpAdminCache(AdminCache_Admins,true);
-		DumpAdminCache(AdminCache_Groups,true);
-		if(g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,3)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-			menu.AddItem("option15", "金黄色", player[client].SkinType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,1)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-	    	menu.AddItem("option16", "透明色", player[client].SkinType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
 	}

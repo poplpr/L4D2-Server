@@ -1248,11 +1248,6 @@ int Calculate_Flow(Address pNavArea)
 	return RoundToNearest(now_nav_promixity * 100.0);
 }
 
-//是否在地上
-bool IsGrounded(int client) {
-	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
-}
-
 // 检测坦克周围是否有梯子
 // @ Proposal by Morzlee
 public Action checkLadderAroundHandler(Handle timer, int client)

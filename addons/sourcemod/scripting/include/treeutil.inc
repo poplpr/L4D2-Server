@@ -321,6 +321,31 @@ stock int GetClosetMobileSurvivor(int client, int exclude_client = -1)
 	}
 	return 0;
 }
+// 获取距离某玩家最近的生还者，不无视倒地，被控，如有则返回生还者 id，玩家无效或未找到则返回 0
+stock int GetClosetSurvivor(int client, int exclude_client = -1)
+{
+	if (!IsValidClient(client)) { return 0; }
+	static int target;
+	static float selfPos[3], targetPos[3];
+	static ArrayList targetList;
+	targetList = new ArrayList(2);
+	GetClientAbsOrigin(client, selfPos);
+	for (int newTarget = 1; newTarget <= MaxClients; newTarget++)
+	{
+		if (!IsClientInGame(newTarget) || !IsPlayerAlive(newTarget) || GetClientTeam(newTarget) != TEAM_SURVIVOR || newTarget == exclude_client) { continue; }
+		GetClientAbsOrigin(newTarget, targetPos);
+		targetList.Set(targetList.Push(GetVectorDistance(selfPos, targetPos)), newTarget, 1);
+	}
+	if (targetList.Length == 0)
+	{
+		delete targetList;
+		return 0;
+	}
+	targetList.Sort(Sort_Ascending, Sort_Float);
+	target = targetList.Get(0, 1);
+	delete targetList;
+	return target;
+}
 // 获取某玩家到最近或指定生还者的距离，如果存在有效最近或指定生还者则返回距离，无则返回 -1
 stock int GetClosetSurvivorDistance(int client, int specific_survivor = -1)
 {
@@ -415,6 +440,11 @@ stock bool IsOfficalMap(){
 	if(( (mapname[0]=='c') && (mapname[2]=='m') &&(mapname[4]=='_'))||((mapname[0]=='c')&&(mapname[3]=='m')&&(mapname[5]=='_')))
 		return true;
 	return false;
+}
+// 是否在地上
+stock bool IsGrounded(int client) 
+{
+	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }
 // 获取生还者数量，可指定是否包含 bot 和死亡的玩家
 stock int GetSurvivorCount(bool include_bot = true, bool include_death = false)

@@ -112,8 +112,8 @@ public void Cvar_InfectedLimit(ConVar convar, const char[] oldValue, const char[
 {
 	CommonLimit = GetConVarInt(g_hCvarInfectedLimit);
 	char tags[64];
-	GetConVarString(FindConVar("sv_tags"), tags, sizeof(tags));
-	if (Weapon == 2 && CommonLimit< 10 && (StrContains(tags, "anne", false) != -1 || StrContains(tags, "allcharger", false) != -1 || StrContains(tags, "witchparty", false) != -1))
+	GetConVarString(FindConVar("l4d_ready_cfg_name"), tags, sizeof(tags));
+	if (Weapon == 2 && CommonLimit< 10 && ( StrContains(tags, "WitchParty", false) != -1 || StrContains(tags, "AllCharger", false) != -1 || StrContains(tags, "AnneHappy", false) != -1))
 	{
 		ServerCommand("sm_cvar ZonemodWeapon 0");
 		PrintToChatAll("\x03因为不超过10特，AnneHappy+武器已经自动切换为AnneHappy武器");
@@ -136,7 +136,7 @@ public void CvarWeapon(ConVar convar, const char[] oldValue, const char[] newVal
 {
 	Weapon = GetConVarInt(g_hCvarWeapon);
 	char tags[64];
-	GetConVarString(FindConVar("sv_tags"), tags, sizeof(tags));
+	GetConVarString(FindConVar("l4d_ready_cfg_name"), tags, sizeof(tags));
 	if (Weapon == 1)
 	{
 		ServerCommand("exec vote/weapon/zonemod.cfg");
@@ -147,7 +147,7 @@ public void CvarWeapon(ConVar convar, const char[] oldValue, const char[] newVal
 	}
 	else if (Weapon == 2)
 	{
-		if(CommonLimit >= 10 || (StrContains(tags, "alone", false) != -1) || (StrContains(tags, "1vht", false) != -1))
+		if(CommonLimit >= 10 || (StrContains(tags, "Alone", false) != -1) || (StrContains(tags, "1vHunters", false) != -1))
 			ServerCommand("exec vote/weapon/AnneHappyPlus.cfg");
 		else
 		{

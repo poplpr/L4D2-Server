@@ -1461,11 +1461,11 @@ Action CmdHat(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if( g_iCvarMenu != 0 && (g_bl4dstatsAvailable && !l4dstats_IsTopPlayer(client,100)) )
+	if( g_iCvarMenu != 0)
 	{
 		int flags = GetUserFlagBits(client);
 
-		if( !(flags & ADMFLAG_ROOT) && !(flags & g_iCvarMenu) )
+		if( !(flags & ADMFLAG_ROOT) && !(flags & g_iCvarMenu) && !((g_bl4dstatsAvailable && l4dstats_IsTopPlayer(client, 100)) || !g_bl4dstatsAvailable))
 		{
 			CPrintToChat(client, "%T%T", "HAT_SYSTEM", client, "No Access", client);
 			//CPrintToChat(client, "{GREEN}[HAT]{DEFAULT}你还没有权限使用帽子，请确认你是否为{ORANGE}管理员或积分排名榜前100名玩家");

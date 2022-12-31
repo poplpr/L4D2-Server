@@ -2086,7 +2086,7 @@ void CheatCommand(int client, const char[] command) {
 
 	int bits = GetUserFlagBits(client);
 	int flags = GetCommandFlags(cmd);
-	SetUserFlagBits(client, ADMFLAG_ROOT);
+	SetUserFlagBits(client, FCVAR_CHEAT);
 	SetCommandFlags(cmd, flags & ~FCVAR_CHEAT);
 	FakeClientCommand(client, command);
 	SetUserFlagBits(client, bits);

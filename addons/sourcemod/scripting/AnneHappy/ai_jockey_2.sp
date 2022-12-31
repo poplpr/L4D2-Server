@@ -66,7 +66,7 @@ public void OnPluginStart()
 	g_hJockeyLeapTime =	FindConVar("z_jockey_leap_time");
 	// HookEvent
 	HookEvent("player_spawn", evt_PlayerSpawn, EventHookMode_Pre);
-	HookEvent("player_shoved", evt_PlayerShoved, EventHookMode_Pre);
+	HookEvent("player_shoved", evt_PlayerShoved);
 	HookEvent("jockey_ride", evt_JockeyRide);
 	// AddChangeHook
 	g_hActionChance.AddChangeHook(GetActionPercent_Cvars);
@@ -181,8 +181,11 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 					&& actionPercent <= g_iActionArray[ACTION_JUMP_HIGH])
 				{
 					// 高跳
-					angles[0] = getRandomFloatInRange(25.0, 40.0) * -1.0;
-					TeleportEntity(jockey, NULL_VECTOR, angles, NULL_VECTOR);
+					float subtractVec[3] = {0.0};
+					angles[0] = getRandomFloatInRange(20.0, 35.0) * -1.0;
+					NormalizeVector(vel, subtractVec);
+					ScaleVector(subtractVec, g_hBhopSpeed.FloatValue * 3.0);
+					TeleportEntity(jockey, NULL_VECTOR, angles, subtractVec);
 					buttons |= IN_ATTACK;
 					SetState(jockey, 0, IN_ATTACK);
 					#if DEBUG_ALL
@@ -262,10 +265,6 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 		}
 	}
 	return Plugin_Continue;
-}
-
-bool IsGrounded(int client) {
-	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
 }
 
 public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)

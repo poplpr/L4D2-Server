@@ -605,7 +605,3 @@ float Get_Player_Aim_Offset(int client, int target)
 	}
 	return -1.0;
 }
-//是否在地上
-bool IsGrounded(int client) {
-	return GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
-}

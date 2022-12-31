@@ -1,5 +1,8 @@
 name: CompetitiveWithAnne Update Achieve Release
 
+env:
+  TZ: Asia/Shanghai
+
 on:
   workflow_dispatch:
     inputs:
@@ -37,14 +40,18 @@ jobs:
           cp -R anne/left4dead2/models/ CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/
           cp -R anne/update/ CompetitiveWithAnne-${{ steps.date.outputs.date }}/
           tar -czvf  CompetitiveWithAnne-${{ steps.date.outputs.date }}.tar.gz  CompetitiveWithAnne-${{ steps.date.outputs.date }}
-       
-      - name: Gzip nomysql
+          
+      - name: Gzip norank&&sourcebans&&lilac
         run: |
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/l4d_stats.smx
+          rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/sbpp_*
+          rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/lilac.smx
+          tar -czvf  CompetitiveWithAnne-${{ steps.date.outputs.date }}-norank.tar.gz  CompetitiveWithAnne-${{ steps.date.outputs.date }} 
+          
+      - name: Gzip nomysql
+        run: |
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/chat-processor.smx
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/hextags.smx
-          rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/lilac.smx
-          rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/sbpp_*
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/rpg.smx
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/chatlog.smx
           rm CompetitiveWithAnne-${{ steps.date.outputs.date }}/left4dead2/addons/sourcemod/plugins/extend/veterans.smx
@@ -58,5 +65,6 @@ jobs:
         with:
           files: | 
             CompetitiveWithAnne-${{ steps.date.outputs.date }}.tar.gz
+            CompetitiveWithAnne-${{ steps.date.outputs.date }}-norank.tar.gz
             CompetitiveWithAnne-${{ steps.date.outputs.date }}-nomysql.tar.gz
           tag_name: CompetitiveWithAnne-stable-release-${{ steps.date.outputs.date }}

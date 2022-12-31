@@ -602,7 +602,8 @@ public OnPluginStart()
 	cvar_Difficulty = FindConVar("z_difficulty");
 	cvar_Gamemode = FindConVar("mp_gamemode");
 	cvar_Cheats = FindConVar("sv_cheats");
-	cvar_mode = FindConVar("sv_tags");
+	if(FindConVar("l4d_ready_cfg_name"))
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
 	cvar_Lan = FindConVar("sv_lan");
 	if (GetConVarInt(cvar_Lan))
 		LogMessage("ATTENTION! %s in LAN environment is based on IP address rather than Steam ID. The statistics are not reliable when they are base on IP!", PLUGIN_NAME);
@@ -3621,9 +3622,13 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 
 stock bool IsAnne(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "anne", false)!=-1)
+	if(StrContains(plugin_name, "AnneHappy", false) != -1)
 	{
 		return true;
 	}else
@@ -3634,9 +3639,8 @@ stock bool IsAnne(){
 
 stock bool IsNeko(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
-	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "neko", false)!=-1)
+	GetConVarString(FindConVar("sv_tags"), plugin_name, sizeof(plugin_name));
+	if(StrContains(plugin_name, "neko", false) != -1)
 	{
 		return true;
 	}else
@@ -3647,9 +3651,13 @@ stock bool IsNeko(){
 
 stock bool IsAllCharger(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "allcharger", false)!=-1)
+	if(StrContains(plugin_name, "AllCharger", false) != -1)
 	{
 		return true;
 	}else
@@ -3660,9 +3668,13 @@ stock bool IsAllCharger(){
 
 stock bool Is1vht(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "1vht", false)!=-1)
+	if(StrContains(plugin_name, "1vHunters", false) != -1)
 	{
 		return true;
 	}else
@@ -3673,9 +3685,13 @@ stock bool Is1vht(){
 
 stock bool IsWitchParty(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "witchparty", false)!=-1)
+	if(StrContains(plugin_name, "WitchParty", false) != -1)
 	{
 		return true;
 	}else
@@ -3686,9 +3702,13 @@ stock bool IsWitchParty(){
 
 stock bool IsAlone(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
-	cvar_mode = FindConVar("sv_tags");
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "alone", false)!=-1)
+	if(StrContains(plugin_name, "Alone", false) != -1)
 	{
 		return true;
 	}else

@@ -19,7 +19,7 @@ public void __pl_l4d_stats_SetNTVOptional()
 	MarkNativeAsOptional("l4dstats_GetClientScore");
 	MarkNativeAsOptional("l4dstats_IsTopPlayer");
 	MarkNativeAsOptional("l4dstats_GetClientPlayTime");
-	MarkNativeAsOptional("l4dstats_AdddClientScore");
+	MarkNativeAsOptional("l4dstats_AddClientScore");
 }
 #endif
 
@@ -54,7 +54,7 @@ native int l4dstats_GetClientPlayTime(int client);
 
  * @return		0 for false, 1 for true.
  */
-native int l4dstats_AdddClientScore(int client, int Score); 
+native int l4dstats_AddClientScore(int client, int Score); 
 /**
  * Called when l4d_stats plugins announce rank and score.
  *

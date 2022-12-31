@@ -1,7 +1,10 @@
 # **AnneHappy 插件带上对抗插件包**
 * 为了保持插件包结构和上游一样方便同步，这个插件包将不会带有nav修改文件和跳舞插件的模型与声音，~~AnneHappy的Nav修改文件请到我的[anne项目](https://github.com/fantasylidong/anne)中下载~~ 新解决方案，到[release页面](https://github.com/fantasylidong/CompetitiveWithAnne/releases)下载整合插件包，里面有
 * 当前版本已经是进入stable模式，大部分核心插件更新可以通过join插件自动更新，不用那么频繁检测是否有更新了
-* 如果没有数据库，建议下[release页面](https://github.com/fantasylidong/CompetitiveWithAnne/releases)里的nomysql版本，删除了必须需要数据库的插件，rpg插件更改为caibiii的rpg老插件
+* 如果没有数据库，建议下[release页面](https://github.com/fantasylidong/CompetitiveWithAnne/releases)里的norank版本或者nomysql版本
+* norank版本是用电信服的rpg插件，只删除了排名，作弊检测和sourcebans插件，缺点就是每次进服务器需要自己设置出门近战，不想自己写了，有需求的写完可以pull request到我的项目里
+* nomysql版本是删除了所有和数据库相关的插件
+
 
 ## **AnneHappy 会自动更新的核心插件**
 - Path_SM/plugins/optional/AnneHappy/ai_boomer_new.smx"
