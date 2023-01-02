@@ -271,8 +271,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					g_hRockMinInterval.RestoreDefault();
 				}
 			}
-			// 连跳距离及防止跳过头控制，要改连跳距离改这里，默认坦克拳头长度 * 0.8 - 2500 距离允许连跳
-			if (!eTankStructure[client].bCanConsume && eTankStructure[client].fTankStopDistance <= targetdist <= 2500 && curspeed > 190.0)
+			// 连跳距离及防止跳过头控制，要改连跳距离改这里，默认坦克拳头长度 * 0.8 - 1500 距离允许连跳
+			if (!eTankStructure[client].bCanConsume && eTankStructure[client].fTankStopDistance <= targetdist <= 2000 && curspeed > 190.0)
 			{
 				if (g_hAllowBhop.BoolValue && IsGrounded(client))
 				{
@@ -677,17 +677,12 @@ bool ClientPush(int client, float vec[3])
 	float curvel[3] = {0.0};
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", curvel);
 	AddVectors(curvel, vec, curvel);
-	if(eTankStructure[client].bCanConsume){
-		if (Dont_HitWall_Or_Fall(client, curvel))
-		{
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, curvel);
-			return true;
-		}
-		return false;
-	}else{
+	if (Dont_HitWall_Or_Fall(client, curvel))
+	{
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, curvel);
 		return true;
 	}
+	return false;
 }
 
 // 坦克当前位置卡住检测，LAG_DETECT_TIME 时间检测一次位置
@@ -770,10 +765,15 @@ bool Dont_HitWall_Or_Fall(int client, float vel[3])
 	{
 		hullrayhit = true;
 		TR_GetEndPosition(hullray_endpos, hTrace);
-		if (GetVectorDistance(selfpos, hullray_endpos) < g_hAttackRange.FloatValue * 0.6)
+		if (GetVectorDistance(selfpos, hullray_endpos) < g_hAttackRange.FloatValue * 0.6 && eTankStructure[client].bCanConsume)
 		{
 			delete hTrace;
 			return false;
+		}
+		else if(!eTankStructure[client].bCanConsume)
+		{
+			delete hTrace;
+			return true;
 		}
 	}
 	delete hTrace;
@@ -789,8 +789,13 @@ bool Dont_HitWall_Or_Fall(int client, float vel[3])
 	if (TR_DidHit(hDownTrace))
 	{
 		TR_GetEndPosition(down_hullray_hitpos, hDownTrace);
-		// 如果向下的射线撞到的位置减去起始位置的高度大于 FALL_DETECT_HEIGHT 则说明会掉下去，返回 false
-		if (down_hullray_startpos[2] - down_hullray_hitpos[2] > FALL_DETECT_HEIGHT)
+		int target;
+		float targetPos[3];
+		target = GetClientAimTarget(client);
+		if(target >= 0)
+			GetClientAbsOrigin(target, targetPos);
+		// 如果向下的射线撞到的位置减去起始位置的高度大于 FALL_DETECT_HEIGHT 则说明会掉下去，但是如果目标在下方，依旧可以进行下一步检测,否则停止连跳
+		if (down_hullray_startpos[2] - down_hullray_hitpos[2] > FALL_DETECT_HEIGHT && (target < 0 || (target >= 0 && down_hullray_hitpos[2] < targetPos[2])))
 		{
 			delete hDownTrace;
 			return false;
