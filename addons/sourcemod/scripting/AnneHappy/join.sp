@@ -34,6 +34,7 @@
 
 #define IsValidClient(%1)		(1 <= %1 <= MaxClients && IsClientInGame(%1))
 #define IsValidAliveClient(%1)	(1 <= %1 <= MaxClients && IsClientInGame(%1) && IsPlayerAlive(%1))
+#define GETBOTINTERVAL 3.0
 
 public Plugin myinfo =
 {
@@ -48,7 +49,10 @@ public Plugin myinfo =
 #define UPDATE_URL_VERSUS "http://dl.trygek.com/left4dead2/addons/sourcemod/Versus_Updater.txt"
 #define UPDATE_URL_ANNEALL "http://dl.trygek.com/left4dead2/addons/sourcemod/Anne_Updater_All.txt"
 
-bool  g_bUpdateSystemAvailable = false, g_bGroupSystemAvailable = false;
+bool  
+	g_bEnableGetbotCommand[MAXPLAYERS] = { false },
+	g_bUpdateSystemAvailable = false, 
+	g_bGroupSystemAvailable = false;
 
 ConVar
 	hCvarMotdTitle,
@@ -315,18 +319,19 @@ public Action Timer_CheckDetay2(Handle Timer, int client)
 
 public void OnClientPutInServer(int client)
 {
+	if(client > 0 && IsClientConnected(client) && !IsFakeClient(client) && !hCvarEnableInf.BoolValue)
+	{
+		//ServerCommand("sm_addbot2");
+		CreateTimer(3.0, Timer_CheckDetay, client, TIMER_FLAG_NO_MAPCHANGE);
+		g_bEnableGetbotCommand[client] = true;
+	}
+
 	if(g_bGroupSystemAvailable){
 		if(!Veterans_Get(client, view_as<TARGET_OPTION_INDEX>(GOURP_MEMBER))){
 			ShowMotdToPlayer(client);
 		}
 	}else{
 		ShowMotdToPlayer(client);
-	}
-
-	if(client > 0 && IsClientConnected(client) && !IsFakeClient(client) && !hCvarEnableInf.BoolValue)
-	{
-		//ServerCommand("sm_addbot2");
-		CreateTimer(3.0, Timer_CheckDetay, client, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	
 	if(IsServerLobbyFull() && hCvarEnableAutoRemoveLobby.IntValue)
@@ -439,12 +444,23 @@ public Action GetBot(int client, int args)
 {
 	if(!IsValidClient(client))
 		return Plugin_Handled;
-	if(IsSuivivorTeamFull()){
+	if(!g_bEnableGetbotCommand[client]){
+		PrintToChat(client,"\x03 你使用命令的速度太快了");
+	}
+	else if(IsSuivivorTeamFull()){
 		PrintToChat(client,"\x03 生还者团队已满，无其他生还者bot可供接管");
 	}else{
 		DrawSwitchCharacterMenu(client);
+		g_bEnableGetbotCommand[client] = false;
+		CreateTimer(GETBOTINTERVAL, ReEnableGetbotCommand, client);
 	}
 	return Plugin_Handled;
+}
+
+public Action ReEnableGetbotCommand(Handle timer, int client)
+{
+	g_bEnableGetbotCommand[client] = true;
+	return Plugin_Stop;
 }
 
 public void DrawSwitchCharacterMenu(int client)

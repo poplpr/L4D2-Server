@@ -3738,6 +3738,38 @@ stock bool AnneMultiPlayerMode(){
 	return false;
 }
 
+stock bool IsAboveFourPeople()
+{
+	ConVar survivorManager = FindConVar("l4d_multislots_survivors_manager_enable");
+	if( survivorManager == null)
+	{
+		return false;
+	}
+	else
+	{
+		if(survivorManager.BoolValue)
+		{
+			return true;
+		}else
+		{
+			return false;
+		}
+	}
+}
+
+stock int getSurvivorNum()
+{
+	int count = 0;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i) && GetClientTeam(i) == 2)
+		{
+			count ++;
+		}
+	}
+	return count;
+}
+
 
 // Common Infected death code. +1 on headshot.
 
@@ -4415,6 +4447,11 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 			Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
 		else if(inf>8)
 			Score=RoundToFloor(Score + Score * (inf-4)*0.3);
+	}
+
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
 	}
 
 	if (Mode && Score > 0)
@@ -9851,6 +9888,11 @@ public CheckSurvivorsWin()
 			Score=RoundToFloor(Score+Score*(inf-4)*0.3);
 		else if(inf>8)
 			Score=RoundToFloor(Score+Score*(inf-4)*0.4);
+	}
+
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
 	}
 
 	if (Mode && Score > 0)

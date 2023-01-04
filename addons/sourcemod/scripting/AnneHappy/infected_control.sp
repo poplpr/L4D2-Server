@@ -881,6 +881,7 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 	g_iLastSpawnTime ++;
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+	if(IsAnyTankAlive() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
 	if(!g_bAutoSpawnTimeControl)
 	{
 		g_bShouldCheck = false;
@@ -1640,6 +1641,16 @@ public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+stock bool IsAnyTankAlive()
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsAiTank(i))
+			return true;
+	}
+	return false;
 }
 
 stock void Debug_Print(char[] format, any ...)

@@ -159,7 +159,7 @@ public void CvarWeapon(ConVar convar, const char[] oldValue, const char[] newVal
 }
 
 public void OnGameFrame(){
-	SteamWorks_SetGameDescription("电信Anne娱乐服,开心坐牢");
+	SteamWorks_SetGameDescription("AnneHappy药役");
 }
 
 void printinfo(int client = 0, bool All = true){

@@ -161,7 +161,8 @@ public bool IsValidClient(int client)
     return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
 }
 
-public void OnAllPluginsLoaded(){
+public void OnAllPluginsLoaded()
+{
 	g_bGodFrameSystemAvailable = LibraryExists("l4d2_godframes_control_merge");
 	g_bHatSystemAvailable = LibraryExists("l4d_hats");
 	g_bl4dstatsSystemAvailable = LibraryExists("l4d_stats");
@@ -454,6 +455,10 @@ public void RewardScore(){
 public void AddReward(int Score){
 	if(!g_bl4dstatsSystemAvailable)
 		return;
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
+	}
 	for(int i=1;i<MaxClients;i++){
 		if(IsSurvivor(i))
 			ClientMapChangeWithoutBuyReward(i,Score);
@@ -600,11 +605,31 @@ public void SetPlayer(int client)
 	{
 		
 		if(player[client].GlowType && g_bEnableGlow)
-			GetAura(client,player[client].GlowType);
+		{
+			if(player[client].GlowType < 15)
+			{
+				GetAura(client,player[client].GlowType);
+			}			
+			else if(l4dstats_IsTopPlayer(client, 3) || GetUserAdmin(client).ImmunityLevel == 100)
+			{
+				GetAura(client,player[client].GlowType);
+			}
+		}
+			
 		if(player[client].ClientHat)
 			ServerCommand("sm_hatclient #%d %d", GetClientUserId(client), player[client].ClientHat);
 		if(player[client].SkinType)
-			GetSkin(client,player[client].SkinType);	
+		{
+			if(player[client].SkinType < 15)
+			{
+				GetSkin(client,player[client].SkinType);
+			}			
+			else if(l4dstats_IsTopPlayer(client, 5) || GetUserAdmin(client).ImmunityLevel == 100)
+			{
+				GetSkin(client,player[client].SkinType);
+			}	
+		}
+			
 		//PrintToConsole(client,"sm_hatclient #%d %d", GetClientUserId(client), player[client].ClientHat);
 		
 	}
@@ -1170,7 +1195,7 @@ public void Survivor_glow(int client)
 		Menu menu = new Menu(VIPAuraMenuHandler);
 		menu.SetTitle("生还者轮廓\n——————————");
 		menu.AddItem("option0", "关闭\n ", player[client].GlowType == 0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,20) || (GetUserAdmin(client) != INVALID_ADMIN_ID && GetUserFlagBits(client) & ADMFLAG_SLAY))) || !g_bl4dstatsSystemAvailable)
+		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,20) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))) || !g_bl4dstatsSystemAvailable)
 		{
 			menu.AddItem("option1", "绿色", player[client].GlowType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			menu.AddItem("option2", "蓝色", player[client].GlowType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
@@ -1364,7 +1389,7 @@ public void Survivor_skin(int client)
 		menu.SetTitle("生还者皮肤颜色\n——————————");
 
 		menu.AddItem("option0", "关闭\n ", player[client].SkinType == 0 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client, 50) || (GetUserAdmin(client) != INVALID_ADMIN_ID && GetUserFlagBits(client) & ADMFLAG_SLAY))) || !g_bl4dstatsSystemAvailable)
+		if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client, 50) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))) || !g_bl4dstatsSystemAvailable)
 		{
 			menu.AddItem("option1", "绿色", player[client].SkinType == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			menu.AddItem("option2", "蓝色", player[client].SkinType == 2 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
@@ -1379,10 +1404,10 @@ public void Survivor_skin(int client)
 			menu.AddItem("option11", "藍綠色", player[client].SkinType == 11 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			menu.AddItem("option12", "粉红色", player[client].SkinType == 12 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			menu.AddItem("option13", "紫色", player[client].SkinType == 13 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
-			if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
-				menu.AddItem("option14", "黑色", player[client].SkinType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			DumpAdminCache(AdminCache_Admins,true);
 			DumpAdminCache(AdminCache_Groups,true);
+			if((g_bl4dstatsSystemAvailable && l4dstats_IsTopPlayer(client,20)) || GetUserAdmin(client).ImmunityLevel == 100 || !g_bl4dstatsSystemAvailable)
+				menu.AddItem("option14", "黑色", player[client].SkinType == 14 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,5) || GetUserAdmin(client).ImmunityLevel == 100)) || !g_bl4dstatsSystemAvailable)
 				menu.AddItem("option15", "金黄色", player[client].SkinType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,3)) || GetUserAdmin(client).ImmunityLevel == 100) || !g_bl4dstatsSystemAvailable)
@@ -2104,4 +2129,35 @@ public int Recoil_back(Menu menu, MenuAction action, int param1, int param2)
 			delete menu;
 	}
 	return 0;
+}
+
+stock bool IsAboveFourPeople()
+{
+	ConVar survivorManager = FindConVar("l4d_multislots_survivors_manager_enable");
+	if( survivorManager == null)
+	{
+		return false;
+	}
+	else
+	{
+		if(survivorManager.BoolValue)
+		{
+			return true;
+		}else
+		{
+			return false;
+		}
+	}
+}
+stock int getSurvivorNum()
+{
+	int count = 0;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i) && GetClientTeam(i) == 2)
+		{
+			count ++;
+		}
+	}
+	return count;
 }
