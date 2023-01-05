@@ -2997,7 +2997,7 @@ public Action:timer_FriendlyFireDamageEnd(Handle:timer, any:dp)
 				Format(UpdatePoints, sizeof(UpdatePoints), "points");
 			}
 		}
-        if(IsNeko()){
+        if(IsNormalMode()){
 			Score = RoundToFloor(Score / 5.0);
 		}
 
@@ -3470,7 +3470,7 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 				Format(UpdatePoints, sizeof(UpdatePoints), "points");
 			}
 		}
-		if(IsNeko()){
+		if(IsNormalMode()){
 			Score = RoundToFloor(Score / 5.0);
 		}
 
@@ -3637,17 +3637,6 @@ stock bool IsAnne(){
 	}
 }
 
-stock bool IsNeko(){
-	decl String:plugin_name[MAX_LINE_WIDTH];
-	GetConVarString(FindConVar("sv_tags"), plugin_name, sizeof(plugin_name));
-	if(StrContains(plugin_name, "neko", false) != -1)
-	{
-		return true;
-	}else
-	{
-		return false;
-	}
-}
 
 stock bool IsAllCharger(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
@@ -3725,7 +3714,7 @@ stock bool SinglePlayerMode(){
 }
 
 stock bool MultiPlayerMode(){
-	if(IsAnne() || IsNeko() || IsWitchParty() || IsAllCharger()){
+	if(IsAnne() || IsWitchParty() || IsAllCharger()){
 		return true;
 	}
 	return false;
@@ -3785,7 +3774,7 @@ public Action:event_InfectedDeath(Handle:event, const String:name[], bool:dontBr
 	new Score =0;
 	if (AnneMultiPlayerMode())
 		Score = ModifyScoreDifficultyNR(2, 1, 1, TEAM_SURVIVORS);
-	else if(IsNeko())
+	else if(IsNormalMode())
 		Score = ModifyScoreDifficultyNR(2, 2, 3, TEAM_SURVIVORS);
 	else {
 		Score = ModifyScoreDifficultyNR(GetConVarInt(cvar_Infected), 2, 3, TEAM_SURVIVORS);
@@ -4454,6 +4443,11 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
 	}
 
+	if(IsGaoJiRenJiEnabled())
+	{
+		Score = RoundToFloor(Score * 0.5);
+	}
+
 	if (Mode && Score > 0)
 	{
 		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得了 \x04%i \x01分 by  \x05%i 幸存者\x01完成了 \x04救援关 \x01!", Score, SurvivorCount);
@@ -4794,7 +4788,7 @@ PlayerIncap(Attacker, Victim)
 				Format(UpdatePoints, sizeof(UpdatePoints), "points");
 			}
 		}
-		if(IsNeko()){
+		if(IsNormalMode()){
 			Score = RoundToFloor(Score / 5.0);
 		}
 
@@ -9895,6 +9889,11 @@ public CheckSurvivorsWin()
 		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
 	}
 
+	if(IsGaoJiRenJiEnabled())
+	{
+		Score = RoundToFloor(Score * 0.5);
+	}
+
 	if (Mode && Score > 0)
 	{
 		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得 \x04%i \x01分 by \x05%i 死亡到达安全门!", Score, Deaths);
@@ -10410,8 +10409,8 @@ UpdateFriendlyFire(Attacker, Victim)
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
 	}
-	if(IsNeko()){
-			Score = RoundToFloor(Score / 5.0);
+	if(IsNormalMode()){
+		Score = RoundToFloor(Score / 5.0);
 	}
 
 	decl String:query[1024];
@@ -11191,7 +11190,7 @@ public StopMapTiming()
 				if (enabled)
 					PlayerCounter++;
 			}
-			else if (!IsAnne && ClientTeam == TEAM_INFECTED)
+			else if (IsNormalMode() && ClientTeam == TEAM_INFECTED)
 			{
 				InfectedCounter++;
 				if (GetTrieValue(MapTimingInfected, ClientID, enabled))
@@ -11847,4 +11846,25 @@ public ReadDbMotdCallback(Handle:owner, Handle:hndl, const String:error[], any:d
 	{
 		SQL_FetchString(hndl, 0, MessageOfTheDay, sizeof(MessageOfTheDay));
 	}
+}
+
+stock bool IsGaoJiRenJiEnabled()
+{
+	ConVar gjrj = FindConVar("sb_fix_enabled");
+	if(gjrj == null)
+	{
+		return false;
+	}
+	else if(gjrj.BoolValue)
+	{
+		return true;
+	}
+	return false;
+}
+
+stock bool IsNormalMode()
+{
+	ConVar cvar = FindConVar("l4d_infected_limit");
+	if(cvar_mode == null) return true;
+	return false;
 }
