@@ -22,10 +22,9 @@
 #define LAG_DETECT_OFFSET 30.0								// 坦克位置检测偏移角度
 #define TREE_DETECT_TIME 1.5								// 绕树检测间隔
 #define VISION_UNLOCK_TIME 2.0								// 视角解锁间隔
-#define SPEED_MAX 350.0										// 速度修正最大速度长度
+#define SPEED_MAX 450.0										// 速度修正最大速度长度
 #define SPEED_MIN 200.0										// 速度修正最大速度长度
 #define RAY_ANGLE view_as<float>({90.0, 0.0, 0.0})
-#define FL_JUMPING 65922
 #define DEBUG_ALL 0
 #if (DEBUG_ALL)
 int g_sprite;
@@ -238,7 +237,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 {
 	if (IsAiTank(client))
 	{
-		if (L4D_IsPlayerStaggering(client))
+		if (L4D_IsPlayerStaggering(client) || buttons & IN_BACK)
 			return Plugin_Continue;
 		bool bHasSight = false, bIsSurvivorFailed = true;
 		int vomit_survivor = 0, target = GetClientAimTarget(client, true), nearest_target = GetClosetMobileSurvivor(client), nearest_targetdist = GetClosetSurvivorDistance(client), current_seq = GetEntProp(client, Prop_Send, "m_nSequence");	sicount = GetSiCount_ExcludeTank(bIsSurvivorFailed, vomit_survivor);
@@ -285,6 +284,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 				else if (!IsGrounded(client))
 				{
+					// 在空中禁止跳跃和蹲
+					buttons &= ~IN_JUMP;
+					buttons &= ~IN_ATTACK;
 					float velangles[3] = {0.0}, new_velvec[3] = {0.0}, self_target_vec[3] = {0.0};
 					/* float speed_length = 0.0;
 					speed_length = GetVectorLength(vecspeed, false); */
@@ -423,8 +425,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		// 爬梯子时，禁止连跳
 		if (GetEntityMoveType(client) & MOVETYPE_LADDER)
 		{
-			//buttons &= ~IN_JUMP;
+			buttons &= ~IN_JUMP;
 			buttons &= ~IN_DUCK;
+			switch (GetEntProp(client, Prop_Send, "m_nSequence"))
+			{
+				case 15,16,17:
+				{
+					buttons &= ~IN_ATTACK;
+				}
+			}
+			return Plugin_Changed;
 		}
 		// 着火时，自动灭火
 		if (GetEntProp(client, Prop_Data, "m_fFlags") & FL_ONFIRE)
