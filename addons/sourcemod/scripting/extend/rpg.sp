@@ -110,6 +110,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	//Native
 	CreateNative("L4D_RPG_GetValue", Native_GetValue);
 	CreateNative("L4D_RPG_GetGlobalValue", Native_GetGlobalValue);
+	CreateNative("L4D_RPG_SetGlobalValue", Native_SetGlobalValue);
 	return APLRes_Success;
 }
 
@@ -146,8 +147,21 @@ public any Native_GetGlobalValue(Handle plugin, int numParams)
 	//Debug_Print("GetClientTargetNum Native called");
 	switch( view_as<TARGET_VALUE_INDEX>(option) )
 	{
-		case INDEX_VALID:		return valid;
+		case INDEX_VALID:			return valid;
 		case INDEX_USEBUY:			return UseBuy;
+	}
+	return -1;
+}
+
+public any Native_SetGlobalValue(Handle plugin, int numParams)
+{
+	int option = GetNativeCell(1);
+	int value  = GetNativeCell(2);
+	//Debug_Print("GetClientTargetNum Native called");
+	switch( view_as<TARGET_VALUE_INDEX>(option) )
+	{
+		case INDEX_VALID:			valid  = view_as<bool>(value);
+		case INDEX_USEBUY:			UseBuy = view_as<bool>(value);
 	}
 	return -1;
 }

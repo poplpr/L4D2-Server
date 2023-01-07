@@ -1656,7 +1656,6 @@ public Action:event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	CheckCurrentMapDB();
 	MapTimingStartTime = 0.0;
 	MapTimingBlocked = false;
-	Isstart=true;
 	g_broundend = false;
 	ResetRankChangeCheck();
 }
@@ -5817,6 +5816,7 @@ public Action:event_DoorOpen(Handle:event, const String:name[], bool:dontBroadca
 	}
 
 	StartMapTiming();
+	Isstart = true;
 
 	return Plugin_Continue;
 }
@@ -5829,6 +5829,7 @@ public Action:event_StartArea(Handle:event, const String:name[], bool:dontBroadc
 		return Plugin_Continue;
 	}
 	StartMapTiming();
+	Isstart = true;
 
 	return Plugin_Continue;
 }
@@ -9746,6 +9747,8 @@ public CheckSurvivorsWin()
 {
 	//StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03有调用CheckSurvivorsWin方法!");
 	if (CampaignOver)
+		return;
+	if (!Isstart)
 		return;
 
 	CampaignOver = true;
