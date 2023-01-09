@@ -227,7 +227,6 @@ public void GameConVarChanged(ConVar convar, const char[] oldValue, const char[]
 public void ServerCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	FillServerNamer();
-	FillReadyConfig();
 }
 
 public void OnAllPluginsLoaded()
@@ -444,38 +443,9 @@ public Action ToggleSpecHudCmd(int client, int args)
 	if (GetClientTeam(client) != L4D2Team_Spectator)
 		return Plugin_Handled;
 	
-	if (bSpecHudActive[client])
-	{
-		bSpecHudActive[client] = false;
-		
-		int index = hSpecHudViewers.FindValue(client);
-		if (index != -1)
-			hSpecHudViewers.Erase(index);
-		
-		if (bTankHudActive[client])
-		{
-			index = hTankHudViewers.FindValue(client);
-			if (index == -1)
-				hTankHudViewers.Push(client);
-		}
-	}
-	else
-	{
-		bSpecHudActive[client] = true;
-		
-		int index = hSpecHudViewers.FindValue(client);
-		if (index == -1)
-			hSpecHudViewers.Push(client);
-			
-		if (bTankHudActive[client])
-		{
-			index = hTankHudViewers.FindValue(client);
-			if (index != -1)
-				hTankHudViewers.Erase(index);
-		}
-	}
+	bSpecHudActive[client] = !bSpecHudActive[client];
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Spectator HUD is now %s.", (bSpecHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+	CPrintToChat(client, "%t", "Notify_SpechudState", (bSpecHudActive[client] ? "on" : "off"));
 	return Plugin_Handled;
 }
 
@@ -485,28 +455,9 @@ public Action ToggleTankHudCmd(int client, int args)
 	if (team == L4D2Team_Survivor)
 		return Plugin_Handled;
 	
-	if (bTankHudActive[client])
-	{
-		bTankHudActive[client] = false;
-		
-		int index = hTankHudViewers.FindValue(client);
-		if (index != -1)
-			hTankHudViewers.Erase(index);
-	}
-	else
-	{
-		bTankHudActive[client] = true;
-		
-		if (!bSpecHudActive[client] || team == L4D2Team_Infected)
-		{
-			int index = hTankHudViewers.FindValue(client);
-			if (index == -1)
-				hTankHudViewers.Push(client);
-		}
-	}
+	bTankHudActive[client] = !bTankHudActive[client];
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Tank HUD is now %s.", (bTankHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
-
+	CPrintToChat(client, "%t", "Notify_TankhudState", (bTankHudActive[client] ? "on" : "off"));
 	return Plugin_Handled;
 }
 
@@ -578,7 +529,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bSpecHudHintShown[client])
 			{
 				bSpecHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!spechud{default} into chat to toggle the {blue}Spectator HUD{default}.");
+				CPrintToChat(client, "%t", "Notify_SpechudUsage");
 			}
 		}
 		delete specHud;
@@ -602,7 +553,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bTankHudHintShown[client])
 			{
 				bTankHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!tankhud{default} into chat to toggle the {red}Tank HUD{default}.");
+				CPrintToChat(client, "%t", "Notify_TankhudUsage");
 			}
 		}
 	}
