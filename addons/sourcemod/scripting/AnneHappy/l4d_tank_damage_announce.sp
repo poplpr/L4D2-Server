@@ -94,12 +94,12 @@ public void evt_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			int MaxTankHealth = GetConVarInt(g_hHealthLimit);
 			if(g_hSurvivorLimit.IntValue == 2 || g_hSurvivorLimit.IntValue == 3)
-				MaxTankHealth = 1000 + (g_hSurvivorLimit.IntValue -1)*1500;
+				MaxTankHealth = 1000 + (g_hSurvivorLimit.IntValue -1) * 1500;
 			else if(g_hSurvivorLimit.IntValue > 4)
 			{
-				MaxTankHealth = 6000 + (GetTeamPlayer(2) -4)*2000;
-				if(GetTeamPlayer(2) > 6)
-					MaxTankHealth += (g_hSurvivorLimit.IntValue -6)*500;
+				MaxTankHealth = 6000 + (g_hSurvivorLimit.IntValue -4) * 2000;
+				if(g_hSurvivorLimit.IntValue > 6)
+					MaxTankHealth += (g_hSurvivorLimit.IntValue -6) * 500;
 			}
 			SetConVarInt(g_hHealthLimit, MaxTankHealth);
 			SetEntProp(client, Prop_Data, "m_iHealth", g_hHealthLimit.IntValue);
