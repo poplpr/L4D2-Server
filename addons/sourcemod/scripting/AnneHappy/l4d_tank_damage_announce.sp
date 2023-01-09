@@ -1,165 +1,69 @@
-/*        L4D_TANK_DAMAGE_ANNOUNCE
-*         L4D_TANK_DAMAGE_ANNOUNCE
-*/        
-
 #pragma semicolon 1
+#pragma newdecls required
 
+// 头文件
 #include <sourcemod>
 #include <sdktools>
 #include <colors>
+#include <treeutil>
 
+#define CVAR_FLAG FCVAR_NOTIFY
 
-new     const           TEAM_SURVIVOR               = 2;
-new     const           TEAM_INFECTED               = 3;
-new     const           ZOMBIECLASS_TANK            = 8;                // Zombie class of the tank, used to find tank after he have been passed to another player
-new             bool:   g_bEnabled                  = true;
-new             bool:   g_bAnnounceTankDamage       = false;            // Whether or not tank damage should be announced
-new             bool:   g_bIsTankInPlay             = false;            // Whether or not the tank is active
-new             bool:   bPrintedHealth              = false;            // Is Remaining Health showed?
-new             		g_iWasTank[MAXPLAYERS + 1]  = {0, ...};         // Was Player Tank before he died.
-new                     g_iWasTankAI                = 0;
-new                     g_iOffset_Incapacitated     = 0;                // Used to check if tank is dying
-new                     g_iTankClient               = 0;                // Which client is currently playing as tank
-new                     g_iLastTankHealth           = 0;                // Used to award the killing blow the exact right amount of damage
-new                     g_iSurvivorLimit            = 8;                // For survivor array in damage print
-new                     g_iDamage[MAXPLAYERS + 1];
-new             Float:  g_fMaxTankHealth            = 6000.0;
-new             Handle: g_hCvarEnabled              = INVALID_HANDLE;
-new             Handle: g_hCvarTankHealth           = INVALID_HANDLE;
-new Handle:fwdOnTankDeath                = INVALID_HANDLE;
-new 					iTankRock[MAXPLAYERS+1]  	= {0, ...};
-new 					iTankClaw[MAXPLAYERS+1]  	= {0, ...};
-#define IsValidAliveClient(%1)	(1 <= %1 <= MaxClients && IsClientInGame(%1) && IsPlayerAlive(%1))
-
-/*
-* Version 0.6.6
-* - Better looking Output.
-* - Added Tank Name display when Tank dies, normally it only showed the Tank's name if the Tank survived
-* 
-* Version 0.6.6b
-* - Fixed Printing Two Tanks when last map Tank survived.
-* Added by; Sir
-
-* Version 0.6.7
-* - Added Campaign Difficulty Support.
-* Added by; Sir
-*/    
-
-public Plugin:myinfo =
+public Plugin myinfo = 
 {
-	name = "Tank Damage Announce L4D2",
-	author = "Griffin and Blade",
-	description = "Announce damage dealt to tanks by survivors",
-	version = "0.6.7",
+	name 			= "Tank Damage Announce",
+	author 			= "夜羽真白",
+	description 	= "坦克伤害统计",
+	version 		= "2022/6/8",
+	url 			= "https://steamcommunity.com/id/saku_ra/"
 }
 
-public OnPluginStart()
+// ConVars
+ConVar g_hEnable, g_hEnableHealthSet, g_hHealthLimit, g_hSurvivorLimit;
+// Bools
+bool g_bTankInPlay = false, g_bAnnounceDamage = false, g_bHasPrintedRemaingHealth = false;
+// Ints
+int g_iTankClient = -1, g_iLastTankHealth = 0, g_iPassCount = 0;
+// Chars
+char client_name[64] = {'\0'}, temp_name[64] = {'\0'}, controlers_name[256] = {'\0'};
+
+// 编译器会将所有未初始化的 int 类型初始化为 0
+enum struct TankDamageFact
 {
-	g_bIsTankInPlay = false;
-	g_bAnnounceTankDamage = false;
-	g_iTankClient = 0;
-	ClearTankDamage();
-	HookEvent("tank_spawn", Event_TankSpawn);
-	HookEvent("player_death", Event_PlayerKilled);
-	HookEvent("round_start", Event_RoundStart);
-	HookEvent("round_end", Event_RoundEnd);
-	HookEvent("player_hurt", Event_PlayerHurt);
-	
-	g_hCvarEnabled = CreateConVar("l4d_tankdamage_enabled", "1", "Announce damage done to tanks when enabled", FCVAR_NONE|FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_hCvarTankHealth = FindConVar("z_tank_health");
-	
-	HookConVarChange(g_hCvarEnabled, Cvar_Enabled);
-	HookConVarChange(g_hCvarTankHealth, Cvar_TankHealth);
-	g_bEnabled = GetConVarBool(g_hCvarEnabled);
-	CalculateTankHealth();
-	
-	g_iOffset_Incapacitated = FindSendPropInfo("Tank", "m_isIncapacitated");
-	fwdOnTankDeath = CreateGlobalForward("OnTankDeath", ET_Event);
-}
-
-public OnMapStart()
-{
-	// In cases where a tank spawns and map is changed manually, bypassing round end
-	ClearTankDamage();
-
-	PrecacheSound("ui/pickup_secret01.wav");
-}
-
-public OnClientDisconnect_Post(client)
-{
-	if (!g_bIsTankInPlay || client != g_iTankClient) return;
-	CreateTimer(0.1, Timer_CheckTank, client); // Use a delayed timer due to bugs where the tank passes to another player
-}
-
-public Cvar_Enabled(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_bEnabled = StringToInt(newValue) > 0 ? true:false;
-}
-
-
-public Cvar_TankHealth(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	CalculateTankHealth();
-}
-
-CalculateTankHealth()
-{
-	g_fMaxTankHealth = GetConVarFloat(g_hCvarTankHealth);
-	if (g_fMaxTankHealth <= 0.0) g_fMaxTankHealth = 1.0;
-}
-
-public Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!g_bIsTankInPlay) return; // No tank in play; no damage to record
-	
-	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (IsValidAliveClient(victim) && GetClientTeam(victim) == 2)
+	float fLifeTime;
+	bool bWasTank;
+	int iGotDamage;
+	int iSurvivorDamage;
+	int iPunch;
+	int iRock;
+	int iHittable;
+	void TankAttackFact_Init()
 	{
-        decl String:WeaponUsed[256];
-        GetEventString(event, "weapon", WeaponUsed, sizeof(WeaponUsed));
-
-        if (StrEqual(WeaponUsed,"tank_claw"))
-        {
-            iTankClaw[victim]++;
-        }
-        else if (StrEqual(WeaponUsed,"tank_rock"))
-        {
-            iTankRock[victim]++;
-        }
+		this.fLifeTime = 0.0;
+		this.bWasTank = false;
+		this.iGotDamage = this.iSurvivorDamage = this.iPunch = this.iRock = this.iHittable = 0;
 	}
-	if (victim != GetTankClient() ||        // Victim isn't tank; no damage to record
-	IsTankDying()                                   // Something buggy happens when tank is dying with regards to damage
-	) return;
-	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
-	// We only care about damage dealt by survivors, though it can be funny to see
-	// claw/self inflicted hittable damage, so maybe in the future we'll do that
-	if (attacker == 0 ||                                                    // Damage from world?
-	!IsClientInGame(attacker) ||                            // Not sure if this happens
-	GetClientTeam(attacker) != TEAM_SURVIVOR
-	) return;
-	
-	g_iDamage[attacker] += GetEventInt(event, "dmg_health");
-	g_iLastTankHealth = GetEventInt(event, "health");
+}
+static TankDamageFact eTankDamageFact[MAXPLAYERS + 1];
+
+public void OnPluginStart()
+{
+	g_hEnable = CreateConVar("l4d_tankdamage_enabled", "1", "是否开启坦克伤害统计", CVAR_FLAG, true, 0.0, true, 1.0);
+	g_hEnableHealthSet = CreateConVar("l4d_tankdamage_enable_healthset", "1", "是否将坦克的生命值设置为 z_tank_health 数值", CVAR_FLAG, true, 0.0, true, 1.0);
+	g_hSurvivorLimit = FindConVar("survivor_limit");
+	g_hHealthLimit = FindConVar("z_tank_health");
+	// HookEvents
+	HookEvent("tank_spawn", evt_TankSpawn);
+	HookEvent("player_hurt", evt_PlayerHurt);
+	HookEvent("player_death", evt_PlayerDeath);
+	HookEvent("round_start", evt_RoundStart);
+	HookEvent("round_end", evt_RoundEnd);
+	HookEvent("tank_frustrated", evt_TankFrustrated);
 }
 
-public Event_PlayerKilled(Handle:event, const String:name[], bool:dontBroadcast)
+public void OnMapStart()
 {
-	if (!g_bIsTankInPlay) return; // No tank in play; no damage to record
-	
-	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (victim != g_iTankClient) return;
-	
-	// Award the killing blow's damage to the attacker; we don't award
-	// damage from player_hurt after the tank has died/is dying
-	// If we don't do it this way, we get wonky/inaccurate damage values
-	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
-	if (attacker && IsClientInGame(attacker)) g_iDamage[attacker] += g_iLastTankHealth;
-	
-	//Player was Tank
-	if(!IsFakeClient(victim)) g_iWasTank[victim] = 1;
-	else g_iWasTankAI = 1;
-	// Damage announce could probably happen right here...
-	CreateTimer(0.1, Timer_CheckTank, victim); // Use a delayed timer due to bugs where the tank passes to another player
+	ClearTankDamage();
 }
 
 stock int GetTeamPlayer(int team)
@@ -167,244 +71,368 @@ stock int GetTeamPlayer(int team)
 	int playerCount=0;
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientConnected(i) && IsClientInGame(i) && GetClientTeam(i) == team)
+		if(IsClientConnected(i) && IsClientInGame(i) && GetClientTeam(i) == team && IsPlayerAlive(i))
 			playerCount++;
 	}
-	return playerCount;
+	if(playerCount < g_hSurvivorLimit.IntValue)
+		return g_hSurvivorLimit.IntValue;
+	else
+		return playerCount;
 }
 
-public Event_TankSpawn(Handle:event, const String:name[], bool:dontBroadcast)
+public void evt_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	new MaxTankHealth = GetConVarInt(g_hCvarTankHealth);
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	g_iTankClient = client;
-	for(int i=1; i <= MaxClients; i++){
-		iTankRock[i]=0;
-		iTankClaw[i]=0;
-	}
-	if (g_bIsTankInPlay) return; // Tank passed
-	if(GetTeamPlayer(2) == 2 || GetTeamPlayer(2) == 3)
-		MaxTankHealth = 1000+(GetTeamPlayer(2)-1)*1500;
-	else if(GetTeamPlayer(2) > 4)
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (IsTank(client))
 	{
-		MaxTankHealth = 6000+(GetTeamPlayer(2)-4)*2000;
-		if(GetTeamPlayer(2) > 6)
-			MaxTankHealth += (GetTeamPlayer(2)-6)*500;
+		g_iPassCount += 1;
+		g_iTankClient = client;
+		eTankDamageFact[client].TankAttackFact_Init();
+		eTankDamageFact[client].fLifeTime = GetGameTime();
+		// 设置生命
+		if (g_hEnableHealthSet.BoolValue)
+		{
+			int MaxTankHealth = GetConVarInt(g_hHealthLimit);
+			if(g_hSurvivorLimit.IntValue == 2 || g_hSurvivorLimit.IntValue == 3)
+				MaxTankHealth = 1000 + (g_hSurvivorLimit.IntValue -1)*1500;
+			else if(g_hSurvivorLimit.IntValue > 4)
+			{
+				MaxTankHealth = 6000 + (GetTeamPlayer(2) -4)*2000;
+				if(GetTeamPlayer(2) > 6)
+					MaxTankHealth += (g_hSurvivorLimit.IntValue -6)*500;
+			}
+			SetConVarInt(g_hHealthLimit, MaxTankHealth);
+			SetEntProp(client, Prop_Data, "m_iHealth", g_hHealthLimit.IntValue);
+			SetEntProp(client, Prop_Data, "m_iMaxHealth", g_hHealthLimit.IntValue);
+		}
+		if (IsFakeClient(client))
+		{
+			FormatEx(client_name, sizeof(client_name), "{blue}#%d：{green}AI ", g_iPassCount);
+			StrCat(controlers_name, sizeof(controlers_name), client_name);
+		}
+		else
+		{
+			GetClientName(client, client_name, sizeof(client_name));
+			FormatEx(temp_name, sizeof(temp_name), "{blue}#%d：{green}%s ", g_iPassCount, client_name);
+			StrCat(controlers_name, sizeof(controlers_name), temp_name);
+		}
+		if (!g_bTankInPlay)
+		{
+			g_bTankInPlay = g_bAnnounceDamage = true;
+			g_iLastTankHealth = GetEntProp(client, Prop_Data, "m_iHealth");
+		}
 	}
-		
-	//g_fMaxTankHealth = view_as<float>MaxTankHealth;
-	EmitSoundToAll("ui/pickup_secret01.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.8);
-	// New tank, damage has not been announced
-	//PrintToChatAll("Tank血量：%d",MaxTankHealth);
-	SetEntProp(client, Prop_Send, "m_iMaxHealth", MaxTankHealth);
-	SetEntProp(client, Prop_Send, "m_iHealth", MaxTankHealth);
-	g_bAnnounceTankDamage = true;
-	g_bIsTankInPlay = true;
-	// Set health for damage print in case it doesn't get set by player_hurt (aka no one shoots the tank)
-	g_iLastTankHealth = GetClientHealth(client);
 }
 
-public Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public void evt_TankFrustrated(Event event, const char[] name, bool dontBroadcast)
 {
-	bPrintedHealth = false;
-	g_bIsTankInPlay = false;
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (IsValidClient(client))
+	{
+		eTankDamageFact[client].fLifeTime = GetGameTime() - eTankDamageFact[client].fLifeTime;
+	}
+}
+
+public void evt_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
+{
+	char weapon[64] = {'\0'};
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	int damage = event.GetInt("dmg_health");
+	int remaining_health = event.GetInt("health");
+	event.GetString("weapon", weapon, sizeof(weapon));
+	// 坦克在场，如果受害者是坦克且不在倒地状态且攻击者为生还者，记录每个生还者对坦克的伤害和坦克剩余血量
+	if (g_bTankInPlay)
+	{
+		if (victim == GetTankClient() && !IsClientIncapped(victim) && IsValidSurvivor(attacker) && damage > 0)
+		{
+			eTankDamageFact[attacker].iGotDamage += damage;
+			g_iLastTankHealth = remaining_health;
+		}
+	}
+	// 如果攻击者是坦克且受害者是生还者同时不在倒地状态，伤害大于 0，则记录生还者受到的伤害类型
+	if (attacker == GetTankClient() && IsValidSurvivor(victim) && damage > 0)
+	{
+		if (strcmp(weapon, "tank_claw") == 0)
+		{
+			eTankDamageFact[victim].iPunch += 1;
+		}
+		else if (strcmp(weapon, "tank_rock") == 0)
+		{
+			eTankDamageFact[victim].iRock += 1;
+		}
+		else
+		{
+			eTankDamageFact[victim].iHittable += 1;
+		}
+	}
+	if (attacker == GetTankClient() && IsValidSurvivor(victim) && damage > 0)
+	{
+		eTankDamageFact[victim].iSurvivorDamage += damage;
+	}
+}
+
+public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	if (g_bTankInPlay)
+	{
+		int victim = GetClientOfUserId(event.GetInt("userid"));
+		int attacker = GetClientOfUserId(event.GetInt("attacker"));
+		// 坦克被处死或者卡死，victim == attacker，处死或者卡死时，不显示伤害报告
+		if (victim == g_iTankClient && victim != attacker)
+		{
+			// 获取当前坦克最大生命值与控制者
+			TrimString(controlers_name);
+			int max_health = GetEntProp(victim, Prop_Data, "m_iMaxHealth");
+			eTankDamageFact[victim].fLifeTime = GetGameTime() - eTankDamageFact[victim].fLifeTime;
+			if (IsValidClient(attacker))
+			{
+				eTankDamageFact[attacker].iGotDamage += g_iLastTankHealth;
+			}
+			// 创建数据包，传当前坦克玩家的 ID 与最大血量
+			DataPack dPack = new DataPack();
+			dPack.WriteCell(victim);
+			dPack.WriteCell(max_health);
+			CreateTimer(0.1, Timer_CheckTank, dPack);
+		}
+	}
+}
+public Action Timer_CheckTank(Handle timer, DataPack dPack)
+{
+	dPack.Reset();
+	int client = dPack.ReadCell();
+	int max_health = dPack.ReadCell();
+	delete dPack;
+	// 读取完毕数据，进行伤害统计
+	if (g_iTankClient == client)
+	{
+		int new_tankclient = FindTankClient();
+		// 找到的新的坦克客户端与之前传入的坦克客户端不相同，说明找到了新的存活的坦克，返回
+		if (IsValidClient(new_tankclient) && new_tankclient != client)
+		{
+			g_iTankClient = new_tankclient;
+			return Plugin_Stop;
+		}
+		if (g_bAnnounceDamage)
+		{
+			PrintTankDamage(client, max_health);
+			ClearTankDamage();
+			g_bTankInPlay = false;
+		}
+	}
+	return Plugin_Continue;
+}
+// 开局事件，清空坦克 ID 与所有生还者对坦克的伤害
+public void evt_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
 	g_iTankClient = 0;
-	ClearTankDamage(); // Probably redundant
+	g_bTankInPlay = g_bHasPrintedRemaingHealth = false;
+	ClearTankDamage();
 }
 
-// When survivors wipe or juke tank, announce damage
-public Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
+public void evt_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
-	// But only if a tank that hasn't been killed exists
-	if (g_bAnnounceTankDamage)
+	// 如果当前坦克仍然存活，则打印剩余血量和伤害
+	if (g_bAnnounceDamage && IsTank(g_iTankClient))
 	{
+		int max_health = GetEntProp(g_iTankClient, Prop_Data, "m_iMaxHealth");
 		PrintRemainingHealth();
-		PrintTankDamage();
+		PrintTankDamage(g_iTankClient, max_health);
 	}
 	ClearTankDamage();
 }
 
-public Action:Timer_CheckTank(Handle:timer, any:oldtankclient)
+// 坦克未死亡时，打印当前坦克剩余生命值
+void PrintRemainingHealth()
 {
-	if (g_iTankClient != oldtankclient) return; // Tank passed
-	
-	new tankclient = FindTankClient();
-	if (tankclient && tankclient != oldtankclient)
+	if (g_hEnable.BoolValue)
 	{
-		g_iTankClient = tankclient;
-		
-		return; // Found tank, done
-	}
-	
-	if (g_bAnnounceTankDamage) PrintTankDamage();
-	ClearTankDamage();
-	g_bIsTankInPlay = false; // No tank in play
-	Call_StartForward(fwdOnTankDeath);
-	Call_Finish();
-}
-
-bool:IsTankDying()
-{
-	new tankclient = GetTankClient();
-	if (!tankclient) return false;
-	
-	return bool:GetEntData(tankclient, g_iOffset_Incapacitated);
-}
-
-PrintRemainingHealth()
-{
-	bPrintedHealth = true;
-	if (!g_bEnabled) return;
-	new tankclient = GetTankClient();
-	if (!tankclient) return;
-	
-	decl String:name[MAX_NAME_LENGTH];
-	if (IsFakeClient(tankclient)) name = "AI";
-	else GetClientName(tankclient, name, sizeof(name));
-	CPrintToChatAll("{default}[{green}!{default}] {blue}Tank {default}({olive}%s{default}) 还剩余 {green}%d {default} 点血量", name, g_iLastTankHealth);
-}
-
-PrintTankDamage()
-{
-	if (!g_bEnabled) return;
-	
-	if (!bPrintedHealth)
-	{
-		for (new i = 1; i <= MaxClients; i++)
+		g_bHasPrintedRemaingHealth = true;
+		int new_tankclient = GetTankClient();
+		if (IsValidClient(new_tankclient))
 		{
-			if(g_iWasTank[i] > 0)
+			CPrintToChatAll("{blue}Tank\n{default}（{blue}控制：{green}%s{default}）剩余：{green}%d {default}血量：", controlers_name, g_iLastTankHealth);
+		}
+	}
+}
+// 打印当前生还者对坦克的伤害
+void PrintTankDamage(int tank_client, int max_health)
+{
+	if (g_hEnable.BoolValue)
+	{
+		// 先循环一次所有客户端，同时获取所有客户端的操控坦克的总时长，无需在打印伤害标题前再循环一次所有玩家
+		float total_survive_time = 0.0;
+		int[] survivors = new int[g_hSurvivorLimit.IntValue];
+		int survivor, total_percent = 0, total_damage = 0, survivor_index = -1, damage_percent = 0, damage = 0, percent_adjustment = 0, last_percent = 100, adjust_percent_damage = 0,
+			got_damage = 0, total_got_damage = 0, got_damage_percent = 0;
+		// 首先 survivor 等于 0，用于计算坦克存活时间
+		for (survivor = 0; survivor <= MaxClients; survivor++)
+		{
+			total_survive_time += eTankDamageFact[survivor].fLifeTime;
+			eTankDamageFact[survivor].fLifeTime = 0.0;
+			if (IsValidSurvivor(survivor))
 			{
-				decl String:name[MAX_NAME_LENGTH];
-				GetClientName(i, name, sizeof(name));
-				CPrintToChatAll("{default}[{green}!{default}] {blue}幸存者 {default}对 {blue}Tank {default}({olive}%s{default}) {default}造成的伤害：", name);
-				g_iWasTank[i] = 0;
+				survivor_index += 1;
+				survivors[survivor_index] = survivor;
+				damage = eTankDamageFact[survivor].iGotDamage;
+				total_damage += damage;
+				// 计算每个生还者对坦克的伤害百分比
+				damage_percent = GetDamageAsPercent(damage, max_health);
+				total_percent += damage_percent;
+				total_got_damage += eTankDamageFact[survivor].iSurvivorDamage;
 			}
-			else if(g_iWasTankAI > 0) 
-				CPrintToChatAll("{default}[{green}!{default}] {blue}幸存者 {default}对 {blue}Tank {default}({olive}AI{default}) {default}造成的伤害：");
-			g_iWasTankAI = 0;
 		}
-	}
-	
-	new client;
-	new percent_total; // Accumulated total of calculated percents, for fudging out numbers at the end
-	new damage_total; // Accumulated total damage dealt by survivors, to see if we need to fudge upwards to 100%
-	new survivor_index = -1;
-	new survivor_clients[g_iSurvivorLimit]; // Array to store survivor client indexes in, for the display iteration
-	decl percent_damage, damage;
-	for (client = 1; client <= MaxClients; client++)
-	{
-		if (!IsClientInGame(client) || GetClientTeam(client) != TEAM_SURVIVOR || g_iDamage[client] == 0) continue;
-		survivor_index++;
-		survivor_clients[survivor_index] = client;
-		damage = g_iDamage[client];
-		damage_total += damage;
-		percent_damage = GetDamageAsPercent(damage);
-		percent_total += percent_damage;
-	}
-	SortCustom1D(survivor_clients, g_iSurvivorLimit, SortByDamageDesc);
-	
-	new percent_adjustment;
-	// Percents add up to less than 100% AND > 99.5% damage was dealt to tank
-	if ((percent_total < 100 && float(damage_total) > (g_fMaxTankHealth - (g_fMaxTankHealth / 200.0))))
-	{
-		percent_adjustment = 100 - percent_total;
-	}
-	
-	new last_percent = 100; // Used to store the last percent in iteration to make sure an adjusted percent doesn't exceed the previous percent
-	decl adjusted_percent_damage;
-	for (new k; k <= survivor_index; k++)
-	{
-		client = survivor_clients[k];
-		damage = g_iDamage[client];
-		percent_damage = GetDamageAsPercent(damage);
-		// Attempt to adjust the top damager's percent, defer adjustment to next player if it's an exact percent
-		// e.g. 3000 damage on 6k health tank shouldn't be adjusted
-		if (percent_adjustment != 0 && // Is there percent to adjust
-		damage > 0 &&  // Is damage dealt > 0%
-		!IsExactPercent(damage) // Percent representation is not exact, e.g. 3000 damage on 6k tank = 50%
-		)
+		// 没有打印坦克剩余血量的情况，则说明坦克已死亡
+		if (!g_bHasPrintedRemaingHealth)
 		{
-			adjusted_percent_damage = percent_damage + percent_adjustment;
-			if (adjusted_percent_damage <= last_percent) // Make sure adjusted percent is not higher than previous percent, order must be maintained
+			char survive_time[64] = {'\0'};
+			FormatDuration(survive_time, sizeof(survive_time), total_survive_time);
+			CPrintToChatAll("[{blue}!{default}] {blue}生还者 {default}对 {blue}Tank {default}- {blue}存活时间：{green}%s", survive_time);
+			CPrintToChatAll("（{blue}控制：{green}%s{default}）{blue}的伤害：", controlers_name);
+		}
+		// 通过总伤害进行排序
+		SortCustom1D(survivors, g_hSurvivorLimit.IntValue, SortByDamageDesc);
+		// 如果总伤害百分比相加低于 100 同时对坦克造成的伤害大于 99.5%，伤害调整的数值为 100 - 总伤害百分比
+		if ((total_percent < 100 && float(total_damage) > (max_health - (max_health / 200))))
+		{
+			percent_adjustment = 100 - total_percent;
+		}
+		// 重新计算每个生还者调整后的伤害及伤害百分比
+		for (int i = 0; i <= survivor_index; i++)
+		{
+			survivor = survivors[i];
+			damage = eTankDamageFact[survivor].iGotDamage;
+			damage_percent = GetDamageAsPercent(damage, max_health);
+			got_damage = eTankDamageFact[survivor].iSurvivorDamage;
+			got_damage_percent = GetDamageAsPercent(got_damage, total_got_damage);
+			// 如果伤害调整的数值不等于 0 且某个生还者对坦克造成的伤害大于 0 且伤害百分比显示不准确的情况下，重新计算伤害百分比
+			// 实际伤害：float（打的伤害 / 坦克血量） * 100.0，显示的伤害 int（打的伤害 / 坦克血量），有小数位数的差别，差别大于 1% 时判断为伤害百分比不准确
+			if (percent_adjustment != 0 && damage > 0 && !IsExactPercent(damage, max_health))
 			{
-				percent_damage = adjusted_percent_damage;
-				percent_adjustment = 0;
+				// 伤害百分比计算不准确的情况下，将新的伤害百分比计算为：原伤害百分比 + 伤害调整的数值
+				adjust_percent_damage = damage_percent + percent_adjustment;
+				if (adjust_percent_damage <= last_percent)
+				{
+					damage_percent = adjust_percent_damage;
+					percent_adjustment = 0;
+				}
 			}
+			last_percent = damage_percent;
+			CPrintToChatAll("[%d] {blue}[{default}拳:{green}%d{blue}] [{default}石:{green}%d{blue}] [{default}铁:{green}%d{blue}]（{default}%d%%{blue}） {green}| {default}承伤:{green}%d {blue}（{default}%d%%{blue}） {green}%N", damage, eTankDamageFact[survivor].iPunch, eTankDamageFact[survivor].iRock, eTankDamageFact[survivor].iHittable, damage_percent, got_damage, got_damage_percent, survivor);
+			// 打印完伤害，清空坦克对生还者的伤害数据
+			eTankDamageFact[survivor].TankAttackFact_Init();
 		}
-		last_percent = percent_damage;
-		for (new i = 1; i <= MaxClients; i++)
-		{
-    		if (IsClientInGame(i))
-    		{
-				CPrintToChat(i, "{blue}[{default}%d{blue}] ({default}%i%%{blue}) [{blue}拳{default}:{green}%d{default}] [{blue}石{default}:{green}%d{default}] {olive}%N", damage, percent_damage, iTankClaw[client], iTankRock[client], client);
-			}
-		}
+		// 清空控制者名称
+		controlers_name = "";
+		eTankDamageFact[tank_client].TankAttackFact_Init();
 	}
+	g_iPassCount = 0;
 }
 
-ClearTankDamage()
+bool IsTank(int client)
 {
-	g_iLastTankHealth = 0;
-	g_iWasTankAI = 0;
-	for (new i = 1; i <= MaxClients; i++) 
-	{ 
-		g_iDamage[i] = 0; 
-		g_iWasTank[i] = 0;
-	}
-	g_bAnnounceTankDamage = false;
+	return view_as<bool>(GetInfectedClass(client) == view_as<int>(ZC_TANK));
 }
 
-
-GetTankClient()
+int SortByDamageDesc(int elem1, int elem2, const int[] array, Handle hndl)
 {
-	if (!g_bIsTankInPlay) return 0;
-	
-	new tankclient = g_iTankClient;
-	
-	if (!IsClientInGame(tankclient)) // If tank somehow is no longer in the game (kicked, hence events didn't fire)
+	if (eTankDamageFact[elem1].iGotDamage > eTankDamageFact[elem2].iGotDamage)
 	{
-		tankclient = FindTankClient(); // find the tank client
-		if (!tankclient) return 0;
-		g_iTankClient = tankclient;
+		return -1;
 	}
-	
-	return tankclient;
-}
-
-FindTankClient()
-{
-	for (new client = 1; client <= MaxClients; client++)
+	else if (eTankDamageFact[elem2].iGotDamage > eTankDamageFact[elem1].iGotDamage)
 	{
-		if (!IsClientInGame(client) ||
-			GetClientTeam(client) != TEAM_INFECTED ||
-		!IsPlayerAlive(client) ||
-		GetEntProp(client, Prop_Send, "m_zombieClass") != ZOMBIECLASS_TANK)
-		continue;
-		
-		return client; // Found tank, return
+		return 1;
+	}
+	else if (elem1 > elem2)
+	{
+		return -1;
+	}
+	else if (elem2 > elem1)
+	{
+		return 1;
 	}
 	return 0;
 }
 
-int GetDamageAsPercent(int damage)
+int GetDamageAsPercent(int damage, int max_health)
 {
-	return RoundToNearest((damage / g_fMaxTankHealth) * 100.0);
+	if (damage == 0.0 && max_health == 0.0)
+	{
+		return 0;
+	}
+	return RoundToNearest(float(damage) / float(max_health)  * 100.0);
 }
 
-//comparing the type of int with the float, how different is it
-bool IsExactPercent(int damage)
+bool IsExactPercent(int damage, int max_health)
 {
-	float fDamageAsPercent = (damage / g_fMaxTankHealth) * 100.0;
-	float fDifference = float(GetDamageAsPercent(damage)) - fDamageAsPercent;
-	return (FloatAbs(fDifference) < 0.001) ? true : false;
+	float damage_as_percent = (damage / max_health) * 100.0;
+	float difference = float(GetDamageAsPercent(damage, max_health)) - damage_as_percent;
+	return (FloatAbs(difference) < 0.001) ? true : false;
 }
 
-public SortByDamageDesc(elem1, elem2, const array[], Handle:hndl)
+int FindTankClient()
 {
-	// By damage, then by client index, descending
-	if (g_iDamage[elem1] > g_iDamage[elem2]) return -1;
-	else if (g_iDamage[elem2] > g_iDamage[elem1]) return 1;
-	else if (elem1 > elem2) return -1;
-	else if (elem2 > elem1) return 1;
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsTank(client))
+		{
+			return client;
+		}
+	}
 	return 0;
+}
+
+int GetTankClient()
+{
+	if (g_bTankInPlay)
+	{
+		int new_tankclient = g_iTankClient;
+		// 如果记录的坦克 ID 不是坦克，则寻找新的坦克客户端，找到，返回客户端 ID，找不到，返回 0，如果还是坦克，则直接返回客户端 ID
+		if (!IsTank(new_tankclient))
+		{
+			new_tankclient = FindTankClient();
+			if (IsTank(new_tankclient))
+			{
+				g_iTankClient = new_tankclient;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		return new_tankclient;
+	}
+	return 0;
+}
+
+void ClearTankDamage()
+{
+	g_bAnnounceDamage = false;
+	g_iPassCount = g_iLastTankHealth = 0;
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		eTankDamageFact[client].TankAttackFact_Init();
+	}
+}
+
+void FormatDuration(char[] duration, int length, float timestamp)
+{
+	int new_timestamp = RoundToNearest(timestamp);
+	if (new_timestamp < 60)
+	{
+		FormatEx(duration, length, "{G}%d秒", new_timestamp);
+	}
+	else if (new_timestamp < 3600)
+	{
+		int minute = new_timestamp / 60;
+		FormatEx(duration, length, "{G}%d分钟%d秒", minute, new_timestamp - (minute * 60));
+	}
+	else
+	{
+		int hour = new_timestamp / 3600;
+		int minute = new_timestamp % 3600 / 60;
+		int second = new_timestamp % 60;
+		FormatEx(duration, length, "{G}%d小时%d分钟%d秒", hour, minute, second);
+	}
 }
