@@ -588,7 +588,16 @@ public void OnClientPostAdminCheck(int client)
 	player[client].CanBuy=true;
 	player[client].ClientPoints = 500;
 	player[client].Check = false;
-	ClientSaveToFileLoad(client);
+	if(g_bMysqlSystemAvailable)
+	{
+		player[client].ClientMelee = 0;
+		player[client].ClientBlood = 0;
+		player[client].ClientHat = 0;
+		player[client].GlowType = 0;
+		player[client].SkinType = 0;
+		player[client].tags.ChatTag = NULL_STRING;
+		ClientSaveToFileLoad(client);
+	}
 	CreateTimer(3.0, CheckPlayer, client);
 	CreateTimer(10.0, SetClientTag, client);
 }
