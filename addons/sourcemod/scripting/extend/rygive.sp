@@ -824,11 +824,13 @@ void Miscell(int client, int item) {
 	menu.AddItem("c", "复活");
 	menu.AddItem("d", "传送");
 	menu.AddItem("e", "友伤");
-	menu.AddItem("f", "伤害免疫");
+	if(GetClientImmunityLevel(client) >= 90)
+		menu.AddItem("f", "伤害免疫");
 	menu.AddItem("g", "召唤尸潮");
 	menu.AddItem("h", "剔除所有Bot");
 	menu.AddItem("i", "处死所有特感");
-	menu.AddItem("j", "特感控制免疫");
+	if(GetClientImmunityLevel(client) >= 90)
+		menu.AddItem("j", "特感控制免疫");
 	menu.AddItem("k", "处死所有生还");
 	if(GetClientImmunityLevel(client) >= 90)
 		menu.AddItem("l", "传送所有生还到起点");
