@@ -2716,11 +2716,29 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 	GetClientIP(Client, IP, sizeof(IP));
 
 	decl String:query[512];	
+	//方便网页显示具体游玩模式
+	int mode = 0;
+	if(IsAnne())
+	{
+		mode = 1;
+	}else if(IsWitchParty())
+	{
+		mode = 2;
+	}else if(IsAllCharger())
+	{
+		mode = 3;
+	}else if(IsAlone())
+	{
+		mode = 4;
+	}else if(Is1vht())
+	{
+		mode = 5;
+	}
 	//旁观者更新时间戳，但是不增加游戏时间，这样来方便统计在线人数
 	if(!IsPlayer(Client))
-		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, CurrentGamemodeID, Name, IP, SteamID);
+		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), lastannemode = %i, lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, mode, CurrentGamemodeID, Name, IP, SteamID);
 	else
-		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), %s = %s + 1, lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, Playtime, Playtime, CurrentGamemodeID, Name, IP, SteamID);
+		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), %s = %s + 1, lastannemode = %i, lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, Playtime, Playtime, mode, CurrentGamemodeID, Name, IP, SteamID);
 	
 	SQL_TQuery(db, UpdatePlayerCallback, query, Client);
 }
@@ -11255,7 +11273,7 @@ public StopMapTiming()
 						}
 						if(mode > 0)
 						{
-							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY));
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 						}
 						else
 						{
@@ -11333,7 +11351,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			}
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY));
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 			}
 			else
 			{
@@ -11350,7 +11368,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY));
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 			}
 			else
 			{
@@ -11371,7 +11389,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 		if(mode > 0)
 		{
-			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, anneversion, mode, usebuy, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, '%s', %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY));
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, anneversion, mode, usebuy, auto, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, '%s', %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 		}
 		else
 		{
@@ -11870,4 +11888,11 @@ stock bool IsNormalMode()
 	ConVar cvar = FindConVar("l4d_infected_limit");
 	if(cvar_mode == null) return true;
 	return false;
+}
+
+stock int IsAutoSpawnTime()
+{
+	ConVar cvar = FindConVar("inf_EnableAutoSpawnTime");
+	if(cvar_mode == null) return false;
+	return cvar.IntValue;
 }
