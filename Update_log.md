@@ -283,6 +283,9 @@ witchparty 和 allcharger模式在普通药役的基础上小僵尸再减少17-2
 - 增减一个delbot管理员命令，用于多人装逼模式里删除bot的能力
 - 对addbot命令增加限制
 
+#### l4d_tongue_block_fix
+- 增加smoker可以穿过si拉人，一旦拉成功，可以穿过si和tank的能力
+
 #### 其他
 - 修改特感增强里检测是否在地面的方式
 - 修正一点翻译错误

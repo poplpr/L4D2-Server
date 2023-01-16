@@ -306,7 +306,7 @@ public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)
 								float self_eye_pos[3] = {0.0}, eye_pos[3] = {0.0};
 								GetClientEyePosition(specialInfected, self_eye_pos);
 								GetClientEyePosition(i, eye_pos);
-								Handle hTrace = TR_TraceRayFilterEx(self_eye_pos, eye_pos, MASK_SOLID, RayType_EndPoint, TR_RayFilterBypassSurOrInf, specialInfected);
+								Handle hTrace = TR_TraceRayFilterEx(self_eye_pos, eye_pos, MASK_SOLID, RayType_EndPoint, TR_RayFilterBySmoker, specialInfected);
 								if (!TR_DidHit(hTrace) && GetVectorDistance(self_eye_pos, eye_pos) < 600.0 && IsValidSurvivor(newtarget))
 								{
 									curTarget = newtarget;
@@ -321,9 +321,18 @@ public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)
 	}
 	return Plugin_Continue;
 }
-bool TR_RayFilterBypassSurOrInf(int entity, int mask, int self)
+bool TR_RayFilterBySmoker(int entity, int mask, any self)
 {
-	return entity != self || IsValidClient(entity);
+	// Filter self and Infected players
+	if (entity == self || IsValidInfected(entity)) { return false; }
+	// Filter common infected，witch
+	if (!IsValidEntity(entity) || !IsValidEdict(entity)) { return false; }
+	char className[64] = {'\0'};
+	GetEntityClassname(entity, className, sizeof(className));
+	if ((className[0] == 'i' && strcmp(className, "infected") == 0) || 
+		(className[0] == 'w' && strcmp(className, "witch") == 0)) { return false; }
+	if ((className[0] == 'e' && strcmp(className, "env_physics_blocker") == 0) && GetEntProp(entity, Prop_Send, "m_nBlockType") == 1) { return false; }
+	return true;
 }
 
 
