@@ -8,6 +8,7 @@
 #include <treeutil>
 #undef REQUIRE_PLUGIN
 #include <si_target_limit>
+#include <pause>
 
 
 #define CVAR_FLAG FCVAR_NOTIFY
@@ -145,13 +146,14 @@ public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_max
 public any Native_GetNextSpawnTime(Handle plugin, int numParams)
 {
 	float time = 0.0;
-	if (g_hSiInterval.FloatValue > 9.0)
+	//如果刷特进程还不开始，直接返回刷特间隔
+	if (g_hSpawnProcess == null)
 	{
-		time = g_fSiInterval + 8.0 - (GetGameTime() - g_fLastSISpawnTime);
+		time = g_fSiInterval;
 	}
 	else
 	{
-		time = g_fSiInterval + 4.0 - (GetGameTime() - g_fLastSISpawnTime);
+		time =  g_fSiInterval - (GetGameTime() - g_fLastSISpawnTime);
 	}
 	Debug_Print("下一波特感生成时间是%.2f秒后", time);
 	return time;
@@ -840,7 +842,6 @@ public void SpawnInfectedSettings()
 {
 	if (g_bIsLate)
 	{
-		g_fLastSISpawnTime = GetGameTime();
 		g_iSurvivorNum = 0;
 		g_iLastSpawnTime = 0;
 		for (int client = 1; client <= MaxClients; client++)
@@ -878,6 +879,7 @@ public void SpawnInfectedSettings()
 
 public Action CheckShouldSpawnOrNot(Handle timer)
 {
+	if(IsInPause()) Plugin_Continue;
 	g_iLastSpawnTime ++;
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
@@ -913,6 +915,7 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 			}
 		}
 	}
+	g_fLastSISpawnTime = GetGameTime();
 	return Plugin_Continue;
 }
 

@@ -94,42 +94,7 @@ public void OnPluginStart()
 	// GetCvars
 	GetCvars();
 }
-/*
-// ***** 事件 *****
-public void evt_PlayerSpawn(Event event, const char[] name, bool dontBroadCast)
-{
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (IsAiSmoker(client))
-	{	
-		//int flags = GetEntityFlags(client);
-		//if(!(flags & FL_ONGROUND) && GetConVarInt(g_hTongueRange) == 750)
-		//if(!(flags & FL_ONGROUND))
-		//{
-		SetConVarInt(g_hTongueRange,9999);
-		CreateTimer(0.3,ResetTougueRange);
-		BlockSmokerTongue(client);
-		//}
 
-	}
-}
-
-// 阻止舌头拉
-void BlockSmokerTongue(int client)
-{
-	int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-	if (IsValidEntity(ability) && bCanSmoker[client])
-	{
-			SetEntPropFloat(ability, Prop_Send, "m_timestamp", GetGameTime() + 0.3);
-	}
-}
-
-
-public Action ResetTougueRange(Handle timer,int client) 
-{
-	bCanSmoker[client] = true;
-	SetConVarInt(g_hTongueRange,750);
-}
-*/
 
 void ConVarChanged_Cvars(ConVar convar, const char[] oldValue, const char[] newValue)
 {

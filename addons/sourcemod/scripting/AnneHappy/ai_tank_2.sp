@@ -573,7 +573,8 @@ public Action Timer_SneakCheck(Handle timer, int client)
 		#if (DEBUG_ALL)
 			PrintToConsoleAll("[Ai-Tank]：SneakTank开启，Tank将在特感刷新前%f秒消耗， 当前特感生成时间为%f秒后", g_hSneakTank.FloatValue, GetNextSpawnTime());
 		#endif
-		if(GetNextSpawnTime() < g_hSneakTank.FloatValue)
+		float time = FindConVar("versus_special_respawn_interval").FloatValue / 2.0;
+		if(GetNextSpawnTime() < (time > g_hSneakTank.FloatValue ? g_hSneakTank.FloatValue: time))
 		{
 			eTankStructure[client].bCanConsume = false;
 			throw_min_range = 250;
