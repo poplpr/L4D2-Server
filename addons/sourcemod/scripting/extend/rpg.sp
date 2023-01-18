@@ -444,6 +444,10 @@ public void RewardScore(){
 			PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
 			return;
 		}
+		if(!IsThisRoundValid()){
+			PrintToChatAll("\x01[\x04RANK\x01]\x04由于关闭了tank连跳，不能获得额外过关积分");
+			return;
+		}
 		char pluginsname[64];
 		GetConVarString(FindConVar("l4d_ready_cfg_name"), pluginsname, sizeof(pluginsname));
 		if(StrContains(pluginsname,"AnneHappy") !=-1 || StrContains(pluginsname, "WitchParty") != -1 || StrContains(pluginsname,"AllCharger") != -1 )
@@ -2198,4 +2202,32 @@ stock bool IsGaoJiRenJiEnabled()
 		return true;
 	}
 	return false;
+}
+// 这回合是否有效
+stock bool IsThisRoundValid()
+{
+	ConVar tank_bhop = FindConVar("ai_Tank_Bhop");
+	if(AnneMultiPlayerMode())
+	{
+		return tank_bhop.BoolValue;
+	}
+	return true;
+}
+
+stock bool AnneMultiPlayerMode(){
+	char plugin_name[MAX_LINE_WIDTH];
+	ConVar cvar_mode;
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return false;
+	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
+	if(StrContains(plugin_name, "AllCharger", false) != -1 || StrContains(plugin_name, "AnneHappy", false) != -1 || StrContains(plugin_name, "WitchParty", false) != -1)
+	{
+		return true;
+	}else
+	{
+		return false;
+	}
 }

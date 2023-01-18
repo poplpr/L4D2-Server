@@ -4440,7 +4440,7 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 			}
 		}
 	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode()) && L4D_RPG_GetGlobalValue(INDEX_VALID)){
+	if((AnneMultiPlayerMode() || SinglePlayerMode()) && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
 		int inf= GetAnneInfectedNumber();
 		if(inf < 4)
 		{
@@ -9850,7 +9850,7 @@ public CheckSurvivorsWin()
 	if (SinglePlayerMode())
 	{
 		int addScore = 0;
-		if( GetAnneInfectedNumber() > 3 && L4D_RPG_GetGlobalValue(INDEX_VALID)){
+		if( GetAnneInfectedNumber() > 3 && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
 			addScore = (GetAnneInfectedNumber() - 3) * 100;
 		}
 		char buffer[256];
@@ -9895,7 +9895,7 @@ public CheckSurvivorsWin()
 				TriggerTimer(TimerRankChangeCheck[i], true);
 		}
 	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode()) && L4D_RPG_GetGlobalValue(INDEX_VALID)){
+	if((AnneMultiPlayerMode() || SinglePlayerMode()) && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
 		int inf = GetAnneInfectedNumber();
 		if(inf>4)
 			Score=RoundToFloor(Score+Score*(inf-4)*0.2);
@@ -11186,6 +11186,14 @@ public StopMapTiming()
 		}
 		return;
 	}
+	if(!IsNormalMode() && !IsThisRoundValid())
+	{
+		if (GetConVarInt(cvar_AnnounceMode))
+		{
+			StatsPrintToChatAll("此次结果因关闭tank连跳导致 \x04无效 \x01，不记录这张地图游戏时间!");
+		}
+		return;
+	}
 
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
 	MapTimingStartTime = -1.0;
@@ -11895,4 +11903,14 @@ stock int IsAutoSpawnTime()
 	ConVar cvar = FindConVar("inf_EnableAutoSpawnTime");
 	if(cvar_mode == null) return false;
 	return cvar.IntValue;
+}
+
+stock bool IsThisRoundValid()
+{
+	ConVar tank_bhop = FindConVar("ai_Tank_Bhop");
+	if(AnneMultiPlayerMode())
+	{
+		return tank_bhop.BoolValue;
+	}
+	return true;
 }

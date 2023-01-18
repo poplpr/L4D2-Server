@@ -197,8 +197,8 @@ public void playerSpawnHandler(Event event, const char[] name, bool dontBroadcas
 		SetEntProp(client, Prop_Data, "m_iMaxHealth", g_hHealthLimit.IntValue);
 	}
 	/* 显示 Tank 生成 */
-	if (!IsFakeClient(client)) { CPrintToChatAll("[{green}!{default}] {green}Tank {default}({green}%N{default}) {blue}已经生成", client); }
-	else { CPrintToChatAll("[{green}!{default}] {green}Tank {default}({green}AI{default}) {blue}已经生成"); }
+	//if (!IsFakeClient(client)) { CPrintToChatAll("[{green}!{default}] {green}Tank {default}({green}%N{default}) {blue}已经生成", client); }
+	//else { CPrintToChatAll("[{green}!{default}] {green}Tank {default}({green}AI{default}) {blue}已经生成"); }
 }
 
 public void playerDeathHandler(Event event, const char[] name, bool dontBroadcast)
@@ -264,8 +264,8 @@ void printTankDamage(int client)
 	}
 	/* 显示详细伤害统计 */
 	/* 计算每个玩家对 Tank 伤害、吃拳、吃石、吃铁的百分比 */
-	static int i, totalDamge, totalPunch, totalRock, totalIron, totalGotDamage, damagePercent, survivorCount, survivorIndex;
-	totalDamge = totalPunch = totalRock = totalIron = totalGotDamage = damagePercent = survivorIndex = 0;
+	static int i, totalDamge, totalGotDamage, damagePercent, survivorCount, survivorIndex;
+	totalDamge = totalGotDamage = damagePercent = survivorIndex = 0;
 	/* 创建新的二维数组记录生还者与对 Tank 伤害的对应关系，0位：玩家索引，1位：伤害 */
 	survivorCount = getSurvivorCount();
 	int[][] survivorDamage = new int[survivorCount][2];
@@ -273,9 +273,6 @@ void printTankDamage(int client)
 	{
 		if (!IsClientInGame(i) || GetClientTeam(i) != TEAM_SURVIVOR) { continue; }
 		totalDamge += tankHurt[client][i];
-		totalPunch += playerHurts[client][i].punch;
-		totalRock += playerHurts[client][i].rock;
-		totalIron += playerHurts[client][i].iron;
 		totalGotDamage += playerHurts[client][i].gotDamage;
 		damagePercent += getDamageAsPercent(tankHurt[client][i], tankHealth[client]);
 		survivorDamage[survivorIndex][0] = i;
@@ -307,9 +304,9 @@ void printTankDamage(int client)
 		{
 			CPrintToChatAll("{blue}[{default}%d{blue}({default}%d%%{blue})][{green}拳:{default}%d{blue}][{green}石:{default}%d{blue}][{green}铁:{default}%d{blue}][{green}承伤:{default}%d{blue}({default}%d%%{blue})] {green}%N",
 			damage, damagePercent,
-			playerHurts[client][survivor].punch, totalPunch == 0 ? 0 : RoundToNearest(float(playerHurts[client][survivor].punch) / float(totalPunch) * 100.0),
-			playerHurts[client][survivor].rock, totalRock == 0 ? 0 : RoundToNearest(float(playerHurts[client][survivor].rock) / float(totalRock) * 100.0),
-			playerHurts[client][survivor].iron, totalIron == 0 ? 0 : RoundToNearest(float(playerHurts[client][survivor].iron) / float(totalIron) * 100.0),
+			playerHurts[client][survivor].punch,
+			playerHurts[client][survivor].rock,
+			playerHurts[client][survivor].iron,
 			playerHurts[client][survivor].gotDamage, totalGotDamage == 0 ? 0 : RoundToNearest(float(playerHurts[client][survivor].gotDamage) / float(totalGotDamage) * 100.0),
 			survivor);
 		}

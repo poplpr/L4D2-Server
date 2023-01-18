@@ -109,7 +109,8 @@ float
 	g_fSpawnDistance, 					//特感的当前生成距离
 //	g_fTeleportDistanceMin, 			//特感传送距离生还的最小距离
 	g_fTeleportDistance,				//特感当前传送生成距离
-	g_fLastSISpawnTime,					//上一波特感生成时间
+	g_fLastSISpawnStartTime,			//上一波特感生成时间
+	g_fUnpauseNextSpawnTime,			//因为暂停记录下下一波特感的时间，方便解除暂停时创建处理线程
 	g_fSiInterval;						//特感的生成时间间隔
 // Bools
 bool 
@@ -153,7 +154,7 @@ public any Native_GetNextSpawnTime(Handle plugin, int numParams)
 	}
 	else
 	{
-		time =  g_fSiInterval - (GetGameTime() - g_fLastSISpawnTime);
+		time =  g_fSiInterval - (GetGameTime() - g_fLastSISpawnStartTime);
 	}
 	Debug_Print("下一波特感生成时间是%.2f秒后", time);
 	return time;
@@ -389,7 +390,8 @@ public void InitStatus(){
 	g_bShouldCheck = false;
 	g_bIsLate = false;
 	g_iSpawnMaxCount = 0;
-	g_fLastSISpawnTime = 0.0;
+	g_fLastSISpawnStartTime = 0.0;
+	g_fUnpauseNextSpawnTime = 0.0;
 	aSpawnQueue.Clear();
 	aTeleportQueue.Clear();
 	//aSpawnNavList.Clear();
@@ -877,9 +879,28 @@ public void SpawnInfectedSettings()
 	}
 }
 
+public void OnUnpause()
+{
+	if(g_hSpawnProcess == INVALID_HANDLE)
+	{
+		Debug_Print("解除暂停，原先一波刷特进程已经在处理，下一波刷特是%.2f秒后", g_fUnpauseNextSpawnTime);
+		g_hSpawnProcess = CreateTimer(g_fUnpauseNextSpawnTime, SpawnNewInfected, _, TIMER_REPEAT);
+	}
+}
+
 public Action CheckShouldSpawnOrNot(Handle timer)
 {
-	if(IsInPause()) Plugin_Continue;
+	if(IsInPause()) 
+	{
+		Debug_Print("处于暂停状态，停止刷特");
+		if(g_hSpawnProcess != INVALID_HANDLE)
+		{
+			g_fUnpauseNextSpawnTime = g_fSiInterval - (GetGameTime() - g_fLastSISpawnStartTime);
+			KillTimer(g_hSpawnProcess);
+			g_hSpawnProcess = INVALID_HANDLE;
+		}
+		return Plugin_Continue;
+	}
 	g_iLastSpawnTime ++;
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
@@ -915,7 +936,7 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 			}
 		}
 	}
-	g_fLastSISpawnTime = GetGameTime();
+	g_fLastSISpawnStartTime = GetGameTime();
 	return Plugin_Continue;
 }
 
@@ -1258,6 +1279,11 @@ bool CanBeTeleport(int client)
 //5秒内以1s检测一次，5次没被看到，就可以踢出并加入传送队列
 public Action Timer_PositionSi(Handle timer)
 {
+	if(IsInPause()) 
+	{
+		Debug_Print("处于暂停状态，停止传送检测");
+		return Plugin_Continue;
+	}
 	//每1s找一次跑男或者是否所有全被控
 	if(CheckRushManAndAllPinned())
 	{
