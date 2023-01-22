@@ -4440,19 +4440,26 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 			}
 		}
 	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode()) && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
-		int inf= GetAnneInfectedNumber();
-		if(inf < 4)
+	if((AnneMultiPlayerMode() || SinglePlayerMode())){
+		if(!L4D_RPG_GetGlobalValue(INDEX_VALID) || !IsThisRoundValid())
 		{
-			if(AnneMultiPlayerMode())
-				Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
+			Score = RoundToFloor(Score * 0.4);
 		}
-		else if(inf > 4)
-			Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
-		else if(inf > 6)
-			Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
-		else if(inf>8)
-			Score=RoundToFloor(Score + Score * (inf-4)*0.3);
+		else
+		{
+			int inf= GetAnneInfectedNumber();
+			if(inf < 4)
+			{
+				if(AnneMultiPlayerMode())
+					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
+			}
+			else if(inf > 4)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
+			else if(inf > 6)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
+			else if(inf>8)
+				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
+		}	
 	}
 
 	if(IsAboveFourPeople())
