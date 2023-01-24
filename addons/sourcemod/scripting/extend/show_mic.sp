@@ -175,7 +175,7 @@ public Action Timer_UpdateSpeaking(Handle timer)
 				if(team == 2 && spec > 0)
 				{
 					SetGlobalTransTarget(i);
-					PrintCenterText(i, "%T\n%s", "Players Speaking:", i, SpeakingSurvivorPlayers);
+					PrintCenterText(i, "%T\n%s", "Players Speaking:", i, SpeakingSpectatorPlayers);
 				}
                 // 旁观者显示全部正在说话的人
 				if(team == 1 && iCount > 0)
