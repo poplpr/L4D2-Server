@@ -159,6 +159,7 @@ public void OnPluginStart()
 	HookEvent("player_incapacitated", evt_PlayerIncapped);
 	HookEvent("finale_win", evt_ResetLadder);
 	HookEvent("map_transition", evt_ResetLadder);
+	HookEvent("round_start", evt_RoundStart, EventHookMode_PostNoCopy);
 	// Building List
 	ladderList = new ArrayList(3);
 	#if(DEBUG_ALL)
@@ -640,6 +641,20 @@ public void evt_ResetLadder(Event event, const char[] name, bool dontBroadcast)
 	ladderList.Clear();
 }
 
+public void evt_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+	CreateTimer(3.0, initLadder, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+// 开局重置特感状态
+public Action initLadder(Handle timer)
+{
+	if(ladderList.Length <= 1){
+		CheckAllLadder();
+	}
+	return Plugin_Continue;
+}
+
 stock bool IsOnLadder(int entity)
 {
 	return GetEntityMoveType(entity) == MOVETYPE_LADDER;
@@ -673,13 +688,6 @@ bool Tank_DoBhop(int client, int &buttons, float vec[3])
 		}
 	}
 	return bJumped;
-}
-
-public Action L4D_OnFirstSurvivorLeftSafeArea(){
-	if(ladderList.Length <= 1){
-		CheckAllLadder();
-	}
-	return Plugin_Continue;
 }
 
 // 以缩放后的向量加速到玩家的当前速度中

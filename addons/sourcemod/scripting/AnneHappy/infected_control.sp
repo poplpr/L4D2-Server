@@ -20,6 +20,7 @@
 #define PLAYER_CHEST 45.0
 #define HIGHERPOS 300.0
 #define HIGHERPOSADDDISTANCE 300.0
+#define INCAPSURVIVORCHECKDIS 500.0
 #define NORMALPOSMULT 1.4
 
 // 启用特感类型
@@ -702,7 +703,7 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 			distance += HIGHERPOSADDDISTANCE;
 		}
 		//nav1 和 nav2 必须有网格相连的路，并且生成距离大于distance，增加不能是同nav网格的要求
-		if (L4D2_NavAreaBuildPath(nav1, nav2, distance, TEAM_INFECTED, false) && GetVectorDistance(fSurvivorPos, fSpawnPos) >= g_fSpawnDistanceMin && nav1 != nav2)
+		if (L4D2_NavAreaBuildPath(nav1, nav2, distance, TEAM_INFECTED, false) && GetVectorDistance(fSurvivorPos, fSpawnPos, true) >= Pow(g_fSpawnDistanceMin, 2.0) && nav1 != nav2)
 		{
 			if (iZombieClass > 0 && !HasReachedLimit(iZombieClass) && CheckSIOption(iZombieClass))
 			{
@@ -904,7 +905,7 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 	g_iLastSpawnTime ++;
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
-	if((IsAnyTankAlive()|| IsAboveHalfSurvivorDownOrDied()) && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
+	if(IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
 	if(!g_bAutoSpawnTimeControl)
 	{
 		g_bShouldCheck = false;
@@ -1023,8 +1024,8 @@ stock bool PlayerVisibleTo(float targetposition[3], bool IsTeleport = false)
 					for(int i = 0; i < MaxClients; i++){
 						if(i != client && IsValidSurvivor(i) && !IsClientIncapped(i)){
 							GetClientAbsOrigin(i, temp);
-							//倒地生还者500范围内已经没有正常生还者，掠过这个人的视线判断
-							if(GetVectorDistance(temp, position) < 500.0){
+							//倒地生还者INCAPSURVIVORCHECKDIS范围内已经没有正常生还者，掠过这个人的视线判断
+							if(GetVectorDistance(temp, position, true) < Pow(INCAPSURVIVORCHECKDIS, 2.0)){
 								sum ++;
 							}
 						}
@@ -1043,7 +1044,7 @@ stock bool PlayerVisibleTo(float targetposition[3], bool IsTeleport = false)
 			}
 			GetClientEyePosition(client, position);
 			//position[0] += 20;
-			if(GetVectorDistance(targetposition, position) < g_fSpawnDistanceMin)
+			if(GetVectorDistance(targetposition, position, true) < Pow(g_fSpawnDistanceMin, 2.0))
 			{
 				return true;
 			}
@@ -1113,7 +1114,7 @@ stock bool PlayerVisibleToSDK(float targetposition[3], bool IsTeleport = false){
 						if(i != client && IsValidSurvivor(i) && !IsClientIncapped(i)){
 							GetClientAbsOrigin(i, temp);
 							//倒地生还者500范围内已经没有正常生还者，掠过这个人的视线判断
-							if(GetVectorDistance(temp, position) < 500.0){
+							if(GetVectorDistance(temp, position, true) < Pow(INCAPSURVIVORCHECKDIS, 2.0)){
 								sum ++;
 							}
 						}
@@ -1131,12 +1132,12 @@ stock bool PlayerVisibleToSDK(float targetposition[3], bool IsTeleport = false){
 				}		
 			}
 			//太近直接返回看见
-			if(GetVectorDistance(targetposition, position) < g_fSpawnDistanceMin)
+			if(GetVectorDistance(targetposition, position, true) < Pow(g_fSpawnDistanceMin, 2.0))
 			{
 				return true;
 			}
 			//太远直接返回没看见
-			if(GetVectorDistance(targetposition, position) >= g_fSpawnDistanceMax)
+			if(GetVectorDistance(targetposition, position, true) >= Pow(g_fSpawnDistanceMax, 2.0))
 			{
 				count++;
 				if(count >= (g_iSurvivorNum - skipcount)){
@@ -1405,7 +1406,7 @@ bool CheckRushManAndAllPinned()
 			testSurvior = true;
 		}
 		for(int i =0; i < iSurvivorIndex && !testSurvior; i++){
-			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(fSurvivorsOrigin[i], OriginTemp) <= RushManDistance))
+			if(IsPinned(target) || IsClientIncapped(target) || (iSurvivors[i] != target && GetVectorDistance(fSurvivorsOrigin[i], OriginTemp, true) <= Pow(RushManDistance, 2.0)))
 			{
 				testSurvior = true;
 				break;
@@ -1424,7 +1425,7 @@ bool CheckRushManAndAllPinned()
 		{
 			for(int i =0; i < iInfectedIndex; i++)
 			{
-				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp) <= RushManDistance * 1.3))
+				if(IsPinned(target) || IsClientIncapped(target) || (GetVectorDistance(fInfectedssOrigin[i], OriginTemp, true) <= Pow(RushManDistance, 2.0) * 1.3))
 				{
 					g_bPickRushMan = false;
 					g_iRushManIndex = -1;
@@ -1672,16 +1673,6 @@ public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 	return Plugin_Continue;
 }
 
-stock bool IsAnyTankAlive()
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsAiTank(i))
-			return true;
-	}
-	return false;
-}
-
 stock void Debug_Print(char[] format, any ...)
 {
 	#if (DEBUG)
@@ -1699,11 +1690,13 @@ stock void Debug_Print(char[] format, any ...)
 	#endif
 }
 
-stock bool IsAboveHalfSurvivorDownOrDied()
+stock bool IsAnyTankOrAboveHalfSurvivorDownOrDied()
 {
 	int count = 0;
 	for(int i = 1; i <= MaxClients; i ++)
 	{
+		if(IsAiTank(i))
+			return true;
 		if(IsValidSurvivor(i) && (L4D_IsPlayerIncapacitated(i) || !IsPlayerAlive(i)))
 		{
 			count ++;
