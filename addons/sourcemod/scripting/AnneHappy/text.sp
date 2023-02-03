@@ -71,7 +71,6 @@ public Action ZiSha(int client, int args)
 	return Plugin_Handled;
 }
 
-
 public Action killall(int client, int args)
 {
 	SlaySurvivors();
