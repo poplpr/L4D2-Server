@@ -2,9 +2,9 @@
 #include <sourcemod>
 #include <clientprefs>
 #include <sdktools>
+#include <left4dhooks>
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
-#include <left4dhooks>
 #include <rpg>
 #define PLUGIN_NAME "玩家排名系统"
 #define PLUGIN_VERSION "1.5"
@@ -357,6 +357,8 @@ new TopMenuObject:MenuClearAll = INVALID_TOPMENUOBJECT;
 new TopMenuObject:MenuRemoveCustomMaps = INVALID_TOPMENUOBJECT;
 new TopMenuObject:MenuCleanPlayers = INVALID_TOPMENUOBJECT;
 new TopMenuObject:MenuClearTimedMaps = INVALID_TOPMENUOBJECT;
+
+bool g_brpgAvailable = false;
 
 // Administrative Cvars
 new Handle:cvar_AdminPlayerCleanLastOnTime = INVALID_HANDLE;
@@ -1078,8 +1080,19 @@ public OnLibraryRemoved(const String:name[])
 {
 	if (StrEqual(name, "adminmenu"))
 		RankAdminMenu = INVALID_HANDLE;
+	if ( StrEqual(name, "rpg") ) { g_brpgAvailable = false; }
 }
 
+public void OnAllPluginsLoaded()
+{
+	g_brpgAvailable = LibraryExists("rpg");
+}
+
+
+public void OnLibraryAdded(const char[] name)
+{
+    if ( StrEqual(name, "rpg") ) { g_brpgAvailable = true; }
+}
 // This handles the top level "Player Stats" category and how it is displayed on the core admin menu
 
 public ClearRankCategoryHandler(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, client, String:buffer[], maxlength)
@@ -1779,9 +1792,9 @@ public Action:timer_ProtectedFriendly(Handle:timer, any:data)
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(data, "你获得了 \x04%i \x01点分数 by \x05 保护队友！\x01!", Score);
+			StatsPrintToChat(data, "你\x05 保护队友 \x01获得了 \x04%i \x01分！!", Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01 获得了 \x04%i \x01 点分数 by  \x05 保护队友！\x01!", UserName, Score);
+			StatsPrintToChatAll("\x05%s\x05 保护队友 \x01获得了 \x04%i \x01分！\x01!", UserName, Score);
 	}
 }
 // Team infected damage score
@@ -1855,14 +1868,14 @@ public Action:timer_InfectedDamageCheck(Handle:timer, any:data)
 		if (Mode == 1 || Mode == 2)
 		{
 			if (InfectedDamage > 1)
-				StatsPrintToChat(data, "你获得了 \x04%i \x01点分数 by  给生还者造成了 \x04%i \x01 分的伤害", Score, DamageCounter);
+				StatsPrintToChat(data, "你因给生还者造成了 \x04%i \x01分的伤害获得了 \x04%i \x01分！", DamageCounter, Score);
 		}
 		else if (Mode == 3)
 		{
 			decl String:Name[MAX_LINE_WIDTH];
 			GetClientName(data, Name, sizeof(Name));
 			if (InfectedDamage > 1)
-				StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01点分数 by  给生还者造成了 \x04%i \x01 分的伤害!", Name, Score, DamageCounter);
+				StatsPrintToChatAll("\x05%s 因给生还者造成了 \x04%i \x01分的伤害获得了 \x04%i \x01分!", Name, DamageCounter, Score);
 		}
 	}
 }
@@ -1937,18 +1950,18 @@ public Action:timer_BoomerBlindnessCheck(Handle:timer, any:data)
 			if (Mode == 1 || Mode == 2)
 			{
 				if (AwardCounter > 0)
-					StatsPrintToChat(data, "你完美的糊生还者的眼，获得 \x04%i \x01 点分数!", Score);
+					StatsPrintToChat(data, "你完美的糊生还者的眼，获得 \x04%i \x01 分!", Score);
 				else
-					StatsPrintToChat(data, "你获得了 \x04%i \x01点分数!", Score);
+					StatsPrintToChat(data, "你获得了 \x04%i \x01分!", Score);
 			}
 			else if (Mode == 3)
 			{
 				decl String:Name[MAX_LINE_WIDTH];
 				GetClientName(data, Name, sizeof(Name));
 				if (AwardCounter > 0)
-					StatsPrintToChatAll("\x05%s \x01完美的糊生还者的眼，获得 \x04%i \x01 点分数!", Name, Score);
+					StatsPrintToChatAll("\x05%s \x01完美的糊生还者的眼，获得 \x04%i \x01 分!", Name, Score);
 				else
-					StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01点分数!!", Name, Score);
+					StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01分!", Name, Score);
 			}
 		}
 
@@ -2914,12 +2927,12 @@ public Action:timer_EndCharge(Handle:timer, any:data)
 		Mode = GetConVarInt(cvar_AnnounceMode);
 
 	if ((Mode == 1 || Mode == 2) && IsClientConnected(data) && IsClientInGame(data))
-		StatsPrintToChat(data, "你用牛撞了\x03%i \x01幸存者获得了 \x04%i \x01分!",Counter, Score);
+		StatsPrintToChat(data, "你用牛撞了\x03%i \x01幸存者获得了 \x04%i \x01分!", Counter, Score);
 	else if (Mode == 3)
 	{
 		decl String:AttackerName[MAX_LINE_WIDTH];
 		GetClientName(data, AttackerName, sizeof(AttackerName));
-		StatsPrintToChatAll("\x05%s \x01用牛撞了\x03%i \x01幸存者获得了 \x04%i \x01分s!", AttackerName, Counter,Score);
+		StatsPrintToChatAll("\x05%s \x01用牛撞了\x03%i \x01幸存者获得了 \x04%i \x01分s!", AttackerName, Counter, Score);
 	}
 }
 
@@ -3601,20 +3614,20 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 				if (Mode > 1)
 				{
 					GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-					StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by \x04爆头杀死\x01 %s \x05%s \x01!", AttackerName, Score, (VictimIsBot ? " a" : ""), VictimName);
+					StatsPrintToChatAll("\x05%s \x04爆头杀死\x01 %s\x05%s \x01获得 \x04%i \x01分 !", AttackerName, (VictimIsBot ? "一只" : ""), VictimName, Score);
 				}
 				else
-					StatsPrintToChat(Attacker, "你获得 \x04%i \x01分 by \x04爆头杀死\x01 %s \x05%s \x01!", Score, (VictimIsBot ? " a" : ""), VictimName);
+					StatsPrintToChat(Attacker, "你 \x04爆头杀死\x01 %s\x05%s \x01 获得 \x04%i \x01分!", (VictimIsBot ? "一只" : ""), VictimName, Score);
 			}
 			else
 			{
-				if (Mode > 2)
+				if (Mode > 1)
 				{
 					GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-					StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 杀死了%s \x05%s\x01!", AttackerName, Score, (VictimIsBot ? " a" : ""), VictimName);
+					StatsPrintToChatAll("\x05%s \x04杀死\x01 %s\x05%s \x01获得 \x04%i \x01分 !", AttackerName, (VictimIsBot ? "一只" : ""), VictimName, Score);
 				}
 				else
-					StatsPrintToChat(Attacker, "你获得 \x04%i \x01分 by 杀死了%s \x05%s\x01!", Score, (VictimIsBot ? " a" : ""), VictimName);
+					StatsPrintToChat(Attacker, "你 \x04杀死\x01 %s\x05%s \x01 获得 \x04%i \x01分!", (VictimIsBot ? " 一只" : ""), VictimName, Score);
 			}
 		}
 
@@ -3919,7 +3932,7 @@ public Action:event_TankKilled(Handle:event, const String:name[], bool:dontBroad
 
 	if (Mode && Score > 0)
 	{
-		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01都获得了 \x04%i \x01分 by \x05%i 死亡\x01击杀一个Tank!", Score, Deaths);
+		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05%i 死亡击杀一个Tank \x01获得 \x04%i \x01分 !", Deaths, Score);
 	}
 
 	UpdateMapStat("kills", 1);
@@ -4004,9 +4017,9 @@ GiveAdrenaline(Giver, Recipient, AdrenalineID = -1)
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Giver, "你获得了\x04%i \x01分 by 赠送肾上腺素给 \x05%s\x01!", Score, RecipientName);
+			StatsPrintToChat(Giver, "你赠送肾上腺素给 \x05%s \x01获得了 \x04%i \x01分!", RecipientName, Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01获得了\x04%i \x01分 by 赠送肾上腺素给 \x05%s\x01!", GiverName, Score, RecipientName);
+			StatsPrintToChatAll("\x05%s 赠送肾上腺素给 \x05%s \x01获得了 \x04%i \x01分!", GiverName, RecipientName, Score);
 	}
 }
 
@@ -4108,9 +4121,9 @@ GivePills(Giver, Recipient, PillsID = -1)
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Giver, "你获得了\x04%i \x01分 by 赠送药丸给 \x05%s\x01!", Score, RecipientName);
+			StatsPrintToChat(Giver, "你赠送药丸给 \x05%s \x01获得了 \x04%i \x01分!", RecipientName, Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01获得了\x04%i \x01分 by 赠送药丸给\x05%s\x01!", GiverName, Score, RecipientName);
+			StatsPrintToChatAll("\x05%s \x01赠送药丸给 \x05%s \x01获得了 \x04%i \x01分!", GiverName, RecipientName, Score);
 	}
 }
 
@@ -4200,9 +4213,9 @@ public Action:event_DefibPlayer(Handle:event, const String:name[], bool:dontBroa
 	{
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Giver, "你获得了 \x04%i \x01分 by 用电击器复活了 \x05%s\x01!", Score, RecipientName);
+			StatsPrintToChat(Giver, "你用电击器复活了 \x05%s\x01 获得了 \x04%i \x01分!", RecipientName, Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01分 by 用电击器复活了 \x05%s\x01!", GiverName, Score, RecipientName);
+			StatsPrintToChatAll("\x05%s \x01用电击器复活了 \x05%s\x01 获得了 \x04%i \x01分!", GiverName, RecipientName, Score);
 	}
 }
 
@@ -4296,9 +4309,9 @@ public Action:event_HealPlayer(Handle:event, const String:name[], bool:dontBroad
 	{
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 		if (Mode == 1 || Mode == 2) 
-			StatsPrintToChat(Giver, "你获得了 \x04%i \x01分 by 用医疗包治疗了 \x05%s\x01!", Score, RecipientName);
+			StatsPrintToChat(Giver, "你用医疗包治疗了 \x05%s\x01 获得了 \x04%i \x01分!", RecipientName, Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01分 by 用医疗包治疗了 \x05%s\x01!", GiverName, Score, RecipientName);
+			StatsPrintToChatAll("\x05%s \x01用医疗包治疗了 \x05%s\x01 获得了 \x04%i \x01分!", GiverName, RecipientName, Score);
 	}
 }
 
@@ -4441,7 +4454,7 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 		}
 	}
 	if((AnneMultiPlayerMode() || SinglePlayerMode())){
-		if(!L4D_RPG_GetGlobalValue(INDEX_VALID) || !IsThisRoundValid())
+		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
 		{
 			Score = RoundToFloor(Score * 0.4);
 		}
@@ -4474,10 +4487,10 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 
 	if (Mode && Score > 0)
 	{
-		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得了 \x04%i \x01分 by  \x05%i 幸存者\x01完成了 \x04救援关 \x01!", Score, SurvivorCount);
+		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05%i 幸存者\x04完成了救援关 \x01获得了 \x04%i \x01分!", SurvivorCount, Score);
 
 		if (NegativeScore)
-			StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者 \x01 \x03失去了 \x04%i \x01分 by 没能阻拦幸存者完成 \x04救援关 \x01!", Score);
+			StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者因 \x04没能阻拦幸存者完成救援关\x01! \x03失去了 \x04%i \x01分", Score);
 	}
 }
 
@@ -4583,7 +4596,7 @@ public Action:timer_PanicEventEnd(Handle:timer, Handle:hndl)
 			}
 
 			if (Mode)
-				StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得了 \x04%i \x01分 by \x05 尸潮事件过后没有倒地或者死亡\x01!", Score);
+				StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05尸潮事件过后没有倒地或者死亡 \x01获得了 \x04%i \x01分!", Score);
 		}
 	}
 
@@ -4701,7 +4714,7 @@ public Action:event_PlayerBlindEnd(Handle:event, const String:name[], bool:dontB
 				}
 			}
 			if (Mode)
-				StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得了 \x04%i \x01分 by \x05boomer爆炸后\x01无人死亡!", Score);
+				StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05boomer爆炸后无人死亡 \x01获得了 \x04%i \x01分!", Score);
 		}
 	}
 
@@ -4982,12 +4995,12 @@ public Action:event_PlayerLedge(Handle:event, const String:name[], bool:dontBroa
 		UpdateMapStat("points_infected", Score);
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Attacker, "你获得 \x04%i \x01分 by 造成玩家 \x05%s\x01 挂边!", Score, VictimName);
+			StatsPrintToChat(Attacker, "你造成玩家 \x05%s\x01 挂边获得 \x04%i \x01分!", VictimName, Score);
 		else if (Mode == 3)
 		{
 			decl String:AttackerName[MAX_LINE_WIDTH];
 			GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-			StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 造成玩家 \x05%s\x01 挂边!", AttackerName, Score, VictimName);
+			StatsPrintToChatAll("\x05%s \x01造成玩家 \x05%s\x01 挂边获得 \x04%i \x01分!", AttackerName, VictimName, Score);
 		}
 	}
 }
@@ -5298,11 +5311,11 @@ public Action:event_JockeyRelease(Handle:event, const String:name[], bool:dontBr
 		if (Score > 0)
 		{
 			if (Mode == 1 || Mode == 2)
-				StatsPrintToChat(Rescuer, "你获得\x04%i \x01分 by 将 \x05%s \x01从 \x04%s\x01 救下!", Score, VictimName, JockeyName);
+				StatsPrintToChat(Rescuer, "你将 \x05%s \x01从 \x04%s\x01 手里救下获得\x04%i \x01分!", VictimName, JockeyName, Score);
 			else if (Mode == 3)
 			{
 				GetClientName(Rescuer, RescuerName, sizeof(RescuerName));
-				StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 将 \x05%s \x01从\x04%s\x01 救下!", RescuerName, Score, VictimName, JockeyName);
+				StatsPrintToChatAll("\x05%s \x01将 \x05%s \x01从 \x04%s\x01 手里救下获得\x04%i \x01分!", RescuerName, VictimName, JockeyName, Score);
 			}
 		}
 	}
@@ -5424,9 +5437,9 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 		if (IsMatador)
 		{
 			if (Mode == 1 || Mode == 2)
-				StatsPrintToChat(Killer, "你获得 \x04%i \x01分 by \x04秒了个牛\x01!", Score);
+				StatsPrintToChat(Killer, "你 \x04秒了个牛\x01 获得 \x04%i \x01分!", Score);
 			else if (Mode == 3)
-				StatsPrintToChatAll("\x05%s \x01获得\x04%i \x01分 by \x04秒了个牛\x01!", KillerName, Score);
+				StatsPrintToChatAll("\x05%s \x01 \x04秒了个牛\x01 获得 \x04%i \x01分!", KillerName, Score);
 		}
 		else
 		{
@@ -5443,9 +5456,9 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 				Format(VictimName, sizeof(VictimName), "a survivor");
 
 			if (Mode == 1 || Mode == 2)
-				StatsPrintToChat(Killer, "你获得 \x04%i \x01分 by 把 %s 从 \x04%s\x01 救下!", Score, VictimName, ChargerName);
+				StatsPrintToChat(Killer, "你将 \x05%s\x01 从 \x04%s\x01 手里救下获得 \x04%i \x01分!", VictimName, ChargerName, Score);
 			else if (Mode == 3)
-				StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 把 %s 从 \x04%s\x01 救下!", KillerName, Score, VictimName, ChargerName);
+				StatsPrintToChatAll("\x05%s \x01将 \x05%s\x01 从 \x04%s\x01 手里救下获得 \x04%i \x01分!", KillerName, VictimName, ChargerName, Score);
 		}
 	}
 }
@@ -5661,12 +5674,12 @@ public Action:event_UpgradePackAdded(Handle:event, const String:name[], bool:don
 			strcopy(ModelName, sizeof(ModelName), "UNKNOWN");
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Player, "你获得 \x04%i \x01分 by 部署一个 \x05%s\x01!", Score, ModelName);
+			StatsPrintToChat(Player, "你部署一个 \x05%s\x01获得 \x04%i \x01分!", ModelName, Score);
 		else if (Mode == 3)
 		{
 			decl String:PlayerName[MAX_LINE_WIDTH];
 			GetClientName(Player, PlayerName, sizeof(PlayerName));
-			StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 部署一个 \x05%s\x01!", PlayerName, Score, ModelName);
+			StatsPrintToChatAll("\x05%s \x01部署一个 \x05%s\x01获得 \x04%i \x01分!", PlayerName, ModelName, Score);
 		}
 	}
 }
@@ -5735,12 +5748,12 @@ public Action:event_GascanPoured(Handle:event, const String:name[], bool:dontBro
 		new Mode = GetConVarInt(cvar_AnnounceMode);
 
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Player, "你因成功 \x04灌了桶油\x01 获得了 \x04%i \x01分!", Score);
+			StatsPrintToChat(Player, "你成功 \x04灌了桶油\x01 获得了 \x04%i \x01分!", Score);
 		else if (Mode == 3)
 		{
 			decl String:PlayerName[MAX_LINE_WIDTH];
 			GetClientName(Player, PlayerName, sizeof(PlayerName));
-			StatsPrintToChatAll("\x05%s \x01因成功 \x04灌了桶油\x01 获得了 \x04%i \x01分!", PlayerName, Score);
+			StatsPrintToChatAll("\x05%s \x01成功 \x04灌了桶油\x01 获得了 \x04%i \x01分!", PlayerName, Score);
 		}
 	}
 }
@@ -5991,9 +6004,9 @@ public Action:event_PlayerPounced(Handle:event, const String:name[], bool:dontBr
 	UpdateMapStat("points_infected", Score);
 
 	if (Mode == 1 || Mode == 2)
-		StatsPrintToChat(Attacker, "你获得 \x04%i \x01分 by 在\x05%s\x01完成了一个 \x05%s \x01扑倒 !", Score,VictimName, Label );
+		StatsPrintToChat(Attacker, "你在\x05%s\x01身上完成了一个 \x05%s \x01扑倒，获得 \x04%i \x01分!", VictimName, Label, Score);
 	else if (Mode == 3)
-		StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 在\x05%s\x01完成了一个 \x05%s \x01扑倒!", AttackerName, Score,  VictimName,Label);
+		StatsPrintToChatAll("\x05%s 在\x05%s\x01身上完成了一个 \x05%s \x01扑倒，获得 \x04%i \x01分!", AttackerName, VictimName, Label, Score);
 }
 
 // Revive friendly code.
@@ -6073,9 +6086,9 @@ public Action:event_RevivePlayer(Handle:event, const String:name[], bool:dontBro
 	if (Score > 0)
 	{
 		if (Mode == 1 || Mode == 2)
-			StatsPrintToChat(Savior, "你获得 \x04%i \x01分 by 拉起 \x05%s\x01!", Score, VictimName);
+			StatsPrintToChat(Savior, "你因拉起 \x05%s\x01 获得 \x04%i \x01分!", VictimName, Score);
 		else if (Mode == 3)
-			StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 拉起 \x05%s\x01!", SaviorName, Score, VictimName);
+			StatsPrintToChatAll("\x05%s \x01因拉起 \x05%s\x01 获得 \x04%i \x01分!", SaviorName, VictimName, Score);
 	}
 }
 
@@ -6305,11 +6318,11 @@ public Action:event_Award_L4D2(Handle:event, const String:name[], bool:dontBroad
 		{
 			if (Mode == 1 || Mode == 2)
 			{
-				StatsPrintToChat(User, "你获得 \x04%i \x01分 by 解救  \x05%s\x01!", Score, RecipientName);
+				StatsPrintToChat(User, "你解救  \x05%s\x01获得 \x04%i \x01分!", RecipientName, Score);
 			}
 			else if (Mode == 3)
 			{
-				StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 解救 \x05%s\x01!", UserName, Score, RecipientName);
+				StatsPrintToChatAll("\x05%s 解救  \x05%s\x01获得 \x04%i \x01分!", UserName, RecipientName, Score);
 			}
 		}
 	}
@@ -6604,7 +6617,7 @@ public Action:event_WitchCrowned(Handle:event, const String:name[], bool:dontBro
 			decl String:Name[MAX_LINE_WIDTH];
 			GetClientName(Killer, Name, sizeof(Name));
 
-			StatsPrintToChatTeam(TEAM_SURVIVORS, "\x05%s \x01获得\x04%i \x01分 by \x04对Witch洒洒水\x01!", Name, Score);
+			StatsPrintToChatTeam(TEAM_SURVIVORS, "\x05%s \x04对Witch洒洒水 \x01获得\x04%i \x01分!", Name, Score);
 		}
 	}
 }
@@ -9313,7 +9326,7 @@ HunterSmokerSave(Savior, Victim, BasePoints, AdvMult, ExpertMult, String:SaveFro
 		return;
 
 	if (Mode)
-		StatsPrintToChat(Savior, "你获得 \x04%i \x01分 by 把 \x05%s\x01 从 \x04%s\x01 里救了出来!", Score, VictimName, SaveFrom);
+		StatsPrintToChat(Savior, "你因把 \x05%s\x01 从 \x04%s\x01 里救了出来获得 \x04%i \x01分!", VictimName, SaveFrom, Score);
 
 	UpdateMapStat("points", Score);
 	AddScore(Savior, Score);
@@ -9834,7 +9847,7 @@ public CheckSurvivorsWin()
 		}
 
 		if (Mode)
-			StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01都获得\x04%i \x01分 by \x05没有惊扰Witch!", Score);
+			StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05没有惊扰Witch \x01获得\x04%i \x01额外过关分!", Score);
 	}
 	//StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03过关分数为%d",Score);
 	Score = 0;
@@ -9857,7 +9870,7 @@ public CheckSurvivorsWin()
 	if (SinglePlayerMode())
 	{
 		int addScore = 0;
-		if( GetAnneInfectedNumber() > 3 && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
+		if( GetAnneInfectedNumber() > 3 && ((g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_VALID)) && IsThisRoundValid())){
 			addScore = (GetAnneInfectedNumber() - 3) * 100;
 		}
 		char buffer[256];
@@ -9902,7 +9915,7 @@ public CheckSurvivorsWin()
 				TriggerTimer(TimerRankChangeCheck[i], true);
 		}
 	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode()) && (L4D_RPG_GetGlobalValue(INDEX_VALID) && IsThisRoundValid())){
+	if((AnneMultiPlayerMode() || SinglePlayerMode()) && ((g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_VALID)) && IsThisRoundValid())){
 		int inf = GetAnneInfectedNumber();
 		if(inf>4)
 			Score=RoundToFloor(Score+Score*(inf-4)*0.2);
@@ -9924,10 +9937,10 @@ public CheckSurvivorsWin()
 
 	if (Mode && Score > 0)
 	{
-		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01获得 \x04%i \x01分 by \x05%i 死亡到达安全门!", Score, Deaths);
+		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者因 \x05%i 死亡到达安全门 \x01获得 \x04%i \x01分!", Deaths, Score);
 
 		if (NegativeScore)
-			StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者 \x01 \x03失去了 \x04%i \x01分 by 让幸存者进了安全门!", Score);
+			StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者因 \x05让幸存者进了安全门 \x01失去了 \x04%i \x01分!", Score);
 	}
 
 	PlayerVomited = false;
@@ -10067,7 +10080,7 @@ CheckSurvivorsAllDown()
 		UpdateMapStat("points_infected", Score);
 
 	if (Score > 0 && Mode)
-		StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者 \x01获得 \x04%i \x01分 by 杀死了所有幸存者!", Score);
+		StatsPrintToChatTeam(TEAM_INFECTED, "\x03所有感染者 \x05因杀死了所有幸存者 \x01获得 \x04%i \x01分!", Score);
 
 	if (!GetConVarBool(cvar_EnableNegativeScore))
 		return;
@@ -10353,12 +10366,12 @@ TankDamage(Client, Damage)
 				new Mode = GetConVarInt(cvar_AnnounceMode);
 
 				if (Mode == 1 || Mode == 2)
-					StatsPrintToChat(Client, "你获得 \x04%i \x01分 by 给幸存者造成了价值 %i 分的伤害!", Score, TankDamageTotal);
+					StatsPrintToChat(Client, "你给幸存者造成了价值 \x04%i\x01 分的伤害获得 \x04%i \x01分!", TankDamageTotal, Score);
 				else if (Mode == 3)
 				{
 					decl String:Name[MAX_LINE_WIDTH];
 					GetClientName(Client, Name, sizeof(Name));
-					StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 给幸存者造成了价值 %i 分的伤害!", Name, Score, TankDamageTotal);
+					StatsPrintToChatAll("\x05%s \x01给幸存者造成了价值 \x04%i\x01 分的伤害获得 \x04%i \x01分!", Name, TankDamageTotal, Score);
 				}
 
 				if (EnableSounds_Tank_Bulldozer && GetConVarBool(cvar_SoundsEnabled))
@@ -10669,10 +10682,10 @@ SurvivorDiedNamed(Attacker, Victim, const String:VictimName[], const String:Atta
 		{
 			decl String:AttackerName[MAX_LINE_WIDTH];
 			GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-			StatsPrintToChatAll("\x05%s \x01获得了 \x04%i \x01分 by 杀了 \x05%s\x01!", AttackerName, Score, VictimName);
+			StatsPrintToChatAll("\x05%s 杀了 \x05%s \x01获得了 \x04%i \x01分!", AttackerName, VictimName, Score);
 		}
 		else
-			StatsPrintToChat(Attacker, "你获得了 \x04%i \x01分 by 杀了\x05%s\x01!", Score, VictimName);
+			StatsPrintToChat(Attacker, "你杀了 \x05%s \x01获得了 \x04%i \x01分!", VictimName, Score);
 	}
 
 	UpdateMapStat("survivor_kills", 1);
@@ -10969,9 +10982,9 @@ SurvivorIncappedByInfected(Attacker, Victim, Mode = -1)
 		Mode = GetConVarInt(cvar_AnnounceMode);
 
 	if (Mode == 1 || Mode == 2)
-		StatsPrintToChat(Attacker, "你获得 \x04%i \x01分 by 制伏了  \x05%s\x01!", Score, VictimName);
+		StatsPrintToChat(Attacker, "你制伏 \x05%s \x01获得 \x04%i \x01分!", VictimName, Score);
 	else if (Mode == 3)
-		StatsPrintToChatAll("\x05%s \x01获得 \x04%i \x01分 by 制伏了  \x05%s\x01!", AttackerName, Score, VictimName);
+		StatsPrintToChatAll("\x05%s 制伏 \x05%s \x01获得 \x04%i \x01分!", AttackerName, VictimName, Score);
 }
 
 Float:GetMedkitPointReductionFactor()
@@ -11185,7 +11198,7 @@ public StopMapTiming()
 	{
 		return;
 	}
-	if(LibraryExists("rpg") && !L4D_RPG_GetGlobalValue(INDEX_VALID))
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 	{
 		if (GetConVarInt(cvar_AnnounceMode))
 		{
@@ -11288,7 +11301,7 @@ public StopMapTiming()
 						}
 						if(mode > 0)
 						{
-							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 						}
 						else
 						{
@@ -11366,7 +11379,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			}
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 			}
 			else
 			{
@@ -11383,7 +11396,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 			if(mode > 0)
 			{
-				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+				Format(query, sizeof(query), "UPDATE %stimedmaps SET plays = plays + 1, time = %f, players = %i, modified = NOW() WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, TotalTime, PlayerCounter, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 			}
 			else
 			{
@@ -11404,7 +11417,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 
 		if(mode > 0)
 		{
-			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, anneversion, mode, usebuy, auto, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, '%s', %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+			Format(query, sizeof(query), "INSERT INTO %stimedmaps (map, gamemode, difficulty, mutation, steamid, plays, time, players, sinum, sitime, anneversion, mode, usebuy, auto, modified, created) VALUES ('%s', %i, %i, '%s', '%s', 1, %f, %i, %i, %i, '%s', %i, %i, %i, NOW(), NOW())", DbPrefix, MapName, GamemodeID, GameDifficulty, Mutation, ClientID, TotalTime, PlayerCounter, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
 		}
 		else
 		{

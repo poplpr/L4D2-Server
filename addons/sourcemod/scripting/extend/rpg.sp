@@ -258,6 +258,7 @@ public void  OnPluginStart()
 		InfectedNumber=GetConVarInt(g_InfectedNumber);
 	}
 	AllowBigGun.AddChangeHook(ConVarChanged_Cvars);
+	g_hEnableGlow.AddChangeHook(ConVarChanged_Cvars);
 	if(g_InfectedNumber != null)
 	g_InfectedNumber.AddChangeHook(ConVarChanged_Cvars);
 	if(GaoJiRenJi != null)
@@ -583,6 +584,8 @@ public void SQLErrorCheckCallback(Handle owner, Handle hndl, const char []error,
     if(!StrEqual("", error))
         LogError("SQL Error: %s", error);
 }
+
+
 public void OnClientPostAdminCheck(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
@@ -641,6 +644,10 @@ public void SetPlayer(int client)
 			else if(l4dstats_IsTopPlayer(client, 3) || GetUserAdmin(client).ImmunityLevel == 100)
 			{
 				GetAura(client,player[client].GlowType);
+			}else
+			{
+				player[client].GlowType = 0;
+				ClientSaveToFileSave(client);
 			}
 		}
 			
@@ -656,6 +663,16 @@ public void SetPlayer(int client)
 			{
 				GetSkin(client,player[client].SkinType);
 			}	
+			else
+			{
+				player[client].SkinType = 0;
+				ClientSaveToFileSave(client);
+			}
+		}
+
+		if(g_bl4dstatsSystemAvailable && l4dstats_GetClientScore(client) < 500000 && !(CheckCommandAccess(client, "", ADMFLAG_SLAY)))
+		{
+			player[client].tags.ChatTag = NULL_STRING;
 		}
 			
 		//PrintToConsole(client,"sm_hatclient #%d %d", GetClientUserId(client), player[client].ClientHat);
@@ -1988,6 +2005,10 @@ public void ability(int client)
 		
 		FormatEx(binfo, sizeof(binfo),  "板球拍", client);
 		menu.AddItem("cricket_bat", binfo);
+
+		FormatEx(binfo, sizeof(binfo),  "取消设置", client);
+		menu.AddItem("none", binfo);
+
 		menu.Display(client, 20);
 	}
 }
@@ -2060,7 +2081,12 @@ public int ability_back(Menu menu, MenuAction action, int param1, int param2)
 				player[param1].ClientMelee=13;
 				ClientSaveToFileSave(param1);
 				PrintToChat(param1,"\x04您的出门近战武器设为板球拍");
-			}else{
+			}else if( StrEqual(bitem, "none") ){
+				player[param1].ClientMelee = 0;
+				ClientSaveToFileSave(param1);
+				PrintToChat(param1,"\x04您取消了出门近战武器");
+			}else 
+			{
 				PrintToChat(param1,"\x03您的出门近战武器设置失败，超出限制");
 			}
 		}

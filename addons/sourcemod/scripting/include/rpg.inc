@@ -38,6 +38,8 @@ public SharedPlugin __pl_rpg =
 public void __pl_rpg_SetNTVOptional()
 {
 	MarkNativeAsOptional("L4D_RPG_GetValue");
+	MarkNativeAsOptional("L4D_RPG_GetGlobalValue");
+	MarkNativeAsOptional("L4D_RPG_SetGlobalValue");
 }
 #endif
 
