@@ -101,11 +101,14 @@ int
 
 bool
 	g_bLateLoad = false; //late load
+Handle
+	g_hForward;
 
 public APLRes AskPluginLoad2(Handle hMyself, bool bLate, char[] sError, int iErrMax)
 {
 	CreateNative("GiveClientGodFrames", Native_GiveClientGodFrames);
-	
+	g_hForward = CreateGlobalForward("L4D2_GodFrameRenderChange", ET_Ignore, Param_Cell);
+
 	RegPluginLibrary("l4d2_godframes_control_merge");
 	
 	g_bLateLoad = bLate;
@@ -187,6 +190,12 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+public void SendForward(int client){
+	Call_StartForward(g_hForward);
+	Call_PushCell(client);
+	Call_Finish();
 }
 
 //public void OnRoundStart() //l4d2util forward
@@ -480,6 +489,7 @@ public Action Timed_ResetGlow(Handle hTimer, any iClient)
 		// remove transparency/color
 		SetEntityRenderMode(iClient, RENDER_NORMAL);
 		SetEntityRenderColor(iClient, 255, 255, 255, 255);
+		SendForward(iClient);
 	}
 
 	return Plugin_Stop;

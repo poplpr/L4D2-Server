@@ -474,14 +474,7 @@ public int Native_IsTopPlayer(Handle plugin, int numParams)
 	if(ranklimit<1 || ranklimit>100){
 		return ThrowNativeError(SP_ERROR_NATIVE, "rank limit value wrong");
 	}
-	/*
-	if(ranklimit == 0)
-		GetTopLimitPlayerScore(client,10);
-	else
-		GetTopLimitPlayerScore(client,ranklimit);
-	*/
-	//LogError("ClientPoints[client]: %d CheckPlayerPoint[ranklimit-1]: %d", ClientPoints[client], CheckPlayerPoint[ranklimit-1]);
-	
+
 	if(ClientPoints[client] >= CheckPlayerPoint[ranklimit-1] && CheckPlayerPoint[ranklimit-1]> 0)
 		return 1;
 	else
@@ -509,35 +502,8 @@ public GetTop100PlayersScore(Handle:owner, Handle:hndl, const String:error[], an
 	while (SQL_FetchRow(hndl))
 	{
 		CheckPlayerPoint[i++] = SQL_FetchInt(hndl, 0);
-		//LogError("1、ClientPoints[client]: %d CheckPlayerPoint: %d", ClientPoints[client], CheckPlayerPoint);
 	}
 }
-/*
-// Find a player from Top 10 ranking.
-public GetTopLimitPlayerScore(client, rank)
-{
-	decl String:query[512];
-	Format(query, sizeof(query), "SELECT (%s) as totalpoints FROM %splayers ORDER BY totalpoints DESC LIMIT %i,1", DB_PLAYERS_TOTALPOINTS, DbPrefix, rank-1);
-	SQL_TQuery(db, GetPlayerScore, query, client);
-}
-
-// Send the Top 10 player's info to the client.
-public GetPlayerScore(Handle:owner, Handle:hndl, const String:error[], any:client)
-{
-	if (hndl == INVALID_HANDLE)
-	{
-		LogError("GetPlayerScore failed! Reason: %s", error);
-		return;
-	}
-
-	if (SQL_FetchRow(hndl))
-	{
-		CheckPlayerPoint = SQL_FetchInt(hndl, 0);
-		//LogError("1、ClientPoints[client]: %d CheckPlayerPoint: %d", ClientPoints[client], CheckPlayerPoint);
-	}
-}
-
-*/
 
 public int Native_AddClientScore(Handle plugin, int numParams)
 {
@@ -1032,6 +998,7 @@ public OnConfigsExecuted()
 	RegConsoleCmd("sm_rankmutetoggle", cmd_ToggleClientRankMute);
 	RegConsoleCmd("sm_rankmute", cmd_ClientRankMute);
 	RegConsoleCmd("sm_showmotd", cmd_ShowMotd);
+	RegConsoleCmd("sm_resetscore", cmd_ResetScore);
 
 	// Register administrator command for clearing all stats (BE CAREFUL)
 	//RegAdminCmd("sm_rank_admin", cmd_RankAdmin, ADMFLAG_ROOT, "Display admin panel for Rank");
@@ -2056,52 +2023,7 @@ QueryClientRankDP(Handle:dp, SQLTCallback:callback)
 
 	SQL_TQuery(db, callback, query, dp);
 }
-/*
-QueryClientGameModeRank(Client, SQLTCallback:callback=INVALID_FUNCTION)
-{
-	if (!InvalidGameMode())
-	{
-		if (callback == INVALID_HANDLE)
-			callback = GetClientGameModeRank;
 
-		decl String:query[256];
-
-		switch (CurrentGamemodeID)
-		{
-			case GAMEMODE_VERSUS:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_versus > 0 AND points_survivors + points_infected >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_VERSUS]);
-			}
-			case GAMEMODE_REALISM:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_realism > 0 AND points_realism >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_REALISM]);
-			}
-			case GAMEMODE_SURVIVAL:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_survival > 0 AND points_survival >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_SURVIVAL]);
-			}
-			case GAMEMODE_SCAVENGE:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_scavenge > 0 AND points_scavenge_survivors + points_scavenge_infected >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_SCAVENGE]);
-			}
-			case GAMEMODE_REALISMVERSUS:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_realismversus > 0 AND points_realism_survivors + points_realism_infected >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_REALISMVERSUS]);
-			}
-			case GAMEMODE_OTHERMUTATIONS:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime_mutations > 0 AND points_mutations >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_OTHERMUTATIONS]);
-			}
-			default:
-			{
-				Format(query, sizeof(query), "SELECT COUNT(*) FROM %splayers WHERE playtime > 0 AND points >= %i", DbPrefix, ClientGameModePoints[Client][GAMEMODE_COOP]);
-			}
-		}
-
-		SQL_TQuery(db, callback, query, Client);
-	}
-}
-*/
 QueryClientGameModeRankDP(Handle:dp, SQLTCallback:callback)
 {
 	if (!InvalidGameMode())
@@ -7923,6 +7845,15 @@ public Action:cmd_ShowTop10PPM(client, args)
 	return Plugin_Handled;
 }
 
+// Reget currently score(client)
+public Action cmd_ResetScore(client, args)
+{
+	if (!IsClientConnected(client) && !IsClientInGame(client) && IsClientBot(client))
+		return Plugin_Handled;
+	QueryClientPoints(client);
+	return Plugin_Handled;
+}
+
 // Generate the TOP10 display panel.
 public Action:cmd_ShowTop10(client, args)
 {
@@ -9229,7 +9160,7 @@ public SettingsPanelHandler(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-// Handler for TOP10 panel.
+// Handler for TOP10 panel. param1 handle param2 client
 public Top10PanelHandler(Handle:menu, MenuAction:action, param1, param2)
 {
 	if (action == MenuAction_Select)

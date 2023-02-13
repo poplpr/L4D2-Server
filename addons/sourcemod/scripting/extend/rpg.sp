@@ -873,7 +873,8 @@ public Action BuyMenu(int client,int args)
 {
 	if(IsVaildClient(client) && IsPlayerAlive(client)  )
 	{
-    	BuildMenu(client);
+		FakeClientCommand(client, "sm_resetscore");
+		BuildMenu(client);
 	}
 	return Plugin_Continue;
 }
