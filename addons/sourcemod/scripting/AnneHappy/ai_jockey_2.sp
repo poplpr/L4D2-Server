@@ -110,7 +110,7 @@ public Action OnPlayerRunCmd(int jockey, int &buttons, int &impulse, float vel[3
 	float fTargetPos[3] = {0.0}, fDistance = NearestSurvivorDistance(jockey);
 	GetClientAbsOrigin(iTarget, fTargetPos);
 	// 当前速度不大于 130.0 或距离大于 StartHopDistance，不进行操作
-	if (fCurrentSpeed <= 130.0 || fDistance > g_hStartHopDistance.FloatValue) { return Plugin_Continue; }
+	if (fCurrentSpeed <= 130.0 || fDistance > g_hStartHopDistance.FloatValue || fDistance < 40.0) { return Plugin_Continue; }
 	if (IsGrounded(jockey))
 	{
 		if (g_bCanBackVision[jockey]) { g_bCanBackVision[jockey] = false; }
