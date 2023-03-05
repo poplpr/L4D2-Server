@@ -3055,7 +3055,7 @@
 			"Early spawn"
 			{
 				"min"		"0"
-				"max"		"34"
+				"max"		"36"
 			}
 		}
 	}
@@ -3071,7 +3071,7 @@
 			"Early spawn"
 			{
 				"min"		"0"
-				"max"		"24"
+				"max"		"26"
 			}
 		}
 	}
@@ -3087,7 +3087,7 @@
 			"Early spawn"
 			{
 				"min"		"0"
-				"max"		"24"
+				"max"		"26"
 			}
 		}
 	}
@@ -3105,6 +3105,11 @@
 				"min"		"0"
 				"max"		"20"
 			}
+			"Elevator"
+			{
+				"min"		"40"
+				"max"		"68"
+			}
 		}
 	}
 	"nmrm5_rooftop"
@@ -3116,7 +3121,7 @@
 		"end_dist"			"100.000000"
 		"ItemLimits"
 		{
-			"pain_pills"	"0"
+			"pain_pills"	"4"
 		}
 		"tank_ban_flow"
 		{
@@ -3127,7 +3132,7 @@
 			}
 			"Late spawn"
 			{
-				"min"		"80"
+				"min"		"76"
 				"max"		"100"
 			}
 		}
