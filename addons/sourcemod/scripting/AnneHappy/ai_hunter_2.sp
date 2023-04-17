@@ -12,7 +12,7 @@ public Plugin myinfo =
 	name 			= "Ai Hunter 2.0",
 	author 			= "夜羽真白",
 	description 	= "Ai Hunter 增强 2.0 版本",
-	version 		= "2023/2/15",
+	version 		= "2023/4/1",
 	url 			= "https://steamcommunity.com/id/saku_ra/"
 }
 
@@ -20,6 +20,7 @@ public Plugin myinfo =
 #define LUNGE_LEFT 45.0
 #define LUNGE_RIGHT 315.0
 #define INVALID_CLIENT -1
+#define INVALID_NAV_AREA 0
 #define HURT_CHECK_INTERVAL 0.2
 #define CROUCH_HEIGHT 20.0
 #define POUNCE_LFET 0
@@ -34,6 +35,7 @@ ConVar
 	g_hPounceAngleStd,
 	g_hStraightPounceDistance,
 	g_hAimOffset,
+	g_hNoSightPounceRange,
 	g_hBackVision,
 	g_hMeleeFirst,
 	g_hHighPounceHeight,
@@ -46,16 +48,22 @@ ConVar
 	g_hPounceLoftAngle,
 	g_hPounceGiveUpRange,
 	g_hPounceSilenceRange,
-	g_hCommitAttackRange;
+	g_hCommitAttackRange,
+	g_hLungePower;
 bool
 	ignoreCrouch,
-	hasQueuedLunge[MAXPLAYERS + 1];
+	hasQueuedLunge[MAXPLAYERS + 1],
+	// 是否允许 ht 背飞，[0] 为是否允许取随机数，[1] 为是否允许背飞
+	canBackVision[MAXPLAYERS + 1][2];
 float
 	canLungeTime[MAXPLAYERS + 1],
 	meleeMinRange,
-	meleeMaxRange;
+	meleeMaxRange,
+	noSightPounceRange,
+	noSightPounceHeight;
 int
-	anglePounceCount[MAXPLAYERS + 1][2];
+	anglePounceCount[MAXPLAYERS + 1][2],
+	hunterCurrentTarget[MAXPLAYERS + 1];
 
 public void OnPluginStart()
 {
@@ -65,13 +73,15 @@ public void OnPluginStart()
 	g_hPounceAngleStd = CreateConVar("ai_hunter_angle_std", "20.0", "与基本角度允许的偏差范围", CVAR_FLAG, true, 0.0);
 	g_hStraightPounceDistance = CreateConVar("ai_hunter_straight_pounce_distance", "200.0", "hunter 允许直扑的范围", CVAR_FLAG, true, 0.0);
 	g_hAimOffset = CreateConVar("ai_hunter_aim_offset", "360.0", "与目标水平角度在这一范围内且在直扑范围外，ht 不会直扑", CVAR_FLAG, true, 0.0, true, 360.0);
-	g_hBackVision = CreateConVar("ai_hunter_back_vision", "1", "hunter 处在空中时是否视角背对生还者", CVAR_FLAG, true, 0.0, true, 1.0);
+	g_hNoSightPounceRange = CreateConVar("ai_hunter_no_sign_pounce_range", "300,250", "hunter 不可见目标时允许飞扑的范围（水平，垂直，逗号分隔，0,0 | x,0 | 0,x=禁用 0 的部分）", CVAR_FLAG);
+	g_hBackVision = CreateConVar("ai_hunter_back_vision", "25", "hunter 处在空中时视角背对生还者的概率，0=禁用", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hMeleeFirst = CreateConVar("ai_hunter_melee_first", "300.0,1000.0", "hunter 每次准备突袭时是否先按右键（最小最大距离，逗号分隔，0=禁用）");
 	g_hHighPounceHeight = CreateConVar("ai_hunter_high_pounce", "400", "hunter 在与目标多高时会直扑目标", CVAR_FLAG, true, 0.0);
 	g_hWallDetectDistance = CreateConVar("ai_hunter_wall_detect_distance", "-1.0", "hunter 视线前方有墙体，有多少概率飞向墙体", CVAR_FLAG, true, 0.0);
 	g_hAnglePounceCount = CreateConVar("ai_hunter_angle_diff", "2", "hunter 进行由随机数生成器生成角度侧飞时，左右飞的次数差不能大于这个值", CVAR_FLAG, true, 0.0);
 	// 挂钩 cvar 变动
 	g_hMeleeFirst.AddChangeHook(meleeFirstRangeChangedHandler);
+	g_hNoSightPounceRange.AddChangeHook(noSightPounceRangeChangedHandler);
 	// 获取其他 cvar
 	g_hLungeInterval = FindConVar("z_lunge_interval");
 	g_hPounceReadyRange = FindConVar("hunter_pounce_ready_range");
@@ -79,12 +89,15 @@ public void OnPluginStart()
 	g_hPounceGiveUpRange = FindConVar("hunter_leap_away_give_up_range");
 	g_hPounceSilenceRange = FindConVar("z_pounce_silence_range");
 	g_hCommitAttackRange = FindConVar("hunter_committed_attack_range");
+	g_hLungePower = FindConVar("z_lunge_power");
 	// 挂钩事件
 	HookEvent("player_spawn", playerSpawnHandler);
 	HookEvent("ability_use", abilityUseHandler);
 	HookEvent("round_end", roundEndHandler);
 	// 获取允许右键的范围
 	getHunterMeleeFirstRange();
+	// 获取没有视野允许扑的范围
+	getNoSightPounceRange();
 	// 设置 cvar 值
 	setCvarValue(true);
 }
@@ -142,37 +155,88 @@ void setCvarValue(bool set)
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
 	if (!isValidHunter(hunter)) { return Plugin_Continue; }
-	int
-		target = getClosestSurvivor(hunter),
-		ability = GetEntPropEnt(hunter, Prop_Send, "m_customAbility");
+	static int
+		target,
+		ability;
+	target = hunterCurrentTarget[hunter],
+	ability = GetEntPropEnt(hunter, Prop_Send, "m_customAbility");
 	if (!IsValidEntity(ability) || !IsValidEdict(ability) || !IsValidSurvivor(target)) { return Plugin_Continue; }
 	// 下一次可以使用能力的时间
-	float
-		timestamp = GetEntPropFloat(ability, Prop_Send, "m_timestamp"),
-		gametime = GetGameTime(),
+	static float
+		timestamp,
+		gametime,
 		selfPos[3],
-		selfEyeAngle[3],
 		targetPos[3],
-		targetDistance;
-	bool
-		hasSight = view_as<bool>(GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats")),
-		isDucking= view_as<bool>(GetEntProp(hunter, Prop_Send, "m_bDucked")),
-		isLunging = view_as<bool>(GetEntProp(ability, Prop_Send, "m_isLunging"));
+		targetDistance,
+		lungeVector[3],
+		lungeVectorNegate[3],
+		backVisionChance;
+	timestamp = GetEntPropFloat(ability, Prop_Send, "m_timestamp");
+	gametime = GetGameTime();
+	GetEntPropVector(ability, Prop_Send, "m_queuedLunge", lungeVector);
+	static bool
+		hasSight,
+		isDucking,
+		isLunging;
+	hasSight = view_as<bool>(GetEntProp(hunter, Prop_Send, "m_hasVisibleThreats"));
+	isDucking = view_as<bool>(GetEntProp(hunter, Prop_Send, "m_bDucked"));
+	isLunging = view_as<bool>(GetEntProp(ability, Prop_Send, "m_isLunging"));
 	GetClientAbsOrigin(hunter, selfPos);
 	GetEntPropVector(target, Prop_Send, "m_vecOrigin", targetPos);
 	targetDistance = GetVectorDistance(selfPos, targetPos);
 	// 开启飞扑时背身
-	if (g_hBackVision.BoolValue && isLunging)
+	if (isLunging)
 	{
-		GetClientEyeAngles(hunter, selfEyeAngle);
-		GetAngleVectors(selfEyeAngle, selfEyeAngle, NULL_VECTOR, NULL_VECTOR);
-		NegateVector(selfEyeAngle);
-		NormalizeVector(selfEyeAngle, selfEyeAngle);
-		GetVectorAngles(selfEyeAngle, selfEyeAngle);
-		TeleportEntity(hunter, NULL_VECTOR, selfEyeAngle, NULL_VECTOR);
+		if (!canBackVision[hunter][0])
+		{
+			backVisionChance = GetRandomFloatInRange(0.0, 100.0);
+			backVisionChance <= g_hBackVision.FloatValue ? (canBackVision[hunter][1] = true) : (canBackVision[hunter][1] = false);
+			canBackVision[hunter][0] = true;
+		}
+		if (canBackVision[hunter][1])
+		{
+			// 似乎比获取 lungeVector 并反向的方法准确些，此方法计算与目标之间的向量取反，保持视角背对目标而不是飞扑方向
+			MakeVectorFromPoints(selfPos, targetPos, lungeVectorNegate);
+			NegateVector(lungeVectorNegate);
+			NormalizeVector(lungeVectorNegate, lungeVectorNegate);
+			GetVectorAngles(lungeVectorNegate, lungeVectorNegate);
+			TeleportEntity(hunter, NULL_VECTOR, lungeVectorNegate, NULL_VECTOR);
+			return Plugin_Changed;
+		}
+		return Plugin_Continue;
+	}
+	if (!isOnGround(hunter)) { return Plugin_Continue; }
+	canBackVision[hunter][0] = false;
+	// 有视野和没有视野的情况，没有视野也允许飞
+	if (!hasSight && IsValidSurvivor(target))
+	{
+		// 没有视野的情况，在地上时，允许使用右键
+		if (!isDucking) { return Plugin_Changed; }
+		// 准备飞扑，使用右键挠
+		if (g_hMeleeFirst.BoolValue &&
+			((gametime > timestamp - 0.1) && (gametime < timestamp)) &&
+			((targetDistance < meleeMaxRange) && (targetDistance > meleeMinRange)))
+		{
+			buttons |= IN_ATTACK2;
+		}
+		else if (gametime > timestamp)
+		{
+			// 设置了高度或距离或两个都设置情况下，检查是否符合条件
+			if (noSightPounceRange > 0 && targetDistance > noSightPounceRange) { return Plugin_Continue; }
+			if (noSightPounceHeight > 0 && FloatAbs(selfPos[2] - targetPos[2]) > noSightPounceHeight) { return Plugin_Continue; }
+			if (!hasQueuedLunge[hunter])
+			{
+				hasQueuedLunge[hunter] = true;
+				canLungeTime[hunter] = gametime + g_hLungeInterval.FloatValue;
+			}
+			else if (gametime > canLungeTime[hunter])
+			{
+				buttons |= IN_ATTACK;
+				hasQueuedLunge[hunter] = false;
+			}
+		}
 		return Plugin_Changed;
 	}
-	if (!isOnGround(hunter) || !hasSight) { return Plugin_Continue; }
 	// 有视野的情况，飞扑前按右键
 	if (isDucking && g_hMeleeFirst.BoolValue &&
 		((gametime > timestamp - 0.1) && (gametime < timestamp)) &&
@@ -207,7 +271,7 @@ public void playerSpawnHandler(Event event, const char[] name, bool dontBroadcas
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!isValidHunter(client)) { return; }
-	hasQueuedLunge[client] = false;
+	hasQueuedLunge[client] = canBackVision[client][0] = canBackVision[client][1] = false;
 	canLungeTime[client] = 0.0;
 	anglePounceCount[client][POUNCE_LFET] = anglePounceCount[client][POUNCE_RIGHT] = 0;
 }
@@ -233,10 +297,10 @@ public void roundEndHandler(Event event, const char[] name, bool dontBroadcast)
 public void hunterOnPounce(int hunter)
 {
 	if (!isValidHunter(hunter)) { return; }
-	int
+	static int
 		lungeEntity,
 		target;
-	float
+	static float
 		selfPos[3],
 		targetPos[3],
 		selfEyeAngle[3],
@@ -272,7 +336,7 @@ public void hunterOnPounce(int hunter)
 		delete ray;
 	}
 	// 没开墙体检测或前方没有检测到墙体
-	target = getClosestSurvivor(hunter);
+	target = hunterCurrentTarget[hunter];
 	if (!IsValidSurvivor(target)) { return; }
 	GetClientAbsOrigin(target, targetPos);
 	// 目标正在看着 hunter 且距离大于直扑限制距离同时高度小于直接高扑的高度，侧飞
@@ -282,7 +346,8 @@ public void hunterOnPounce(int hunter)
 		#if DEBUG
 			PrintToConsoleAll("[Ai-Hunter]：与最近目标：%N 距离：%d，高度：%.2f 可以侧飞", target, GetClientDistance(hunter, target), FloatAbs(targetPos[2] - selfPos[2]));
 		#endif
-		int angle = xorShiftGetRandomInt(0, g_hPounceAngleMean.IntValue, g_hPounceAngleStd.IntValue);
+		static int angle;
+		angle = xorShiftGetRandomInt(0, g_hPounceAngleMean.IntValue, g_hPounceAngleStd.IntValue);
 		// 角度是正值，则 ht 向左飞，反之向右，是否需要角度修正
 		if ((angle > 0 && anglePounceCount[hunter][POUNCE_LFET] - anglePounceCount[hunter][POUNCE_RIGHT] > g_hAnglePounceCount.IntValue) ||
 			(angle < 0 && anglePounceCount[hunter][POUNCE_RIGHT] - anglePounceCount[hunter][POUNCE_LFET] > g_hAnglePounceCount.IntValue))
@@ -322,6 +387,35 @@ stock bool traceRayFilter(int entity, int contentsMask, any data)
 	return true;
 }
 
+// hunter 目标检测
+public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)
+{
+	if (!isValidHunter(specialInfected) || !IsValidSurvivor(curTarget) || !IsPlayerAlive(curTarget)) { return Plugin_Continue; }
+	// hunter 和目标都有效，检测可见性
+	static int newTarget;
+	static float targetPos[3];
+	GetEntPropVector(curTarget, Prop_Send, "m_vecOrigin", targetPos);
+	// 当前目标不可见，使用 getClosestSurvivor 获取最近的可见目标
+	if (!L4D2_IsVisibleToPlayer(specialInfected, TEAM_INFECTED, curTarget, INVALID_NAV_AREA, targetPos))
+	{
+		// 不可见，更换新的最近可见目标
+		newTarget = getClosestSurvivor(specialInfected);
+		// 如果 getClosestSurvivor 返回 INVALID_CLIENT 则使用默认目标
+		if (!IsValidSurvivor(newTarget))
+		{
+			hunterCurrentTarget[specialInfected] = curTarget;
+			return Plugin_Continue;
+		}
+		// 新目标可见，更改目标
+		hunterCurrentTarget[specialInfected] = newTarget;
+		curTarget = newTarget;
+		return Plugin_Changed;
+	}
+	// 当前目标可见，给 hunterCurrentTarget 赋值，避免 OnPlayerRunCmd 中拿不到目标
+	hunterCurrentTarget[specialInfected] = curTarget;
+	return Plugin_Continue;
+}
+
 // ****************
 //		Stuff
 // ****************
@@ -343,6 +437,8 @@ static int getClosestSurvivor(int client)
 	{
 		if (!IsClientInGame(i) || GetClientTeam(i) != TEAM_SURVIVOR || !IsPlayerAlive(i) || IsClientPinned(i)) { continue; }
 		GetEntPropVector(i, Prop_Send, "m_vecOrigin", targetPos);
+		// 获取目标时，如果不可见目标，则跳过这个不可见的最近目标
+		if (!L4D2_IsVisibleToPlayer(client, TEAM_INFECTED, i, INVALID_NAV_AREA, targetPos)) { continue; }
 		targetList.Set(targetList.Push(GetVectorDistance(selfPos, targetPos)), i, 1);
 	}
 	if (targetList.Length < 1)
@@ -365,7 +461,10 @@ stock bool isSurvivorWatchingHunter(int hunter, int target, float offset)
 
 float getPlayerAimingOffset(int hunter, int target)
 {
-	static float selfEyeAngle[3], selfPos[3], targetPos[3];
+	static float
+		selfEyeAngle[3],
+		selfPos[3],
+		targetPos[3];
 	GetClientEyeAngles(hunter, selfEyeAngle);
 	selfEyeAngle[0] = selfEyeAngle[2] = 0.0;
 	GetAngleVectors(selfEyeAngle, selfEyeAngle, NULL_VECTOR, NULL_VECTOR);
@@ -379,17 +478,20 @@ float getPlayerAimingOffset(int hunter, int target)
 }
 
 // 限制 hunter 飞行的垂直角度
-void limitLungeVerticality(int ablility)
+void limitLungeVerticality(int ability)
 {
-	if (!IsValidEntity(ablility) || !IsValidEdict(ablility)) { return; }
-	static float verticleAngle, queueLunged[3], resultLunged[3];
-	GetEntPropVector(ablility, Prop_Send, "m_queuedLunge", queueLunged);
+	if (!IsValidEntity(ability) || !IsValidEdict(ability)) { return; }
+	static float
+		verticleAngle,
+		queueLunged[3],
+		resultLunged[3];
+	GetEntPropVector(ability, Prop_Send, "m_queuedLunge", queueLunged);
 	verticleAngle = DegToRad(g_hPounceVerticalAngle.FloatValue);
 	resultLunged[1] = queueLunged[1] * Cosine(verticleAngle) - queueLunged[2] * Sine(verticleAngle);
 	resultLunged[2] = queueLunged[1] * Sine(verticleAngle) + queueLunged[2] * Cosine(verticleAngle);
 	resultLunged[0] = queueLunged[0] * Cosine(verticleAngle) + queueLunged[2] * Sine(verticleAngle);
 	resultLunged[2] = queueLunged[0] * -Sine(verticleAngle) + queueLunged[2] * Cosine(verticleAngle);
-	SetEntPropVector(ablility, Prop_Send, "m_queuedLunge", resultLunged);
+	SetEntPropVector(ability, Prop_Send, "m_queuedLunge", resultLunged);
 }
 
 // 限制 hunter 飞行水平角度
@@ -413,7 +515,7 @@ void angleLunge(int hunter, int target, int lungeEntity, float turnAngle)
 		GetEntPropVector(target, Prop_Send, "m_vecOrigin", targetPos);
 		SubtractVectors(targetPos, selfPos, lungeVec);
 		NormalizeVector(lungeVec, lungeVec);
-		ScaleVector(lungeVec, FindConVar("z_lunge_power").FloatValue);
+		ScaleVector(lungeVec, g_hLungePower.FloatValue);
 	}
 	// 增加水平角度
 	resultVec[0] = lungeVec[0] * Cosine(turnAngle) - lungeVec[1] * Sine(turnAngle);
@@ -450,19 +552,29 @@ void getHunterMeleeFirstRange()
 		return;
 	}
 	ExplodeString(cvarStr, ",", tempStr, 2, sizeof(tempStr[]));
-	static int i;
-	for (i = 0; i < 2; i++)
+	meleeMinRange = StringToFloat(tempStr[0]);
+	meleeMaxRange = StringToFloat(tempStr[1]);
+}
+
+void getNoSightPounceRange()
+{
+	static char cvarStr[64], tempStr[2][16];
+	g_hNoSightPounceRange.GetString(cvarStr, sizeof(cvarStr));
+	if (IsNullString(cvarStr))
 	{
-		if (IsNullString(tempStr[i])) { continue; }
-		meleeMinRange = StringToFloat(tempStr[0]);
-		meleeMaxRange = StringToFloat(tempStr[1]);
+		noSightPounceRange = 300.0;
+		noSightPounceHeight = 250.0;
+		return;
 	}
+	ExplodeString(cvarStr, ",", tempStr, 2, sizeof(tempStr[]));
+	noSightPounceRange = StringToFloat(tempStr[0]);
+	noSightPounceHeight = StringToFloat(tempStr[1]);
 }
 
 bool isVisibleTo(int hunter, int target, float offset)
 {
 	if (!isValidHunter(hunter) || !IsValidSurvivor(target) || !IsPlayerAlive(target)) { return false; }
-	float
+	static float
 		selfEyePos[3],
 		selfEyeAngle[3],
 		targetEyePos[3];
@@ -475,7 +587,7 @@ bool isVisibleTo(int hunter, int target, float offset)
 	selfEyePos[2] = targetEyePos[2] = 0.0;
 	MakeVectorFromPoints(selfEyePos, targetEyePos, selfEyePos);
 	NormalizeVector(selfEyePos, selfEyePos);
-	// 两向量角度小于 offset
+	// 两向量角度小于 offset，且可视目标，返回 true
 	return RadToDeg(ArcCosine(GetVectorDotProduct(selfEyeAngle, selfEyePos))) < offset;
 }
 
@@ -486,10 +598,17 @@ void resetCanLungeTime()
 	{
 		canLungeTime[i] = 0.0;
 		anglePounceCount[i][POUNCE_LFET] = anglePounceCount[i][POUNCE_RIGHT] = 0;
+		hunterCurrentTarget[i] = 0;
 	}
 }
 
+// Cvar 值变动处理
 void meleeFirstRangeChangedHandler(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	getHunterMeleeFirstRange();
+}
+
+void noSightPounceRangeChangedHandler(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	getNoSightPounceRange();
 }

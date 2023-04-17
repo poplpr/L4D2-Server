@@ -10,6 +10,7 @@ ConVar
 	cvarMpGameMin,
 	cvarHostName,
 	cvarMainName,
+	cvarMod,
 	cvarHostPort;
 Handle
 	HostName = INVALID_HANDLE;
@@ -31,7 +32,8 @@ public void OnPluginStart()
 	cvarHostPort = FindConVar("hostport");
 	cvarMainName = CreateConVar("sn_main_name", "Anne电信服");
 	g_hHostNameFormat = CreateConVar("sn_hostname_format", "{hostname}{gamemode}");
-	cvarServerNameFormatCase1 = CreateConVar("sn_hostname_format1", "{AnneHappy}{Full}{Confogl}");
+	cvarServerNameFormatCase1 = CreateConVar("sn_hostname_format1", "{AnneHappy}{Full}{MOD}{Confogl}");
+	cvarMod = FindConVar("l4d2_addons_eclipse");
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Post);
 	HookEvent("player_bot_replace", Event_PlayerTeam, EventHookMode_Post);
 	HookEvent("bot_player_replace", Event_PlayerTeam, EventHookMode_Post);
@@ -41,6 +43,7 @@ public void OnPluginEnd(){
 	cvarMpGameMode = null;
 	cvarMpGameMin = null;
 	cvarMpGameMode = null;
+	cvarMod = null;
 }
 
 public void OnAllPluginsLoaded()
@@ -48,6 +51,7 @@ public void OnAllPluginsLoaded()
 	cvarSI = FindConVar("l4d_infected_limit");
 	cvarMpGameMin = FindConVar("versus_special_respawn_interval");
 	cvarMpGameMode = FindConVar("l4d_ready_cfg_name");
+	cvarMod = FindConVar("l4d2_addons_eclipse");
 }
 
 public void OnConfigsExecuted()
@@ -68,6 +72,12 @@ public void OnConfigsExecuted()
 		cvarMpGameMode.AddChangeHook(OnCvarChanged);
 	}else if(FindConVar("l4d_ready_cfg_name")){
 		cvarMpGameMode = FindConVar("l4d_ready_cfg_name");
+		cvarMpGameMode.AddChangeHook(OnCvarChanged);
+	}
+	if(cvarMod != null){
+		cvarMod.AddChangeHook(OnCvarChanged);
+	}else if(FindConVar("l4d2_addons_eclipse")){
+		cvarMpGameMode = FindConVar("l4d2_addons_eclipse");
 		cvarMpGameMode.AddChangeHook(OnCvarChanged);
 	}
 	Update();
@@ -135,6 +145,12 @@ public void UpdateServerName(){
 	}else
 	{
 		ReplaceString(FinalHostname, sizeof(FinalHostname), "{Full}", "[缺人]");
+	}
+	if(cvarMod == null || (cvarMod != null && GetConVarInt(cvarMod) != 0)){
+		ReplaceString(FinalHostname, sizeof(FinalHostname), "{MOD}", "");
+	}else
+	{
+		ReplaceString(FinalHostname, sizeof(FinalHostname), "{MOD}", "[无MOD]");
 	}
 	ChangeServerName(FinalHostname);
 }
