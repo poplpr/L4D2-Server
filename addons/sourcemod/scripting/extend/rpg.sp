@@ -639,7 +639,14 @@ public void SetPlayer(int client)
 		{
 			if(player[client].GlowType < 15)
 			{
-				GetAura(client,player[client].GlowType);
+				if(l4dstats_IsTopPlayer(client, 20) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))
+				{
+					GetAura(client,player[client].GlowType);
+				}else
+				{
+					player[client].GlowType = 0;
+					//ClientSaveToFileSave(client);
+				}
 			}			
 			else if(l4dstats_IsTopPlayer(client, 3) || GetUserAdmin(client).ImmunityLevel == 100)
 			{
@@ -650,14 +657,32 @@ public void SetPlayer(int client)
 				ClientSaveToFileSave(client);
 			}
 		}
-			
+
 		if(player[client].ClientHat)
-			ServerCommand("sm_hatclient #%d %d", GetClientUserId(client), player[client].ClientHat);
+		{
+
+			if(l4dstats_IsTopPlayer(client, 100) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))
+			{
+				ServerCommand("sm_hatclient #%d %d", GetClientUserId(client), player[client].ClientHat);
+			}else
+			{
+				player[client].ClientHat = 0;
+				//ClientSaveToFileSave(client);
+			}			
+		}
+
 		if(player[client].SkinType)
 		{
 			if(player[client].SkinType < 15)
 			{
-				GetSkin(client,player[client].SkinType);
+				if(l4dstats_IsTopPlayer(client, 50) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))
+				{
+					GetSkin(client,player[client].SkinType);
+				}else
+				{
+					player[client].SkinType = 0;
+					//ClientSaveToFileSave(client);
+				}
 			}			
 			else if(l4dstats_IsTopPlayer(client, 5) || GetUserAdmin(client).ImmunityLevel == 100)
 			{

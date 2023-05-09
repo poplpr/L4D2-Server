@@ -3441,7 +3441,7 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	else if (AttackerTeam == TEAM_SURVIVORS && VictimTeam == TEAM_INFECTED)
 	{
 		int human = CheckSurvivorsHumans();
-		if( human < 3)
+		if( human < 3 || IsWitchParty() || IsAllCharger())
 			return;
 		new Score = 0;
 		decl String:InfectedType[8];
@@ -3660,13 +3660,6 @@ stock bool IsAlone(){
 
 stock bool SinglePlayerMode(){
 	if(Is1vht() || IsAlone()){
-		return true;
-	}
-	return false;
-}
-
-stock bool MultiPlayerMode(){
-	if(IsAnne() || IsWitchParty() || IsAllCharger()){
 		return true;
 	}
 	return false;
@@ -6528,6 +6521,10 @@ public Action:event_WitchCrowned(Handle:event, const String:name[], bool:dontBro
 			{
 				Format(UpdatePoints, sizeof(UpdatePoints), "points");
 			}
+		}
+		if(IsWitchParty())
+		{
+			Score = RoundToCeil(Score / 2.0);
 		}
 
 		decl String:query[1024];
@@ -11293,6 +11290,11 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 	{
 		SQL_FetchRow(hndl);
 		OldTime = SQL_FetchFloat(hndl, 0);
+		if(TotalTime < 30.0)
+		{
+			StatsPrintToChat(Client, "记录时间小于30s，好像不对，此次记录不进行记录!");
+			return;
+		}
 
 		if ((CurrentGamemodeID != GAMEMODE_SURVIVAL && OldTime <= TotalTime) || (CurrentGamemodeID == GAMEMODE_SURVIVAL && OldTime >= TotalTime))
 		{
