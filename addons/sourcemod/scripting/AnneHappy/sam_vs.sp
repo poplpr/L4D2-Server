@@ -50,7 +50,7 @@ public OnPluginStart()
 	new Handle:hImBack	= CreateConVar("sam_vs_respect_spec",	"1", "Don't kick spectators players if they is no longer AFK", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	new Handle:hTank		= CreateConVar("sam_vs_respect_tank",	"1", "Don't move AFK players to spectator if they playing as Tank", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	new Handle:hAdmin		= CreateConVar("sam_vs_respect_admins",	"k", "Admins have immunity againts AFK manager. Flag value or empty \"\" to don't protect admins", FCVAR_NOTIFY);
-	new Handle:hKickF		= CreateConVar("sam_vs_force_kick",		"1", "Kicks all idle spectator players when map changes. (Requires for plugins compatibility that puts spec to spec after map change)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	new Handle:hKickF		= CreateConVar("sam_vs_force_kick",		"0", "Kicks all idle spectator players when map changes. (Requires for plugins compatibility that puts spec to spec after map change)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig(true, "SimpleAFKManagerVs");
 
 	decl String:sFlags[2];
