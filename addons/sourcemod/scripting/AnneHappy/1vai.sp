@@ -29,10 +29,10 @@
 
 public Plugin myinfo =
 {
-	name = "1v1 instand stand up",
+	name = "1vai function(quick standup, give damage and release survivor)",
 	author = "东",
 	description = "A plugin designed to support 1vAI.",
-	version = "1.1",
+	version = "1.2",
 	url = "https://github.com/fantasylidong/CompetitiveWithAnne"
 };
 
