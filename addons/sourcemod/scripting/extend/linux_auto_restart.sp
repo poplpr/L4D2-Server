@@ -27,7 +27,7 @@ public void OnPluginStart()
 	sb_all_bot_game = FindConVar("sb_all_bot_game");
 
 	CreateConVar("l4d2_auto_restart_version", VERSION, "插件版本", FCVAR_NONE | FCVAR_DONTRECORD);
-	g_cvDelayTime = CreateConVar("l4d2_auto_restart_delay", "20.0", "Restart grace period (in sec.)", FCVAR_NOTIFY);
+	g_cvDelayTime = CreateConVar("l4d2_auto_restart_delay", "30.0", "Restart grace period (in sec.)", FCVAR_NOTIFY);
 	g_fDelayTime = g_cvDelayTime.FloatValue;
 	g_cvDelayTime.AddChangeHook(OnConVarChanged);
 
@@ -54,6 +54,11 @@ void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client == 0 || !IsFakeClient(client))
 	{
+		char sNetworkid[4];
+		event.GetString("networkid", sNetworkid, sizeof(sNetworkid));
+		if (!strcmp(sNetworkid, "BOT", false)) 
+			return;
+			
 		if (!HaveRealPlayer(client))
 		{
 			sv_hibernate_when_empty.IntValue = 0;
