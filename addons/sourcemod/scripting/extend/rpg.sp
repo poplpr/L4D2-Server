@@ -38,7 +38,7 @@ bool IsAnne = false;
 int InfectedNumber=6;
 bool g_bEnableGlow = true;
 ConVar GaoJiRenJi, AllowBigGun, g_InfectedNumber, g_cShopEnable, g_hEnableGlow;
-bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bpunchangelSystemAvailable = false, g_bMysqlSystemAvailable = false;
+bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bMysqlSystemAvailable = false;
 //new lastpoints[MAXPLAYERS + 1];
 
 //枚举变量,修改武器消耗积分在此。
@@ -181,7 +181,7 @@ public void OnAllPluginsLoaded()
 	g_bHatSystemAvailable = LibraryExists("l4d_hats");
 	g_bl4dstatsSystemAvailable = LibraryExists("l4d_stats");
 	g_bHextagsSystemAvailable = LibraryExists("hextags");
-	g_bpunchangelSystemAvailable = LibraryExists("punch_angle");
+//	g_bpunchangelSystemAvailable = LibraryExists("punch_angle");
 }
 public void OnLibraryAdded(const char[] name)
 {
@@ -189,7 +189,7 @@ public void OnLibraryAdded(const char[] name)
 	else if ( StrEqual(name, "l4d_hats") ) { g_bHatSystemAvailable = true; }
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = true; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = true; }
-	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = true; }
+//	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = true; }
 }
 public void OnLibraryRemoved(const char[] name)
 {
@@ -197,7 +197,7 @@ public void OnLibraryRemoved(const char[] name)
 	else if ( StrEqual(name, "l4d_hats") ) { g_bHatSystemAvailable = false; }
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = false; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = false; }
-	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = false; }
+//	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = false; }
 }
 
 //god frame send forward implement
@@ -439,7 +439,6 @@ public void RewardScore(){
 		return;
 	if(FindConVar("l4d_ready_cfg_name"))
 	{
-		int renji=0;
 		GaoJiRenJi = FindConVar("sb_fix_enabled");
 		if(GaoJiRenJi != null && GaoJiRenJi.BoolValue){
 			PrintToChatAll("\x01[\x04RANK\x01]\x04由于开启了高级人机，不能获得额外过关积分");
@@ -932,9 +931,9 @@ public Action BuyPen(int client,int args)
 		{
 			bool result = false;
 			if(GetRandomInt(0,1))
-				result = RemovePoints(client,0,"pumpshotgun");
+				result = RemovePoints(client,50,"pumpshotgun");
 			else
-				result = RemovePoints(client,0,"shotgun_chrome");
+				result = RemovePoints(client,50,"shotgun_chrome");
 			if(result)
 			PrintToChatAll("\x04%N \x03快速花费50B数随机购买一把单喷",client);
 		}else{

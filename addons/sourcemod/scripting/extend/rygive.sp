@@ -6,10 +6,11 @@
 #include <left4dhooks>
 #undef REQUIRE_PLUGIN
 #include <rpg>
+
 #define PLUGIN_NAME				"Give Item Menu"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		"多功能插件"
-#define PLUGIN_VERSION			"1.2.2"
+#define PLUGIN_VERSION			"1.2.3"
 #define PLUGIN_URL				""
 
 #define GAMEDATA				"rygive"
@@ -29,6 +30,8 @@ ArrayList
 	g_aMeleeScripts;
 
 Handle
+	g_hSDK_TerrorNavMesh_GetLastCheckpoint,
+	g_hSDK_Checkpoint_GetLargestArea,
 	g_hSDK_NextBotCreatePlayerBot_Smoker,
 	g_hSDK_NextBotCreatePlayerBot_Boomer,
 	g_hSDK_NextBotCreatePlayerBot_Hunter,
@@ -650,10 +653,10 @@ int Infected_MenuHandler(Menu menu, MenuAction action, int client, int param2) {
 			if (!kicked)
 				CreateInfected(client, item);
 			else {
-				DataPack dPack = new DataPack();
-				dPack.WriteCell(client);
-				dPack.WriteString(item);
-				RequestFrame(NextFrame_CreateInfected, dPack);
+				DataPack pack = new DataPack();
+				pack.WriteCell(client);
+				pack.WriteString(item);
+				RequestFrame(NextFrame_CreateInfected, pack);
 			}
 
 			Infected(client, menu.Selection);
@@ -687,12 +690,12 @@ int KickDeadInfectedBots(int client) {
 	return kickedBots;
 }
 
-void NextFrame_CreateInfected(DataPack dPack) {
-	dPack.Reset();
+void NextFrame_CreateInfected(DataPack pack) {
+	pack.Reset();
 	char buffer[32];
-	int client = dPack.ReadCell();
-	dPack.ReadString(buffer, sizeof buffer);
-	delete dPack;
+	int client = pack.ReadCell();
+	pack.ReadString(buffer, sizeof buffer);
+	delete pack;
 
 	CreateInfected(client, buffer);
 }
@@ -700,7 +703,7 @@ void NextFrame_CreateInfected(DataPack dPack) {
 //https://github.com/ProdigySim/DirectInfectedSpawn
 int CreateInfected(int client, const char[] zombie) {
 	float vEnd[3];
-	if (!GetDirectionEndPoint(client, vEnd))
+	if (!GetTeleportEndPoint(client, vEnd))
 		return -1;
 
 	return _CreateInfected(zombie, vEnd, NULL_VECTOR);
@@ -787,14 +790,17 @@ int _CreateInfected(const char[] zombie, const float vPos[3], const float vAng[3
 		SetEntProp(ent, Prop_Data, "m_nNextThinkTick", RoundToNearest(GetGameTime() / GetTickInterval()) + 5);
 		TeleportEntity(ent, vPos, vAng, NULL_VECTOR);
 
-		if (pos != 6)
+		if (pos != 6) {
 			DispatchSpawn(ent);
+			ActivateEntity(ent);
+		}
 		else {
 			int m_nFallenSurvivor = LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), NumberType_Int32);
 			float m_timestamp = view_as<float>(LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), NumberType_Int32));
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), 0, NumberType_Int32);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), view_as<int>(0.0), NumberType_Int32);
 			DispatchSpawn(ent);
+			ActivateEntity(ent);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), m_nFallenSurvivor + LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), NumberType_Int32), NumberType_Int32);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), view_as<int>(m_timestamp), NumberType_Int32);
 		}
@@ -1045,8 +1051,17 @@ void SlotSelect(int client, int target) {
 		FormatEx(str[1], sizeof str[], "%d", i);
 		ImplodeStrings(str, sizeof str, "|", info, sizeof info);
 		GetEntityClassname(ent, cls, sizeof cls);
-		if (!strcmp(cls, "weapon_melee"))
+		if (strcmp(cls, "weapon_melee") == 0) {
 			GetEntPropString(ent, Prop_Data, "m_strMapSetScriptName", cls, sizeof cls);
+			if (cls[0] == '\0') {
+				// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
+				char ModelName[128];
+				GetEntPropString(ent, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
+				if (strcmp(ModelName, "models/weapons/melee/v_tonfa.mdl") == 0)
+					strcopy(cls, sizeof cls, "tonfa");
+			}
+			g_smMeleeTrans.GetString(cls, cls, sizeof cls);
+		}
 
 		menu.AddItem(info, cls);
 	}
@@ -1139,7 +1154,6 @@ int RespawnPlayer_MenuHandler(Menu menu, MenuAction action, int client, int para
 					}
 				}
 			}
-			L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
 		}
 
 		case MenuAction_Cancel: {
@@ -1194,8 +1208,8 @@ int SelectClass_MenuHandler(Menu menu, MenuAction action, int client, int param2
 }
 
 void RespawnPZ(int client, int zombieClass) {
-	L4D_SetClass(client, zombieClass != 6 ? zombieClass + 1 : 8);
 	L4D_State_Transition(client, STATE_GHOST);
+	L4D_SetClass(client, zombieClass != 6 ? zombieClass + 1 : 8);
 }
 
 void TeleportToSurvivor(int client) {
@@ -1372,7 +1386,7 @@ int iTeleportTarget_MenuHandler(Menu menu, MenuAction action, int client, int pa
 				targetTeam = GetClientTeam(victim);
 
 			if (info[1][0] == 'c')
-				allow = GetSpawnEndPoint(client, vOrigin);
+				allow = GetTeleportEndPoint(client, vOrigin);
 			else {
 				int target = GetClientOfUserId(StringToInt(info[1]));
 				if (target && IsClientInGame(target)) {
@@ -1433,86 +1447,75 @@ void ForceCrouch(int client) {
 	SetEntProp(client, Prop_Send, "m_fFlags", GetEntProp(client, Prop_Send, "m_fFlags")|FL_DUCKING);
 }
 
-//https://forums.alliedmods.net/showthread.php?p=2693455
-bool GetSpawnEndPoint(int client, float vSpawnVec[3]) {
-	float vEnd[3], vEye[3];
-	if (GetDirectionEndPoint(client, vEnd)) {
-		GetClientEyePosition(client, vEye);
-		ScaleVectorDirection(vEye, vEnd, 0.1);
-		if (GetNonCollideEndPoint(client, vEnd, vSpawnVec))
-			return true;
-	}
-
-	GetClientAbsOrigin(client, vSpawnVec);
-	return true;
-}
-
-void ScaleVectorDirection(float vStart[3], float vEnd[3], float fMultiple) {
-	float vDir[3];
-	MakeVectorFromPoints(vStart, vEnd, vDir);
-	ScaleVector(vDir, fMultiple);
-	AddVectors(vEnd, vDir, vEnd);
-}
-
-bool GetDirectionEndPoint(int client, float vEnd[3]) {
-	float vDir[3], vPos[3];
-	GetClientEyeAngles(client, vDir);
+bool GetTeleportEndPoint(int client, float vPos[3]) {
+	float vAng[3];
+	GetClientEyeAngles(client, vAng);
 	GetClientEyePosition(client, vPos);
-	Handle hTrace = TR_TraceRayFilterEx(vPos, vDir, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, _TraceEntityFilter);
-	if (TR_DidHit(hTrace)) {
-		TR_GetEndPosition(vEnd, hTrace);
-		delete hTrace;
-		return true;
-	}
 
-	delete hTrace;
-	return false;
-}
+	Handle hndl = TR_TraceRayFilterEx(vPos, vAng, MASK_PLAYERSOLID, RayType_Infinite, TraceEntityFilter);
+	if (TR_DidHit(hndl)) {
+		float vEnd[3];
+		TR_GetEndPosition(vEnd, hndl);
+		delete hndl;
 
-bool GetNonCollideEndPoint(int client, float vEnd[3], float vNonCol[3], bool bEye = true) {// similar to GetDirectionEndPoint, but with respect to player size
-	float vStart[3];
-	if (bEye) {
-		GetClientEyePosition(client, vStart);
-		if (IsPlayerStuckPos(vStart)) {// If we attempting to spawn from stucked position, let's start our hull trace from the middle of the ray in hope there are no collision
-			float vMid[3];
-			AddVectors(vStart, vEnd, vMid);
-			ScaleVector(vMid, 0.5);
-			vStart = vMid;
+		float vVec[3];
+		MakeVectorFromPoints(vPos, vEnd, vVec);
+
+		float vDown[3];
+		float dist = GetVectorLength(vVec);
+		while (dist > 0.0) {
+			hndl = TR_TraceHullFilterEx(vEnd, vEnd, view_as<float>({-16.0, -16.0, 0.0}), view_as<float>({16.0, 16.0, 72.0}), MASK_PLAYERSOLID, TraceEntityFilter);
+			if (!TR_DidHit(hndl)) {
+				delete hndl;
+				vPos = vEnd;
+				return true;
+			}
+
+			delete hndl;
+
+			dist -= 35.0;
+			if (dist <= 0.0)
+				break;
+
+			NormalizeVector(vVec, vVec);
+			ScaleVector(vVec, dist);
+			AddVectors(vPos, vVec, vEnd);
+
+			vDown[0] = vEnd[0];
+			vDown[1] = vEnd[1];
+			vDown[2] = vEnd[2] - 100000.0;
+			hndl = TR_TraceHullFilterEx(vEnd, vDown, view_as<float>({-16.0, -16.0, 0.0}), view_as<float>({16.0, 16.0, 72.0}), MASK_PLAYERSOLID, TraceEntityFilter);
+			if (TR_DidHit(hndl))
+				TR_GetEndPosition(vEnd, hndl);
+			else {
+				dist -= 35.0;
+				if (dist <= 0.0) {
+					delete hndl;
+					break;
+				}
+
+				NormalizeVector(vVec, vVec);
+				ScaleVector(vVec, dist);
+				AddVectors(vPos, vVec, vEnd);
+			}
+
+			delete hndl;
 		}
 	}
-	else
-		GetClientAbsOrigin(client, vStart);
 
-	Handle hTrace = TR_TraceHullFilterEx(vStart, vEnd, view_as<float>({-16.0, -16.0, 0.0}), view_as<float>({16.0, 16.0, 72.0}), MASK_PLAYERSOLID_BRUSHONLY, _TraceEntityFilter);
-	if (TR_DidHit(hTrace)) {
-		TR_GetEndPosition(vNonCol, hTrace);
-		if (bEye && IsPlayerStuckPos(vNonCol))
-			GetNonCollideEndPoint(client, vEnd, vNonCol, false); // if eyes position doesn't allow to build reliable TraceHull, repeat from the feet (client's origin)
-		delete hTrace;
-		return true;
-	}
-	delete hTrace;
-	return false;
-}
-
-bool IsPlayerStuckPos(const float vPos[3]) {// check if the position applicable to respawn a client of a given size without collision
-	bool hit;
-	Handle hTrace = TR_TraceHullFilterEx(vPos, vPos, view_as<float>({-16.0, -16.0, 0.0}), view_as<float>({16.0, 16.0, 72.0}), MASK_PLAYERSOLID_BRUSHONLY, _TraceEntityFilter);
-	hit = TR_DidHit(hTrace);
-	delete hTrace;
-	return hit;
-}
-
-bool _TraceEntityFilter(int entity, int contentsMask) {
-	if (entity <= MaxClients)
-		return false;
-
-	static char cls[9];
-	GetEntityClassname(entity, cls, sizeof cls);
-	if ((cls[0] == 'i' && strcmp(cls[1], "nfected") == 0) || (cls[0] == 'w' && strcmp(cls[1], "itch") == 0))
-		return false;
-
+	delete hndl;
+	GetClientAbsOrigin(client, vPos);
 	return true;
+}
+
+bool TraceEntityFilter(int entity, int contentsMask) {
+	if (!entity || entity > MaxClients) {
+		static char cls[5];
+		GetEdictClassname(entity, cls, sizeof cls);
+		return cls[3] != 'e' && cls[3] != 'c';
+	}
+
+	return false;
 }
 
 void TeleportFix(int client) {
@@ -1578,8 +1581,8 @@ int GodMode_MenuHandler(Menu menu, MenuAction action, int client, int param2) {
 }
 
 void ForcePanicEvent(int client) {
-	L4D2_CTimerStart(L4D2CT_MobSpawnTimer, 0.0);
-	//ExecuteCommand("director_force_panic_event");
+	L4D_ResetMobTimer();
+	L4D_ForcePanicEvent();
 	Miscell(client, g_iSelection[client]);
 }
 
@@ -1660,9 +1663,24 @@ void WarpAllSurToStartArea(int client) {
 }
 
 void WarpAllSurToCheckpoint(int client) {
+	if (g_hSDK_TerrorNavMesh_GetLastCheckpoint && g_hSDK_Checkpoint_GetLargestArea) {
+		Address pLastCheckpoint = SDKCall(g_hSDK_TerrorNavMesh_GetLastCheckpoint, L4D_GetPointer(POINTER_NAVMESH));
+		if (pLastCheckpoint) {
+			int navArea = SDKCall(g_hSDK_Checkpoint_GetLargestArea, pLastCheckpoint);
+			if (navArea) {
+				float vPos[3];
+				for (int i = 1; i <= MaxClients; i++) {
+					if (IsClientInGame(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i)) {
+						L4D_FindRandomSpot(navArea, vPos);
+						TeleportEntity(i, vPos, NULL_VECTOR, NULL_VECTOR);
+					}
+				}
+				Miscell(client, g_iSelection[client]);
+				return;
+			}
+		}
+	}
 	ExecuteCommand("warp_all_survivors_to_checkpoint");
-	L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
-	L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 	Miscell(client, g_iSelection[client]);
 }
 
@@ -2028,7 +2046,7 @@ int ShowAliveSur_MenuHandler(Menu menu, MenuAction action, int client, int param
 			}
 			else
 				CheatCommand(GetClientOfUserId(StringToInt(item)), g_sNamedItem[client]);
-			L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
+
 			PageExitBack(client, g_iFunction[client], g_iSelection[client]);
 		}
 
@@ -2066,12 +2084,21 @@ void ReloadAmmo(int client) {
 
 	char cls[32];
 	GetEntityClassname(weapon, cls, sizeof cls);
-	if (strcmp(cls[7], "grenade_launcher") == 0) {
-		static ConVar cv;
-		if (!cv)
-			cv = FindConVar("ammo_grenadelauncher_max");
+	if (strcmp(cls, "weapon_rifle_m60") == 0) {
+		static ConVar cM60;
+		if (!cM60)
+			cM60 = FindConVar("ammo_m60_max");
 
-		SetEntProp(client, Prop_Send, "m_iAmmo", cv.IntValue, _, m_iPrimaryAmmoType);
+		SetEntProp(weapon, Prop_Send, "m_iClip1", L4D2_GetIntWeaponAttribute(cls, L4D2IWA_ClipSize));
+		SetEntProp(client, Prop_Send, "m_iAmmo", cM60.IntValue, _, m_iPrimaryAmmoType);
+	}
+	else if (strcmp(cls, "weapon_grenade_launcher") == 0) {
+		static ConVar cGrenadelau;
+		if (!cGrenadelau)
+			cGrenadelau = FindConVar("ammo_grenadelauncher_max");
+
+		SetEntProp(weapon, Prop_Send, "m_iClip1", L4D2_GetIntWeaponAttribute(cls, L4D2IWA_ClipSize));
+		SetEntProp(client, Prop_Send, "m_iAmmo", cGrenadelau.IntValue, _, m_iPrimaryAmmoType);
 	}
 }
 
@@ -2093,7 +2120,7 @@ void CheatCommand(int client, const char[] command) {
 
 	int bits = GetUserFlagBits(client);
 	int flags = GetCommandFlags(cmd);
-	SetUserFlagBits(client, FCVAR_CHEAT);
+	SetUserFlagBits(client, ADMFLAG_ROOT);
 	SetCommandFlags(cmd, flags & ~FCVAR_CHEAT);
 	FakeClientCommand(client, command);
 	SetUserFlagBits(client, bits);
@@ -2127,12 +2154,30 @@ void InitData() {
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 
 	g_iOff_m_nFallenSurvivors = hGameData.GetOffset("m_nFallenSurvivors");
-	if (g_iOff_m_nFallenSurvivors== -1)
+	if (g_iOff_m_nFallenSurvivors == -1)
 		SetFailState("Failed to find offset: m_nFallenSurvivors");
 
 	g_iOff_m_FallenSurvivorTimer = hGameData.GetOffset("m_FallenSurvivorTimer");
-	if (g_iOff_m_FallenSurvivorTimer== -1)
+	if (g_iOff_m_FallenSurvivorTimer == -1)
 		SetFailState("Failed to find offset: m_FallenSurvivorTimer");
+
+	StartPrepSDKCall(SDKCall_Raw);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "TerrorNavMesh::GetLastCheckpoint"))
+		LogError("Failed to find signature: \"TerrorNavMesh::GetLastCheckpoint\"");
+	else {
+		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+		if (!(g_hSDK_TerrorNavMesh_GetLastCheckpoint = EndPrepSDKCall()))
+			LogError("Failed to create SDKCall: \"TerrorNavMesh::GetLastCheckpoint\"");
+	}
+
+	StartPrepSDKCall(SDKCall_Raw);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "Checkpoint::GetLargestArea"))
+		LogError("Failed to find signature: \"Checkpoint::GetLargestArea\"");
+	else {
+		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+		if (!(g_hSDK_Checkpoint_GetLargestArea = EndPrepSDKCall()))
+			LogError("Failed to create SDKCall: \"Checkpoint::GetLargestArea\"");
+	}
 
 	Address pReplaceWithBot = hGameData.GetAddress("NextBotCreatePlayerBot.jumptable");
 	if (pReplaceWithBot != Address_Null && LoadFromAddress(pReplaceWithBot, NumberType_Int8) == 0x68)
@@ -2323,6 +2368,9 @@ void PrepLinuxCreateBotCalls(GameData hGameData = null) {
 public Action L4D_OnGrabWithTongue(int victim, int attacker) {
 	if (!g_bIgnoreAbility[victim])
 		return Plugin_Continue;
+/*	//处死即将控人的Smoker
+	if (attacker > 0 && attacker < MaxClients && IsClientInGame(attacker))
+		ForcePlayerSuicide(attacker);*/
 
 	return Plugin_Handled;
 }
@@ -2330,6 +2378,9 @@ public Action L4D_OnGrabWithTongue(int victim, int attacker) {
 public Action L4D_OnPouncedOnSurvivor(int victim, int attacker) {
 	if (!g_bIgnoreAbility[victim])
 		return Plugin_Continue;
+/*	//处死即将控人的Hunter
+	if (attacker > 0 && attacker < MaxClients && IsClientInGame(attacker))
+		ForcePlayerSuicide(attacker);*/
 
 	return Plugin_Handled;
 }
@@ -2337,6 +2388,9 @@ public Action L4D_OnPouncedOnSurvivor(int victim, int attacker) {
 public Action L4D2_OnJockeyRide(int victim, int attacker) {
 	if (!g_bIgnoreAbility[victim])
 		return Plugin_Continue;
+/*	//处死即将控人的Jockey
+	if (attacker > 0 && attacker < MaxClients && IsClientInGame(attacker))
+		ForcePlayerSuicide(attacker);*/
 
 	return Plugin_Handled;
 }
@@ -2344,6 +2398,9 @@ public Action L4D2_OnJockeyRide(int victim, int attacker) {
 public Action L4D2_OnStartCarryingVictim(int victim, int attacker) {
 	if (!g_bIgnoreAbility[victim])
 		return Plugin_Continue;
+/*	//处死即将控人的Charger
+	if (attacker > 0 && attacker < MaxClients && IsClientInGame(attacker))
+		ForcePlayerSuicide(attacker);*/
 
 	return Plugin_Handled;
 }
@@ -2351,33 +2408,36 @@ public Action L4D2_OnStartCarryingVictim(int victim, int attacker) {
 public Action L4D2_OnPummelVictim(int attacker, int victim) {
 	if (!g_bIgnoreAbility[victim])
 		return Plugin_Continue;
+/*	//处死即将控人的Charger
+	if (attacker > 0 && attacker < MaxClients && IsClientInGame(attacker))
+		ForcePlayerSuicide(attacker);*/
 
 	// from "left4dhooks_test.sp"
-	DataPack dPack = new DataPack();
-	dPack.WriteCell(GetClientUserId(attacker));
-	dPack.WriteCell(GetClientUserId(victim));
-	RequestFrame(OnPummelTeleport, dPack);
+	DataPack pack = new DataPack();
+	RequestFrame(OnPummelTeleport, pack);
+	pack.WriteCell(GetClientUserId(victim));
+	pack.WriteCell(GetClientUserId(attacker));
 
 	// To block the stumble animation, uncomment and use the following 2 lines:
 	AnimHookEnable(victim, OnPummelOnAnimPre, INVALID_FUNCTION);
-	CreateTimer(0.3, TimerOnPummelResetAnim, victim);
+	CreateTimer(0.3, Timer_OnPummelResetAnim, GetClientUserId(victim));
 
 	return Plugin_Handled;
 }
 
 // To fix getting stuck use this:
-void OnPummelTeleport(DataPack dPack) {
-	dPack.Reset();
-	int attacker = dPack.ReadCell();
-	int victim = dPack.ReadCell();
-	delete dPack;
-
-	attacker = GetClientOfUserId(attacker);
-	if (!attacker || !IsClientInGame(attacker))
-		return;
+void OnPummelTeleport(DataPack pack) {
+	pack.Reset();
+	int victim = pack.ReadCell();
+	int attacker = pack.ReadCell();
+	delete pack;
 
 	victim = GetClientOfUserId(victim);
 	if (!victim || !IsClientInGame(victim))
+		return;
+
+	attacker = GetClientOfUserId(attacker);
+	if (!attacker || !IsClientInGame(attacker))
 		return;
 
 	SetVariantString("!activator");
@@ -2396,9 +2456,9 @@ Action OnPummelOnAnimPre(int client, int &anim) {
 	return Plugin_Continue;
 }
 
-// Don't need client userID since it's not going to be validated just removed
-Action TimerOnPummelResetAnim(Handle timer, any victim) {
-	AnimHookDisable(victim, OnPummelOnAnimPre);
+Action Timer_OnPummelResetAnim(Handle timer, int client) {
+	if ((client = GetClientOfUserId(client)))
+		AnimHookDisable(client, OnPummelOnAnimPre);
 
 	return Plugin_Continue;
 }

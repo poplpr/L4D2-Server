@@ -3536,20 +3536,20 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 				if (Mode > 1)
 				{
 					GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-					StatsPrintToChatAll("\x05%s \x04爆头杀死\x01 %s\x05%s \x01获得 \x04%i \x01分 !", AttackerName, (VictimIsBot ? "一只" : ""), VictimName, Score);
+					StatsPrintToChatAll("\x05%s \x04爆头杀死 \x05%s \x01获得 \x04%i \x01分 !", AttackerName, VictimName, Score);
 				}
 				else
-					StatsPrintToChat(Attacker, "你 \x04爆头杀死\x01 %s\x05%s \x01 获得 \x04%i \x01分!", (VictimIsBot ? "一只" : ""), VictimName, Score);
+					StatsPrintToChat(Attacker, "你 \x04爆头杀死 \x05%s \x01 获得 \x04%i \x01分!", VictimName, Score);
 			}
 			else
 			{
 				if (Mode > 1)
 				{
 					GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-					StatsPrintToChatAll("\x05%s \x04杀死\x01 %s\x05%s \x01获得 \x04%i \x01分 !", AttackerName, (VictimIsBot ? "一只" : ""), VictimName, Score);
+					StatsPrintToChatAll("\x05%s \x04杀死 \x05%s \x01获得 \x04%i \x01分 !", AttackerName, VictimName, Score);
 				}
 				else
-					StatsPrintToChat(Attacker, "你 \x04杀死\x01 %s\x05%s \x01 获得 \x04%i \x01分!", (VictimIsBot ? " 一只" : ""), VictimName, Score);
+					StatsPrintToChat(Attacker, "你 \x04杀死 \x05%s \x01 获得 \x04%i \x01分!", VictimName, Score);
 			}
 		}
 
@@ -11847,7 +11847,7 @@ stock bool IsGaoJiRenJiEnabled()
 stock bool IsNormalMode()
 {
 	ConVar cvar = FindConVar("l4d_infected_limit");
-	if(cvar_mode == null) return true;
+	if(cvar == null) return true;
 	return false;
 }
 
