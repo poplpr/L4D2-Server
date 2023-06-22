@@ -340,6 +340,7 @@ new bool:MapTimingBlocked = false;
 new Handle:MapTimingSurvivors = INVALID_HANDLE; // Survivors at the beginning of the map
 new Handle:MapTimingInfected = INVALID_HANDLE; // Survivors at the beginning of the map
 new String:MapTimingMenuInfo[MAXPLAYERS + 1][MAX_LINE_WIDTH];
+float FastestTime = -1.0;
 
 // When an admin calls for clear database, the client id is stored here for a period of time.
 // The admin must then call the clear command again to confirm the call. After the second call
@@ -9516,6 +9517,8 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client){
 		if(IsClientInGame(i) && GetClientTeam(i) == 2)
 			ClientEnabled[i] = true;
 	}
+	if(FastestTime <= 0.0)
+		GetThisModeBestTime();
 	return Plugin_Continue;
 }
 
@@ -9809,6 +9812,26 @@ public CheckSurvivorsWin()
 		StatsPrintToChatTeam(TEAM_SURVIVORS, buffer);
 		Score *=3;
 	}
+
+	if((AnneMultiPlayerMode() || SinglePlayerMode()) && ((g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_VALID)) && IsThisRoundValid())){
+		int inf = GetAnneInfectedNumber();
+		if(inf>4)
+			Score=RoundToFloor(Score+Score*(inf-4)*0.2);
+		else if(inf>6)
+			Score=RoundToFloor(Score+Score*(inf-4)*0.3);
+		else if(inf>8)
+			Score=RoundToFloor(Score+Score*(inf-4)*0.4);
+	}
+
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
+	}
+
+	if(IsGaoJiRenJiEnabled())
+	{
+		Score = RoundToFloor(Score * 0.5);
+	}
 	
 	new String:All4Safe[64] = "";
 	if (Deaths == 0)
@@ -9842,25 +9865,6 @@ public CheckSurvivorsWin()
 			if (TimerRankChangeCheck[i] != INVALID_HANDLE)
 				TriggerTimer(TimerRankChangeCheck[i], true);
 		}
-	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode()) && ((g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_VALID)) && IsThisRoundValid())){
-		int inf = GetAnneInfectedNumber();
-		if(inf>4)
-			Score=RoundToFloor(Score+Score*(inf-4)*0.2);
-		else if(inf>6)
-			Score=RoundToFloor(Score+Score*(inf-4)*0.3);
-		else if(inf>8)
-			Score=RoundToFloor(Score+Score*(inf-4)*0.4);
-	}
-
-	if(IsAboveFourPeople())
-	{
-		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
-	}
-
-	if(IsGaoJiRenJiEnabled())
-	{
-		Score = RoundToFloor(Score * 0.5);
 	}
 
 	if (Mode && Score > 0)
@@ -11246,6 +11250,80 @@ public StopMapTiming()
 	ClearTrie(MapTimingSurvivors);
 }
 
+public GetThisModeBestTime()
+{
+	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0 || StatsDisabled())
+	{
+		return;
+	}
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
+	{
+		if (GetConVarInt(cvar_AnnounceMode))
+		{
+			StatsPrintToChatAll("此次结果因修改难度或开启高级人机导致 \x04无效 \x01，不记录这张地图游戏时间!");
+		}
+		return;
+	}
+	if(!IsNormalMode() && !IsThisRoundValid())
+	{
+		if (GetConVarInt(cvar_AnnounceMode))
+		{
+			StatsPrintToChatAll("此次结果因关闭tank连跳导致 \x04无效 \x01，不记录这张地图游戏时间!");
+		}
+		return;
+	}
+
+	decl String:MapName[MAX_LINE_WIDTH], String:query[512];
+
+	GetCurrentMap(MapName, sizeof(MapName));
+
+	new GameDifficulty = GetCurrentDifficulty();
+
+	int mode = 0;
+	if(IsAnne())
+	{
+		mode = 1;
+	}else if(IsWitchParty())
+	{
+		mode = 2;
+	}else if(IsAllCharger())
+	{
+		mode = 3;
+	}else if(IsAlone())
+	{
+		mode = 4;
+	}else if(Is1vht())
+	{
+		mode = 5;
+	}
+	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i ORDER BY time LIMIT 1",\
+	 DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
+	  GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+	SQL_TQuery(db, GetFastTime, query);
+}
+
+public GetFastTime(Handle:owner, Handle:hndl, const String:error[], any:dp)
+{
+	new Mode = GetConVarInt(cvar_AnnounceMode);
+	if (SQL_GetRowCount(hndl) > 0)
+	{
+		SQL_FetchRow(hndl);
+		FastestTime = SQL_FetchFloat(hndl, 0);
+		char TimeLabel[32];
+		SetTimeLabel(FastestTime, TimeLabel, sizeof(TimeLabel));
+		if (Mode)
+		{
+			StatsPrintToChatAll2(false, "当前模式该难度不买药最快通关速度为 %s ." ,TimeLabel);
+		}
+	}
+	else{
+		if (Mode)
+		{
+			StatsPrintToChatAll2(false, "你来到无人的荒野，当前模式该难度没有最快纪录");
+		}
+	}
+}
+
 public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:dp)
 {
 	int mode = 0;
@@ -11325,6 +11403,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			{
 				SetTimeLabel(TotalTime, TimeLabel, sizeof(TimeLabel));
 				StatsPrintToChat(Client, "牛逼，你刷新了你这张图 \x04Anne%s \x01版本该难度的最快完成时间，目前是 \x04%s\x01!", GetAnneVersion(), TimeLabel);
+
 			}
 
 			if(mode > 0)
@@ -11358,6 +11437,8 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 		}
 	}
 
+	FastestTime = -1.0;
+
 	SendSQLUpdate(query);
 }
 
@@ -11372,11 +11453,11 @@ public SetTimeLabel(Float:TheSeconds, String:TimeLabel[], maxsize)
 	Minutes = MinutesMod;
 
 	if (Hours > 0)
-		Format(TimeLabel, maxsize, "%ih %im %.1fs", Hours, Minutes, Seconds);
+		Format(TimeLabel, maxsize, "%i小时 %i分钟 %.1f秒", Hours, Minutes, Seconds);
 	else if (Minutes > 0)
-		Format(TimeLabel, maxsize, "%i min %.1f sec", Minutes, Seconds);
+		Format(TimeLabel, maxsize, "%i 分钟 %.1f 秒", Minutes, Seconds);
 	else
-		Format(TimeLabel, maxsize, "%.1f seconds", Seconds);
+		Format(TimeLabel, maxsize, "%.1f 秒", Seconds);
 }
 
 public DisplayRankVote(client)

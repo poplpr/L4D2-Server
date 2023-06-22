@@ -12,9 +12,9 @@ ConVar chatlog_clearTableDuration;
 
 public Plugin myinfo = {
 	name		= "Chat Log",
-	author		= "venus",
-	description	= "Save all user messages in database",
-	version		= "1.1",
+	author		= "venus, 东",
+	description	= "Save all user messages in database, add server name and port",
+	version		= "1.2",
 	url			= "https://github.com/ivenuss"
 };
 
@@ -53,6 +53,8 @@ public void SQL_Connection(Database database, const char[] error, int data)
 			`name` VARCHAR(128) NOT NULL COLLATE 'utf8mb4_general_ci', \
 			`message_style` TINYINT(2) NULL DEFAULT 0, \
 			`message` VARCHAR(126) NOT NULL COLLATE 'utf8mb4_general_ci', \
+			`server` VARCHAR(126)  COLLATE 'utf8mb4_general_ci', \
+			`port` TINYINT(2) NULL , \
 			PRIMARY KEY (`id`) USING BTREE \
 		) \
 		DEFAULT CHARSET='utf8mb4' \
@@ -75,9 +77,9 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	{
 		if (strlen(szArgs) > 0 && szArgs[0]!='!' && szArgs[0]!='/')
 		{
-			int iMsgStyle;
+			int iMsgStyle, iServerPort;
 			int iTimeTmp = GetTime();
-			char szQuery[512], szTime[512], szMap[128], szSteamID[21], szTimeFunction[64];
+			char szQuery[512], szTime[512], szMap[128], szSteamID[21], szTimeFunction[64], szServerName[64];
 
 			if (StrContains(command, "_", false) != -1)
 			{
@@ -98,8 +100,10 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 				LogError("Player %N's steamid couldn't be fetched", client);
 				return;
 			}
+			iServerPort = GetConVarInt( FindConVar( "hostport" ) );
+			GetConVarString(FindConVar("hostname"), szServerName, sizeof(szServerName));
 
-			g_hDatabase.Format(szQuery, sizeof(szQuery), "INSERT INTO chat_log (date, map, steamid, name, message_style, message) VALUES ('%s', '%s', '%s', '%N', '%d', '%s')", szTime, szMap, szSteamID, client, iMsgStyle, szArgs);
+			g_hDatabase.Format(szQuery, sizeof(szQuery), "INSERT INTO chat_log (date, map, steamid, name, message_style, message) VALUES ('%s', '%s', '%s', '%N', '%d', '%s', '%s', '%d')", szTime, szMap, szSteamID, client, iMsgStyle, szArgs, szServerName, iServerPort);
 			g_hDatabase.Query(SQL_Error, szQuery);
 
 			GetConVarString(chatlog_clearTableDuration, szTimeFunction, sizeof(szTimeFunction));
