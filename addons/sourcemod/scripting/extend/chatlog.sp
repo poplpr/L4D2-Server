@@ -53,8 +53,8 @@ public void SQL_Connection(Database database, const char[] error, int data)
 			`name` VARCHAR(128) NOT NULL COLLATE 'utf8mb4_general_ci', \
 			`message_style` TINYINT(2) NULL DEFAULT 0, \
 			`message` VARCHAR(126) NOT NULL COLLATE 'utf8mb4_general_ci', \
-			`server` VARCHAR(126)  COLLATE 'utf8mb4_general_ci', \
-			`port` TINYINT(2) NULL , \
+			`server` varchar(126) DEFAULT NULL COLLATE 'utf8mb4_general_ci', \
+			`port` int(11) DEFAULT NULL , \
 			PRIMARY KEY (`id`) USING BTREE \
 		) \
 		DEFAULT CHARSET='utf8mb4' \
@@ -103,7 +103,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			iServerPort = GetConVarInt( FindConVar( "hostport" ) );
 			GetConVarString(FindConVar("hostname"), szServerName, sizeof(szServerName));
 
-			g_hDatabase.Format(szQuery, sizeof(szQuery), "INSERT INTO chat_log (date, map, steamid, name, message_style, message) VALUES ('%s', '%s', '%s', '%N', '%d', '%s', '%s', '%d')", szTime, szMap, szSteamID, client, iMsgStyle, szArgs, szServerName, iServerPort);
+			g_hDatabase.Format(szQuery, sizeof(szQuery), "INSERT INTO chat_log (date, map, steamid, name, message_style, message, server, port) VALUES ('%s', '%s', '%s', '%N', '%d', '%s', '%s', '%d')", szTime, szMap, szSteamID, client, iMsgStyle, szArgs, szServerName, iServerPort);
 			g_hDatabase.Query(SQL_Error, szQuery);
 
 			GetConVarString(chatlog_clearTableDuration, szTimeFunction, sizeof(szTimeFunction));

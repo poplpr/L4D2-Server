@@ -9517,8 +9517,6 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client){
 		if(IsClientInGame(i) && GetClientTeam(i) == 2)
 			ClientEnabled[i] = true;
 	}
-	if(FastestTime <= 0.0)
-		GetThisModeBestTime();
 	return Plugin_Continue;
 }
 
@@ -11188,7 +11186,7 @@ public StopMapTiming()
 		return;
 
 	new GameDifficulty = GetCurrentDifficulty();
-
+	GetThisModeBestTime();	
 	for (i = 1; i <= maxplayers; i++)
 	{
 		if (IsClientConnected(i) && IsClientInGame(i) && !IsClientBot(i))
@@ -11239,7 +11237,6 @@ public StopMapTiming()
 						{
 							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND mode = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, mode);
 						}
-							
 						SQL_TQuery(db, UpdateMapTimingStat, query, dp);
 					}
 				}
@@ -11252,26 +11249,6 @@ public StopMapTiming()
 
 public GetThisModeBestTime()
 {
-	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0 || StatsDisabled())
-	{
-		return;
-	}
-	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
-	{
-		if (GetConVarInt(cvar_AnnounceMode))
-		{
-			StatsPrintToChatAll("此次结果因修改难度或开启高级人机导致 \x04无效 \x01，不记录这张地图游戏时间!");
-		}
-		return;
-	}
-	if(!IsNormalMode() && !IsThisRoundValid())
-	{
-		if (GetConVarInt(cvar_AnnounceMode))
-		{
-			StatsPrintToChatAll("此次结果因关闭tank连跳导致 \x04无效 \x01，不记录这张地图游戏时间!");
-		}
-		return;
-	}
 
 	decl String:MapName[MAX_LINE_WIDTH], String:query[512];
 
@@ -11297,8 +11274,9 @@ public GetThisModeBestTime()
 		mode = 5;
 	}
 	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i ORDER BY time LIMIT 1",\
-	 DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
-	  GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+	 		DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
+			GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+	LogMessage("GetFastTimequery: %s", query);
 	SQL_TQuery(db, GetFastTime, query);
 }
 
@@ -11313,16 +11291,17 @@ public GetFastTime(Handle:owner, Handle:hndl, const String:error[], any:dp)
 		SetTimeLabel(FastestTime, TimeLabel, sizeof(TimeLabel));
 		if (Mode)
 		{
-			StatsPrintToChatAll2(false, "当前模式该难度不买药最快通关速度为 %s ." ,TimeLabel);
+			StatsPrintToChatAll("当前模式该难度\x04 [%s使用B数] \x01最快通关速度为\x04 %s \x01." , (g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY))?"":"不", TimeLabel);
 		}
 	}
 	else{
 		if (Mode)
 		{
-			StatsPrintToChatAll2(false, "你来到无人的荒野，当前模式该难度没有最快纪录");
+			StatsPrintToChatAll("你来到无人的荒野，当前模式该难度没有最快纪录");
 		}
 	}
 }
+
 
 public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:dp)
 {
@@ -11370,7 +11349,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 		OldTime = SQL_FetchFloat(hndl, 0);
 		if(TotalTime < 30.0)
 		{
-			StatsPrintToChat(Client, "记录时间小于30s，好像不对，此次记录不进行记录!");
+			StatsPrintToChat(Client, "记录时间小于30s，数据应该不对，此次记录不进行记录!");
 			return;
 		}
 
@@ -11402,7 +11381,7 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 			if (Mode)
 			{
 				SetTimeLabel(TotalTime, TimeLabel, sizeof(TimeLabel));
-				StatsPrintToChat(Client, "牛逼，你刷新了你这张图 \x04Anne%s \x01版本该难度的最快完成时间，目前是 \x04%s\x01!", GetAnneVersion(), TimeLabel);
+				StatsPrintToChat(Client, "牛逼，你刷新了%s这张图 \x04Anne%s \x01版本该难度的最快完成时间，目前是 \x04%s\x01!", FastestTime < TotalTime?"目前":"你", GetAnneVersion(), TimeLabel);
 
 			}
 
