@@ -351,6 +351,14 @@
 		{
 			"message" "开启枪械抖动"
 		}
+		"exec vote/bh_off.cfg"
+		{
+			"message" "关闭连跳限制"
+		}
+		"exec vote/bh_on.cfg"
+		{
+			"message" "开启连跳限制"
+		}
 	}
 	"商店选项开关"
 	{
