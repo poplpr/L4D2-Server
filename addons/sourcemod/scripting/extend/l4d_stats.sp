@@ -11134,6 +11134,8 @@ public StopMapTiming()
 		{
 			StatsPrintToChatAll("此次结果因修改难度或开启高级人机导致 \x04无效 \x01，不记录这张地图游戏时间!");
 		}
+		MapTimingStartTime = -1.0;
+		MapTimingBlocked = true;
 		return;
 	}
 	if(!IsNormalMode() && !IsThisRoundValid())
@@ -11142,6 +11144,33 @@ public StopMapTiming()
 		{
 			StatsPrintToChatAll("此次结果因关闭tank连跳导致 \x04无效 \x01，不记录这张地图游戏时间!");
 		}
+		MapTimingStartTime = -1.0;
+		MapTimingBlocked = true;
+		return;
+	}
+	int mode = 0;
+	if(IsAnne())
+	{
+		mode = 1;
+	}else if(IsWitchParty())
+	{
+		mode = 2;
+	}else if(IsAllCharger())
+	{
+		mode = 3;
+	}else if(IsAlone())
+	{
+		mode = 4;
+	}else if(Is1vht())
+	{
+		mode = 5;
+	}
+	ConVar multiplayer = FindConVar("l4d_multislots_survivors_manager_enable");
+	if(mode > 0 && (multiplayer == null || multiplayer.IntValue == 1))
+	{
+		StatsPrintToChatAll("启用了多人运动模式，不记录这张地图游戏时间!");
+		MapTimingStartTime = -1.0;
+		MapTimingBlocked = true;
 		return;
 	}
 
@@ -11212,23 +11241,6 @@ public StopMapTiming()
 						WritePackCell(dp, GameDifficulty);
 						WritePackString(dp, CurrentMutation);
 
-						int mode = 0;
-						if(IsAnne())
-						{
-							mode = 1;
-						}else if(IsWitchParty())
-						{
-							mode = 2;
-						}else if(IsAllCharger())
-						{
-							mode = 3;
-						}else if(IsAlone())
-						{
-							mode = 4;
-						}else if(Is1vht())
-						{
-							mode = 5;
-						}
 						if(mode > 0)
 						{
 							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
