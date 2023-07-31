@@ -298,7 +298,7 @@ public void VoteResultHandler(Handle vote, int num_votes, int num_clients, const
 	{
 		if (item_info[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES)
 		{
-			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_votes / 2))
+			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] >= (num_votes * 0.6))
 			{
 				if (g_hVote == vote)
 				{

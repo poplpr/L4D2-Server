@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <si_target_limit>
 #include <pause>
-
+#include <ai_smoker_new>
 
 #define CVAR_FLAG FCVAR_NOTIFY
 #define TEAM_SURVIVOR 2
@@ -590,11 +590,11 @@ public void OnGameFrame()
 	}
 }
 
-stock bool GetSpawnPos(float fSpawnPos[3], int g_iTargetSurvivor, float SpawnDistance, bool IsTeleport = false){
-	if(IsValidClient(g_iTargetSurvivor)){
+stock bool GetSpawnPos(float fSpawnPos[3], int TargetSurvivor, float SpawnDistance, bool IsTeleport = false){
+	if(IsValidClient(TargetSurvivor)){
 		float fSurvivorPos[3] = {0.0}, fDirection[3] = {0.0}, fEndPos[3] = {0.0}, fMins[3] = {0.0}, fMaxs[3] = {0.0};	
 		// 根据指定生还者坐标，拓展刷新范围
-		GetClientEyePosition(g_iTargetSurvivor, fSurvivorPos);
+		GetClientEyePosition(TargetSurvivor, fSurvivorPos);
 		//增加高度，增加刷房顶的几率
 		if(SpawnDistance < 500.0)
 		{
@@ -1262,7 +1262,12 @@ bool CanBeTeleport(int client)
 		{
 			return false;
 		}
-		
+
+		//舌头能力检查
+		if(IsAiSmoker(client) && g_bSmokerAvailable && !IsSmokerCanUseAbility(client))
+		{
+			return false;
+		}
 		float fPos[3];
 		GetClientAbsOrigin(client, fPos);
 		if(Is_Pos_Ahead(fPos))
@@ -1667,7 +1672,7 @@ public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 {
 	if ((strcmp(key, "cm_ShouldHurry", false) == 0) || (strcmp(key, "cm_AggressiveSpecials", false) == 0) && retVal != 1)
 	{
-		retVal == 1;
+		retVal = 1;
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
