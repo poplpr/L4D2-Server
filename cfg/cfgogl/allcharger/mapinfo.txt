@@ -13,15 +13,20 @@
 		"max_distance"		"400"
 		"tank_ban_flow"
 		{
-			"Before elevator exit"
-			{
-				"min"		"33"
-				"max"		"78"
-			}
-			"Early spawns"
+			"Instant spawns"
 			{
 				"min"		"0"
-				"max"		"24"
+				"max"		"20"
+			}
+			"Before elevator top, after elevator bottom"
+			{
+				"min"		"33"
+				"max"		"79"
+			}
+			"After kitchen"
+			{
+				"min"		"85"
+				"max"		"100"
 			}
 		}
 	}
@@ -261,7 +266,7 @@
 			}
 			"Final Spawn"
 			{
-				"min"		"80"
+				"min"		"75"
 				"max"		"100"
 			}
 		}
@@ -674,6 +679,16 @@
 				"min"		"0"
 				"max"		"28"
 			}
+			"One way drop"
+			{
+				"min"		"31"
+				"max"		"43"
+			}
+			"Alley"
+			{
+				"min"		"59"
+				"max"		"67"
+			}
 		}
 	}
 	"c8m2_subway"
@@ -870,7 +885,7 @@
 			"downstair"
 			{
 				"min"		"30"
-				"max"		"50"
+				"max"		"51"
 			}
 			"After event"
 			{
@@ -904,8 +919,13 @@
 		{
 			"Start of event"
 			{
-				"min"		"68"
+				"min"		"65"
 				"max"		"75"
+			}
+			"End of event"
+			{
+				"min"		"83"
+				"max"		"100"
 			}
 		}
 	}
@@ -1101,15 +1121,10 @@
 		"start_extra_dist"	"264.932068"
 		"end_point"			"10398.775391 -310.353424 2.031253"
 		"end_dist"			"316.505157"
-		"max_distance"		"500"
+		"max_distance"		"400"
 		"horde_limit"		"90"
 		"tank_ban_flow"
 		{
-			"Warehouse"
-			{
-				"min"		"39"
-				"max"		"54"
-			}
 			"Hard Defence"
 			{
 				"min"		"60"
@@ -1340,6 +1355,19 @@
 		"start_extra_dist"	"566.889465"
 		"end_point"			"-2013.103882 -3279.305176 144.031250"
 		"end_dist"			"276.152161"
+		"tank_ban_flow"
+		{
+			"Valley one way drop"
+			{
+				"min"		"35"
+				"max"		"50"
+			}
+			"Late spawns"
+			{
+				"min"		"78"
+				"max"		"100"
+			}
+		}
 	}
 	"cdta_02road"
 	{
