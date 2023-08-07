@@ -65,6 +65,7 @@ bool
 	g_bLateLoad,
 	g_bDebugMode,
 	g_bWeaponHandling,
+	g_bRPG,
 	g_bGodMode[MAXPLAYERS + 1],
 	g_bIgnoreAbility[MAXPLAYERS + 1];
 
@@ -202,11 +203,15 @@ enum L4D2WeaponType {
 public void OnLibraryAdded(const char[] name) {
 	if (strcmp(name, "WeaponHandling") == 0)
 		g_bWeaponHandling = true;
+	if (strcmp(name, "rpg") == 0)
+		g_bRPG = true;
 }
 
 public void OnLibraryRemoved(const char[] name) {
 	if (strcmp(name, "WeaponHandling") == 0)
 		g_bWeaponHandling = false;
+	if (strcmp(name, "WeaponHandling") == 0)
+		g_bRPG = false;
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
@@ -830,12 +835,12 @@ void Miscell(int client, int item) {
 	menu.AddItem("c", "复活");
 	menu.AddItem("d", "传送");
 	menu.AddItem("e", "友伤");
-	if(GetClientImmunityLevel(client) >= 90)
+	if(GetClientImmunityLevel(client) > 90)
 		menu.AddItem("f", "伤害免疫");
 	menu.AddItem("g", "召唤尸潮");
 	menu.AddItem("h", "剔除所有Bot");
 	menu.AddItem("i", "处死所有特感");
-	if(GetClientImmunityLevel(client) >= 90)
+	if(GetClientImmunityLevel(client) > 90)
 		menu.AddItem("j", "特感控制免疫");
 	menu.AddItem("k", "处死所有生还");
 	if(GetClientImmunityLevel(client) >= 90)
@@ -1154,6 +1159,7 @@ int RespawnPlayer_MenuHandler(Menu menu, MenuAction action, int client, int para
 					}
 				}
 			}
+			if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
 		}
 
 		case MenuAction_Cancel: {
@@ -1675,6 +1681,8 @@ void WarpAllSurToCheckpoint(int client) {
 						TeleportEntity(i, vPos, NULL_VECTOR, NULL_VECTOR);
 					}
 				}
+				if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
+				if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 				Miscell(client, g_iSelection[client]);
 				return;
 			}
@@ -2046,7 +2054,8 @@ int ShowAliveSur_MenuHandler(Menu menu, MenuAction action, int client, int param
 			}
 			else
 				CheatCommand(GetClientOfUserId(StringToInt(item)), g_sNamedItem[client]);
-
+			
+			if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
 			PageExitBack(client, g_iFunction[client], g_iSelection[client]);
 		}
 
