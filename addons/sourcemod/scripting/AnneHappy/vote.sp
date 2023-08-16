@@ -263,12 +263,13 @@ bool StartVote(int client, char[] cfgname)
 	if (!IsBuiltinVoteInProgress())
 	{
 		char sBuffer[64];
-		g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BUILTINVOTE_ACTIONS_DEFAULT);
+		g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 		Format(sBuffer, 64, "执行 '%s' ?", cfgname);
 		SetBuiltinVoteArgument(g_hVote, sBuffer);
 		SetBuiltinVoteInitiator(g_hVote, client);
 		SetBuiltinVoteResultCallback(g_hVote, VoteResultHandler);
-		DisplayBuiltinVoteToAllNonSpectators(g_hVote, 12);
+		DisplayBuiltinVoteToAllNonSpectators(g_hVote, 20);
+		FakeClientCommand(client, "Vote Yes");
 		CPrintToChatAll("[{olive}vote{default}] {blue}%N 发起了一个投票", client);
 		return true;
 	}
@@ -383,12 +384,13 @@ public bool DisplayVoteKickMenu(int client)
 	if (!IsBuiltinVoteInProgress())
 	{
 		char sBuffer[128];
-		g_hVoteKick = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BUILTINVOTE_ACTIONS_DEFAULT);
+		g_hVoteKick = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 		Format(sBuffer, 128, "踢出 '%N' ?", kickclient);
 		SetBuiltinVoteArgument(g_hVoteKick, sBuffer);
 		SetBuiltinVoteInitiator(g_hVoteKick, client);
 		SetBuiltinVoteResultCallback(g_hVoteKick, VoteResultHandler);
-		DisplayBuiltinVoteToAllNonSpectators(g_hVoteKick, 10);
+		DisplayBuiltinVoteToAllNonSpectators(g_hVoteKick, 20);
+		FakeClientCommand(client, "Vote Yes");
 		CPrintToChatAll("[{olive}vote{default}] {blue}%N 发起了一个投票", client);
 		return true;
 	}
@@ -472,12 +474,13 @@ public bool DisplayVoteBanMenu(int client)
 			i++;
 		}
 		char sBuffer[128];
-		g_hVoteBan = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BUILTINVOTE_ACTIONS_DEFAULT);
+		g_hVoteBan = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 		Format(sBuffer, 128, "封禁 '%N' 一天?", banclient);
 		SetBuiltinVoteArgument(g_hVoteBan, sBuffer);
 		SetBuiltinVoteInitiator(g_hVoteBan, client);
 		SetBuiltinVoteResultCallback(g_hVoteBan, VoteResultHandler);
-		DisplayBuiltinVoteToAll(g_hVoteBan, 10);
+		DisplayBuiltinVoteToAll(g_hVoteBan, 20);
+		FakeClientCommand(client, "Vote Yes");
 		CPrintToChatAll("[{olive}vote{default}] {blue}%N 发起了一个投票", client);
 		return true;
 	}
