@@ -452,7 +452,7 @@ public int ChMatchModeMenuHandler(Menu menu, MenuAction action, int param1, int 
 
 			hMenu.Display(param1, 20);
 		} else {
-			CPrintToChat(param1, "{blue}[{default}Match{blue}] {default}No configs for such mode were found.");
+			CPrintToChat(param1, "{blue}[{default}Match{blue}] {default}没有找到这个模式配置.");
 			ChMatchModeMenu(param1);
 		}
 	}
@@ -485,12 +485,12 @@ public int ChConfigsMenuHandler(Menu menu, MenuAction action, int param1, int pa
 bool StartChMatchVote(int iClient, const char[] sCfgName)
 {
 	if (GetClientTeam(iClient) <= TEAM_SPECTATE) {
-		CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}Match voting isn't allowed for spectators.");
+		CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}旁观者不允许发起重赛投票.");
 		return false;
 	}
 
 	if (!LGO_IsMatchModeLoaded()) {
-		CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}Matchmode isn't already loaded! Use !match instead!");
+		CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}比赛模式还没有载入，请使用!match载入比赛配置!");
 		return false;
 	}
 
@@ -508,17 +508,17 @@ bool StartChMatchVote(int iClient, const char[] sCfgName)
 		}
 
 		if (iNumPlayers < g_hCvarPlayerLimit.IntValue) {
-			CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}Match vote cannot be started. Not enough players.");
+			CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}比赛投票暂时没办法进行，因为没有足够的玩家.");
 			return false;
 		}
 
 		if (iConnectedCount > 0) {
-			CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}Changematch vote cannot be started. Players are connecting");
+			CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}修改比赛配置投票暂时不能进行，因为还有玩家正在载入中.");
 			return false;
 		}
 
 		char sBuffer[64];
-		FormatEx(sBuffer, sizeof(sBuffer), "Change confogl config to '%s'?", sCfgName);
+		FormatEx(sBuffer, sizeof(sBuffer), "将比赛配置更改为 '%s'?", sCfgName);
 
 		g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 		SetBuiltinVoteArgument(g_hVote, sBuffer);
@@ -529,7 +529,7 @@ bool StartChMatchVote(int iClient, const char[] sCfgName)
 		return true;
 	}
 
-	CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}Match vote cannot be started now.");
+	CPrintToChat(iClient, "{blue}[{default}Match{blue}] {default}比赛投票暂时不能使用.");
 	return false;
 }
 
@@ -540,6 +540,9 @@ public void ChMatchVoteResultHandler(Handle vote, int num_votes, int num_clients
 		if (item_info[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES) {
 			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_votes / 2)) {
 				DisplayBuiltinVotePass(vote, "Matchmode Changed");
+				for(int j = 0; j < strlen(g_sCfg); j++){
+					g_sCfg[j] = CharToLower(g_sCfg[j]);
+				}
 				ServerCommand("sm_forcechangematch %s", g_sCfg);
 
 				return;
