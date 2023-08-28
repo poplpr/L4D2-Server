@@ -1564,12 +1564,13 @@ public Action Event_RoundEnd(Handle:event, String:event_name[], bool:dontBroadca
 	int Score=200;
 	if (!GetConVarBool(cvar_EnableNegativeScore))
 		return Plugin_Continue;
-	if (AnneMultiPlayerMode()){
+	if (AnneMultiPlayerMode() || (FindConVar("survivor_limit").IntValue > 2)){
 		Score = 200;
 	}
 	else{
 		Score = 0;
 	}
+	
 
 	
 	for(int i = 1; i <= MaxClients; i++){
@@ -6294,13 +6295,13 @@ public Action:event_Award_L4D2(Handle:event, const String:name[], bool:dontBroad
 		Score=200;
 		if (!GetConVarBool(cvar_EnableNegativeScore))
 			return;
-		if (AnneMultiPlayerMode()){
+		if (AnneMultiPlayerMode() || (FindConVar("survivor_limit").IntValue > 2)){
 			Score = 200;
 		}
 		else {
-			Score= 50;
+			Score= 0;
 		}
-		if (Mode)
+		if (Mode && Score > 0)
 			StatsPrintToChat(User, "\x03所有幸存者 \x01都 \x03掉了 \x04%i \x01分 by \x03大家又坐牢了!", Score);
 		Mode=0;
 		Score = Score * -1;
@@ -10045,7 +10046,7 @@ CheckSurvivorsAllDown()
 		SendSQLUpdate(query);
 	}
 
-	if (Mode)
+	if (Mode && Score > 0)
 		StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03所有幸存者 \x01 \x03失去了 \x04%i \x01分 by \x03全部坐牢\x01!", Score);
 }
 
@@ -10692,12 +10693,12 @@ SurvivorHurt(Attacker, Victim, Damage, AttackerInfType = -1, Handle:event = INVA
 			new Mode = GetConVarInt(cvar_AnnounceMode);
 
 			if (Mode == 1 || Mode == 2)
-				StatsPrintToChat(Attacker, "You have earned \x04%i \x01points for throwing a rock at \x05%s\x01!", RockHit, VictimName);
+				StatsPrintToChat(Attacker, "你因为丢石头到 \x05%s\x01头上获得 \x04%i \x01分!", VictimName, RockHit);
 			else if (Mode == 3)
 			{
 				decl String:AttackerName[MAX_LINE_WIDTH];
 				GetClientName(Attacker, AttackerName, sizeof(AttackerName));
-				StatsPrintToChatAll("\x05%s \x01has earned \x04%i \x01points for throwing a rock at \x05%s\x01!", AttackerName, RockHit, VictimName);
+				StatsPrintToChatAll("\x05%s \x01丢石头到\x05%s\x01头上获得 \x04%i \x01分!", AttackerName, VictimName, RockHit);
 			}
 		}
 	}
