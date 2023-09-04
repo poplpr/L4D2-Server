@@ -78,6 +78,17 @@ void DisplayNoClipMenu(int client)
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
+bool g_bRPG = false;
+public void OnLibraryAdded(const char[] name) {
+	if (strcmp(name, "rpg") == 0)
+		g_bRPG = true;
+}
+
+public void OnLibraryRemoved(const char[] name) {
+	if (strcmp(name, "WeaponHandling") == 0)
+		g_bRPG = false;
+}
+
 public int MenuHandler_NoClip(Menu menu, MenuAction action, int param1, int param2)
 {
 	if (action == MenuAction_End)
@@ -114,6 +125,7 @@ public int MenuHandler_NoClip(Menu menu, MenuAction action, int param1, int para
 			
 			PerformNoClip(param1, target);
 			ShowActivity2(param1, "[SM] ", "%t", "Toggled noclip on target", "_s", name);
+			if(g_bRPG)L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 		}
 		
 		/* Re-draw the menu if they're still valid */

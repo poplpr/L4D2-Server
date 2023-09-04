@@ -3443,7 +3443,7 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	else if (AttackerTeam == TEAM_SURVIVORS && VictimTeam == TEAM_INFECTED)
 	{
 		int human = CheckSurvivorsHumans();
-		if( human < 3 || IsWitchParty() || IsAllCharger())
+		if( human < 3 || IsWitchParty() || IsAllCharger() || (g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)))
 			return;
 		new Score = 0;
 		decl String:InfectedType[8];
@@ -9518,6 +9518,8 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client){
 		if(IsClientInGame(i) && GetClientTeam(i) == 2)
 			ClientEnabled[i] = true;
 	}
+	//开局提示该难度完成最快速度
+	if(!IsNormalMode())GetThisModeBestTime();
 	return Plugin_Continue;
 }
 
@@ -11167,7 +11169,7 @@ public StopMapTiming()
 		mode = 5;
 	}
 	ConVar multiplayer = FindConVar("l4d_multislots_survivors_manager_enable");
-	if(mode > 0 && (multiplayer == null || multiplayer.IntValue == 1))
+	if(mode > 0 && (multiplayer == null || multiplayer.IntValue == 1 || GetConVarInt(cvar_SurvivorLimit) > 4))
 	{
 		StatsPrintToChatAll("启用了多人运动模式，不记录这张地图游戏时间!");
 		MapTimingStartTime = -1.0;
@@ -11216,7 +11218,8 @@ public StopMapTiming()
 		return;
 
 	new GameDifficulty = GetCurrentDifficulty();
-	GetThisModeBestTime();	
+	if(mode > 0)
+		GetThisModeBestTime(g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY));	
 	for (i = 1; i <= maxplayers; i++)
 	{
 		if (IsClientConnected(i) && IsClientInGame(i) && !IsClientBot(i))
@@ -11238,13 +11241,15 @@ public StopMapTiming()
 						WritePackString(dp, ClientID);
 						WritePackFloat(dp, TotalTime);
 						WritePackCell(dp, i);
+						if(mode > 0)
+							PlayerCounter = GetConVarInt(cvar_SurvivorLimit);
 						WritePackCell(dp, PlayerCounter);
 						WritePackCell(dp, GameDifficulty);
 						WritePackString(dp, CurrentMutation);
 
 						if(mode > 0)
 						{
-							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+							Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s' AND steamid = '%s' AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i AND players = %i", DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, ClientID, GetAnneInfectedNumber(), GetAnneSISpawnTime(), GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime(), PlayerCounter);
 						}
 						else
 						{
@@ -11260,7 +11265,7 @@ public StopMapTiming()
 	ClearTrie(MapTimingSurvivors);
 }
 
-public GetThisModeBestTime()
+GetThisModeBestTime(int UseBuy=0)
 {
 
 	decl String:MapName[MAX_LINE_WIDTH], String:query[512];
@@ -11268,8 +11273,7 @@ public GetThisModeBestTime()
 	GetCurrentMap(MapName, sizeof(MapName));
 
 	new GameDifficulty = GetCurrentDifficulty();
-
-	int mode = 0;
+	int mode = 1;
 	if(IsAnne())
 	{
 		mode = 1;
@@ -11286,9 +11290,9 @@ public GetThisModeBestTime()
 	{
 		mode = 5;
 	}
-	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i ORDER BY time LIMIT 1",\
+	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i AND players = %i ORDER BY time LIMIT 1",\
 	 		DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
-			GetAnneVersion(), mode, g_brpgAvailable && L4D_RPG_GetGlobalValue(INDEX_USEBUY), IsAutoSpawnTime());
+			GetAnneVersion(), mode, UseBuy, IsAutoSpawnTime(), GetConVarInt(cvar_SurvivorLimit));
 	LogMessage("GetFastTimequery: %s", query);
 	SQL_TQuery(db, GetFastTime, query);
 }
@@ -11310,7 +11314,7 @@ public GetFastTime(Handle:owner, Handle:hndl, const String:error[], any:dp)
 	else{
 		if (Mode)
 		{
-			StatsPrintToChatAll("你来到无人的荒野，当前模式该难度没有最快纪录");
+			StatsPrintToChatAll("你来到无人的荒野，当前模式该难度没有最快纪录，快来挑战一下吧");
 		}
 	}
 }

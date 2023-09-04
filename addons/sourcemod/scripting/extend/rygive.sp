@@ -710,7 +710,7 @@ int CreateInfected(int client, const char[] zombie) {
 	float vEnd[3];
 	if (!GetTeleportEndPoint(client, vEnd))
 		return -1;
-
+	PrintToChatAll("\x03管理员\x01[\x05%N\x01]刷出一只\x05%s", client, zombie);
 	return _CreateInfected(zombie, vEnd, NULL_VECTOR);
 }
 
@@ -1159,7 +1159,7 @@ int RespawnPlayer_MenuHandler(Menu menu, MenuAction action, int client, int para
 					}
 				}
 			}
-			if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_USEBUY, true);
+			if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 		}
 
 		case MenuAction_Cancel: {
@@ -1605,6 +1605,7 @@ void SlayAllSI(int client) {
 		if (IsClientInGame(i) && GetClientTeam(i) == 3 && IsPlayerAlive(i))
 			ForcePlayerSuicide(i);
 	}
+	if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 	Miscell(client, g_iSelection[client]);
 }
 
@@ -1957,6 +1958,7 @@ void WeaponSpeedUp(int client, const char[] speedUp) {
 			menu.AddItem(info, disp);
 		}
 	}
+	if(g_bRPG) L4D_RPG_SetGlobalValue(INDEX_VALID, false);
 	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -2125,6 +2127,11 @@ void CheatCommand(int client, const char[] command) {
 			L4D_CleanupPlayerState(attacker);
 			ForcePlayerSuicide(attacker);
 		}
+	}
+	if (strcmp(cmd, "give") == 0 && (strcmp(command[5], "health") == 0 || strcmp(command[5], "first_") == 0 || strcmp(command[5], "defibr") == 0 || strcmp(command[5], "adrena") == 0 || strcmp(command[5], "pain_p") == 0) && (g_bRPG && L4D_RPG_GetGlobalValue(INDEX_VALID))) 
+	{
+		L4D_RPG_SetGlobalValue(INDEX_VALID, false);
+		PrintToChatAll("\x01管理员使用回血或刷回血道具功能，此局将无法再获得特感分和额外过关分数");
 	}
 
 	int bits = GetUserFlagBits(client);

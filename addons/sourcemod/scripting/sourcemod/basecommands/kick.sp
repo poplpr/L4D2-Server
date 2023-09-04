@@ -105,6 +105,10 @@ public int MenuHandler_Kick(Menu menu, MenuAction action, int param1, int param2
 		{
 			PrintToChat(param1, "[SM] %t", "Unable to target");
 		}
+		else if(IsFakeClient(target) && GetClientAdminImmunity(param1) == 90 && GetClientTeam(target) == 3)
+		{
+			PrintToChat(param1, "[SM] 非超级管理员，无法踢出特感bot")
+		}
 		else
 		{
 			char name[MAX_NAME_LENGTH];
@@ -121,6 +125,15 @@ public int MenuHandler_Kick(Menu menu, MenuAction action, int param1, int param2
 	}
 
 	return 0;
+}
+
+stock int GetClientAdminImmunity(client)
+{
+	new AdminId:AID = GetUserAdmin(client);
+	if(AID == INVALID_ADMIN_ID)
+		return 0;
+	
+	return GetAdminImmunityLevel(AID);
 }
 
 public Action Command_Kick(int client, int args)

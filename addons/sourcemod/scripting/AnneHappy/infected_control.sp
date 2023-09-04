@@ -60,7 +60,7 @@ public Plugin myinfo =
 	name 			= "Direct InfectedSpawn",
 	author 			= "Caibiii, 夜羽真白，东",
 	description 	= "特感刷新控制，传送落后特感",
-	version 		= "2023.01.02",
+	version 		= "2023.09.04",
 	url 			= "https://github.com/fantasylidong/CompetitiveWithAnne"
 }
 
@@ -452,6 +452,7 @@ public void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			{
 				g_iTotalSINum = 0;
 			}
+			Debug_Print("杀死%N,特感总数和该种类特感数量减1分别为%d %d", client, g_iTotalSINum, g_iSINum[type - 1]);
 		}
 		g_iTeleCount[client] = 0;
 	}	
@@ -461,7 +462,7 @@ public Action Timer_KickBot(Handle timer, int client)
 {
 	if (IsClientInGame(client) && !IsClientInKickQueue(client) && IsFakeClient(client))
 	{
-		//Debug_Print("踢出特感%N",client);
+		Debug_Print("踢出特感%N",client);
 		KickClient(client, "You are worthless and was kicked by console");
 	}
 	return Plugin_Continue;
@@ -906,6 +907,8 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
 	if(IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
+	//防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
+	if(g_iEnableSIoption & ENABLE_SPITTER && g_iLastSpawnTime < 4)  {Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");return Plugin_Continue;}
 	if(!g_bAutoSpawnTimeControl)
 	{
 		g_bShouldCheck = false;
