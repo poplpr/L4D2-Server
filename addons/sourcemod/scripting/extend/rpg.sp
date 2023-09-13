@@ -843,6 +843,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 			{
 				CreateTimer(0.5, Timer_AutoGive, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
+			player[i].ClientFirstBuy = true;
 		}
 	}
 	GaoJiRenJi = FindConVar("sb_fix_enabled");
