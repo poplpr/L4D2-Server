@@ -161,6 +161,16 @@ public Action VoteBossCmd(int client, int args)
 		CReplyToCommand(client, "%t %t", "Tag", "Invalid");
 		return Plugin_Handled;
 	}
+
+	// Make sure witch enable mode can't disable witch
+	if(FindConVar("sm_witch_can_spawn") != null)
+	{
+		if(GetConVarInt(FindConVar("sm_witch_can_spawn")) == 1 && StringToInt(bv_sWitch) == 0)
+		{
+			CReplyToCommand(client, "%t %t", "Tag", "Invalid");
+			return Plugin_Handled;
+		}
+	}
 	
 	// Check to make sure static bosses don't get changed
 	if (!IsStaticTankMap())
