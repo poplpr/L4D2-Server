@@ -326,6 +326,10 @@ public void evt_PlayerSpawn(Event event, const char[] name, bool dont_broadcast)
 	{
 		g_fSpitterSpitTime[client] = GetGameTime();
 	}
+	if(IsAiTank(client))
+	{
+		Debug_Print("系统生成一只tank，特感总数量 %d, 真实特感数量：%d", g_iTotalSINum, GetCurrentSINum());
+	}
 }
 
 //获取spitter口水时间
@@ -719,7 +723,13 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 				{
 					//aSpawnNavList.Push(nav1);
 					//Debug_Print("<nav记录> 当前入队nav：%d，当前队列长度：%d", nav1, aSpawnNavList.Length);
-					return true;
+					if(IsInfectedBot(entityindex) && IsPlayerAlive(entityindex))
+						return true;
+					else
+					{
+						Debug_Print("生成错误");
+						return false;
+					}
 				}
 			}
 		}
@@ -985,10 +995,10 @@ public void ResetStatus(){
 
 // *********************
 //		   方法
-// *********************stock bool IsAiSmoker(int client)
+// *********************
 bool IsInfectedBot(int client)
 {
-	if (client > 0 && client <= MaxClients && IsClientInGame(client) && IsFakeClient(client) && GetClientTeam(client) == TEAM_INFECTED && GetEntProp(client, Prop_Send, "m_zombieClass") != 8)
+	if (client > 0 && client <= MaxClients && IsClientInGame(client) && IsFakeClient(client) && GetClientTeam(client) == TEAM_INFECTED && GetEntProp(client, Prop_Send, "m_zombieClass") <= 6 && GetEntProp(client, Prop_Send, "m_zombieClass") >=1)
 	{
 		return true;
 	}
@@ -1356,7 +1366,7 @@ stock int GetCurrentSINum()
 {
 	int sum = 0;
 	for(int i = 0; i < MaxClients; i++){
-		if(IsInfectedBot(i) && !IsAiTank(i))
+		if(IsInfectedBot(i) && IsPlayerAlive(i))
 		{
 			sum ++;
 		}
@@ -1379,6 +1389,11 @@ stock bool IsSpitter(int client)
 // 跑男定义为距离所有生还者或者特感超过RushManDistance距离
 bool CheckRushManAndAllPinned()
 {
+	if(GetSurvivorCount(true, true) == 1)
+	{
+		//一个人有什么跑男
+		return false;
+	}
 	bool TempRushMan = g_bPickRushMan;
 	int iSurvivors[8] = {0}, iSurvivorIndex = 0, PinnedNumber = 0;
 	int iInfecteds[MAXPLAYERS] = {0}, iInfectedIndex = 0;
@@ -1700,6 +1715,11 @@ stock void Debug_Print(char[] format, any ...)
 
 stock bool IsAnyTankOrAboveHalfSurvivorDownOrDied()
 {
+	if(GetSurvivorCount(true, true) == 1)
+	{
+		//一个人有
+		return false;
+	}
 	int count = 0;
 	for(int i = 1; i <= MaxClients; i ++)
 	{
