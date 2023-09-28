@@ -16,6 +16,7 @@ static bool
 	RM_bIsPluginsLoaded	  = false,
 	RM_bIsMapRestarted	  = false;
 	RM_bIsChangeLevelAvailable = false;
+	RM_bIsChmatchRequest = false;
 
 static Handle
 	RM_hFwdMatchLoad   = null,
@@ -230,6 +231,8 @@ static void RM_Match_Load()
 		LogMessage("[%s] Match mode loaded!", RM_MODULE_NAME);
 	}
 
+	RM_bIsChmatchRequest = false;
+
 	Call_StartForward(RM_hFwdMatchLoad);
 	Call_Finish();
 }
@@ -273,7 +276,19 @@ static void RM_Match_Unload(bool bForced = false)
 	//AddCustomServerTag("hidden");
 
 	RM_hConfigFile_Off.GetString(sBuffer, sizeof(sBuffer));
-	ExecuteCfg(sBuffer);
+
+	if (!RM_bIsChmatchRequest)
+	{
+		ExecuteCfg(sBuffer);
+	}
+	else
+	{
+		// if we are using chmatch, don't let predictable_unloader unload confogl itself.
+		// all plugins will be unload and load when the new config excuted.
+		ServerCommand("sm plugins load_unlock");
+		ServerCommand("sm plugins unload optional/predictable_unloader.smx");
+		ExecuteCfg(sBuffer);
+	}
 
 	if (RM_DEBUG || IsDebugEnabled())
 	{
@@ -478,8 +493,18 @@ public Action RM_CMD_ChangeMatch(int client, int args)
 		LogMessage("[%s] Match mode forced to unload! [Change in this case!]", RM_MODULE_NAME);
 	}
 
+	RM_bIsChmatchRequest = true;
+
 	RM_Match_Unload(true);
 
+	// give time to fully finish unloading.
+	CreateTimer(1.0, Timer_DelayToLoadMatchMode);
+
+	return Plugin_Handled;
+}
+
+public Action Timer_DelayToLoadMatchMode(Handle timer)
+{
 	// Load
 	if (RM_bIsMatchModeLoaded)
 	{
