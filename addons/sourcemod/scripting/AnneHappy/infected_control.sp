@@ -728,6 +728,7 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 					else
 					{
 						Debug_Print("生成错误");
+						RemoveEntity(entityindex);
 						return false;
 					}
 				}
@@ -916,7 +917,7 @@ public Action CheckShouldSpawnOrNot(Handle timer)
 	g_iLastSpawnTime ++;
 	if(!g_bIsLate) return Plugin_Stop;
 	if(!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
-	if(IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
+	if(FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
 	//防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
 	if(g_iEnableSIoption & ENABLE_SPITTER && g_iLastSpawnTime < 4)  {Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");return Plugin_Continue;}
 	if(!g_bAutoSpawnTimeControl)
@@ -1389,11 +1390,6 @@ stock bool IsSpitter(int client)
 // 跑男定义为距离所有生还者或者特感超过RushManDistance距离
 bool CheckRushManAndAllPinned()
 {
-	if(GetSurvivorCount(true, true) == 1)
-	{
-		//一个人有什么跑男
-		return false;
-	}
 	bool TempRushMan = g_bPickRushMan;
 	int iSurvivors[8] = {0}, iSurvivorIndex = 0, PinnedNumber = 0;
 	int iInfecteds[MAXPLAYERS] = {0}, iInfectedIndex = 0;
@@ -1418,6 +1414,11 @@ bool CheckRushManAndAllPinned()
 			GetClientAbsOrigin(client, OriginTemp);
 			fInfectedssOrigin[iInfectedIndex++] = OriginTemp;
 		}
+	}
+	if(iSurvivorIndex == 1)
+	{
+		//一个人有什么跑男
+		return false;
 	}
 	int target = L4D_GetHighestFlowSurvivor();
 	if (iSurvivorIndex >= 1 && IsValidClient(target))
@@ -1715,11 +1716,6 @@ stock void Debug_Print(char[] format, any ...)
 
 stock bool IsAnyTankOrAboveHalfSurvivorDownOrDied()
 {
-	if(GetSurvivorCount(true, true) == 1)
-	{
-		//一个人有
-		return false;
-	}
 	int count = 0;
 	for(int i = 1; i <= MaxClients; i ++)
 	{
