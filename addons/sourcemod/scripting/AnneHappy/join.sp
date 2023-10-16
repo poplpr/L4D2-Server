@@ -102,7 +102,7 @@ public void OnPluginStart()
 	AddCommandListener(Command_Setinfo1, "chooseteam");
 	RegConsoleCmd("sm_ip", ShowAnneServerIP);
 	RegConsoleCmd("sm_web", ShowAnneServerWeb);
-	RegConsoleCmd("sm_getbot", GetBot);
+	//RegConsoleCmd("sm_getbot", GetBot);
 	RegAdminCmd("sm_restartmap", RestartMap, ADMFLAG_ROOT, "restarts map");
 	HookEvent("player_disconnect", PlayerDisconnect_Event, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
