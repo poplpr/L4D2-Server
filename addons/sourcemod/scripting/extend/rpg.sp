@@ -276,6 +276,8 @@ public void  OnPluginStart()
 	RegConsoleCmd("sm_applytags", ApplyTags, "佩戴自定义称号");
 	RegConsoleCmd("sm_rpg", BuyMenu, "打开购买菜单(只能在游戏中)");
 	RegAdminCmd("sm_rpginfo", RpgInfo, ADMFLAG_ROOT ,"输出rpg人物信息");
+	//RegAdminCmd("sm_skintest", Tryskin, ADMFLAG_ROOT ,"测试皮肤rgb值");
+	//RegAdminCmd("sm_aruatest", Tryskin, ADMFLAG_ROOT ,"测试轮廓rgb值");
 	for(int i=1;i<MaxClients;i++){
 			player[i].ClientPoints=500;
 			player[i].ClientFirstBuy=true;
@@ -714,55 +716,57 @@ public void BypassAndExecuteCommand(int client, char []strCommand, char []strPar
 
 public Action Timer_AutoGive(Handle timer, any client)
 {
-	if (player[client].ClientMelee == 1)
+	int temp = player[client].ClientMelee;
+	if(temp == 14) temp = GetRandomInt(1,13);
+	if (temp == 1)
 	{
 		BypassAndExecuteCommand(client, "give", "machete");
 	}
-	if (player[client].ClientMelee == 2)
+	if (temp == 2)
 	{
 		BypassAndExecuteCommand(client, "give", "fireaxe");
 	}
-	if (player[client].ClientMelee == 3)
+	if (temp == 3)
 	{
 		BypassAndExecuteCommand(client, "give", "knife");
 	}
-	if (player[client].ClientMelee == 4)
+	if (temp == 4)
 	{
 		BypassAndExecuteCommand(client, "give", "katana");
 	}
-	if (player[client].ClientMelee == 5)
+	if (temp == 5)
 	{
 		BypassAndExecuteCommand(client, "give", "pistol_magnum");
 	}
-	if (player[client].ClientMelee == 6)
+	if (temp == 6)
 	{
 		BypassAndExecuteCommand(client, "give", "electric_guitar");
 	}
-	if (player[client].ClientMelee == 7)
+	if (temp == 7)
 	{
 		BypassAndExecuteCommand(client, "give", "tonfa");
 	}
-	if (player[client].ClientMelee == 8)
+	if (temp == 8)
 	{
 		BypassAndExecuteCommand(client, "give", "pitchfork");
 	}
-	if (player[client].ClientMelee == 9)
+	if (temp == 9)
 	{
 		BypassAndExecuteCommand(client, "give", "shovel");
 	}
-	if (player[client].ClientMelee == 10)
+	if (temp == 10)
 	{
 		BypassAndExecuteCommand(client, "give", "pistol");
 	}
-	if (player[client].ClientMelee == 11)
+	if (temp == 11)
 	{
 		BypassAndExecuteCommand(client, "give", "frying_pan");
 	}
-	if (player[client].ClientMelee == 12)
+	if (temp == 12)
 	{
 		BypassAndExecuteCommand(client, "give", "crowbar");
 	}	
-	if (player[client].ClientMelee == 13)
+	if (temp == 13)
 	{
 		BypassAndExecuteCommand(client, "give", "cricket_bat");
 	}	
@@ -1290,6 +1294,13 @@ public void Survivor_glow(int client)
 				menu.AddItem("option15", "金黄色", player[client].GlowType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,1) || GetUserAdmin(client).ImmunityLevel == 100)) || !g_bl4dstatsSystemAvailable)
 				menu.AddItem("option16", "彩虹色", player[client].GlowType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			//个人定制轮廓部分
+			char steamid[32];
+			GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
+			if(StrContains(steamid, "632322128", false) != -1){
+				//760308896 定制
+				menu.AddItem("option17", "定制轮廓", player[client].GlowType == 17 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			}
 		}	
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
@@ -1304,7 +1315,13 @@ public int VIPAuraMenuHandler(Menu menu, MenuAction action, int param1, int para
             delete menu;
         case MenuAction_Select: 
         {
-            GetAura(param1, param2);
+            char option[64];
+            menu.GetItem(param2, option, sizeof(option));
+            //PrintToConsoleAll("%s", option);
+            char result[2][6];
+            ExplodeString(option, "option", result, 2, 6);
+            //PrintToConsoleAll("%s", result[1]);
+            GetAura(param1, StringToInt(result[1], 10));
             ClientSaveToFileSave(param1);
             //SetCookie(param1, cookie, param2);
 			
@@ -1406,9 +1423,14 @@ void GetAura(int client, int id)
             SDKHook(client, SDKHook_PreThink, RainbowPlayer);
             CPrintToChat(client, "\x05你 \x04将轮廓颜色改为\x01: \x04彩虹色 \x01!");
         }
+		case 17:
+		{
+            SetEntProp(client, Prop_Send, "m_glowColorOverride", 255 + (69 * 256) + (0 * 65536));
+            CPrintToChat(client, "\x05你 \x04将轮廓颜色改为您的\x01: \x04定制颜色轮廓 \x01!");
+		}
     }
 
-    if (0 <= id <= 15) 
+    if (0 <= id <= 15 || id >= 17) 
     {
         SetEntProp(client, Prop_Send, "m_iGlowType", 3);
         SetEntProp(client, Prop_Send, "m_nGlowRange", 99999);
@@ -1453,7 +1475,7 @@ public Action RainbowPlayer(int client)
 	return Plugin_Continue;
 }
 
-//创建购买菜单>>主菜单--生还者轮廓菜单
+//创建购买菜单>>主菜单--生还者皮肤菜单
 public void Survivor_skin(int client)
 {
 	if( IsVaildClient(client) )
@@ -1485,6 +1507,13 @@ public void Survivor_skin(int client)
 				menu.AddItem("option15", "金黄色", player[client].SkinType == 15 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 			if((g_bl4dstatsSystemAvailable && (l4dstats_IsTopPlayer(client,3)) || GetUserAdmin(client).ImmunityLevel == 100) || !g_bl4dstatsSystemAvailable)
 				menu.AddItem("option16", "透明色", player[client].SkinType == 16 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			//个人定制皮肤部分
+			char steamid[32];
+			GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
+			if(StrContains(steamid, "632322128", false) != -1){
+				//760308896 定制
+				menu.AddItem("option17", "定制皮肤", player[client].SkinType == 17 ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			}
 		}
 		menu.ExitButton = true;
 		menu.Display(client, MENU_TIME_FOREVER);
@@ -1499,7 +1528,13 @@ public int VIPSkinMenuHandler(Menu menu, MenuAction action, int param1, int para
             delete menu;
         case MenuAction_Select: 
         {
-            GetSkin(param1, param2);
+            char option[64];
+            menu.GetItem(param2, option, sizeof(option));
+            //PrintToConsoleAll("%s", option);
+            char result[2][6];
+            ExplodeString(option, "option", result, 2, 6);
+            //PrintToConsoleAll("%s", result[1]);
+            GetSkin(param1, StringToInt(result[1], 10));
             ClientSaveToFileSave(param1);
             //SetCookie(param1, cookie, param2);
 			
@@ -1634,6 +1669,13 @@ void GetSkin(int client, int id, bool broadcast = true)
             if(broadcast)
             	CPrintToChat(client, "\x05你 \x04将皮肤颜色改为\x01: \x04透明色 \x01!");
         }
+		case 17:
+		{
+            SetEntityRenderMode(client, RENDER_GLOW);
+            SetEntityRenderColor(client, 139, 101, 8, 255);
+            if(broadcast)
+            	CPrintToChat(client, "\x05你 \x04将皮肤颜色改为\x01: \x04您的定制皮肤 \x01!");
+		}
     }
     
     player[client].SkinType = id;
@@ -2032,6 +2074,9 @@ public void ability(int client)
 		FormatEx(binfo, sizeof(binfo),  "板球拍", client);
 		menu.AddItem("cricket_bat", binfo);
 
+		FormatEx(binfo, sizeof(binfo),  "随机近战", client);
+		menu.AddItem("random_secondweapon", binfo);
+
 		FormatEx(binfo, sizeof(binfo),  "取消设置", client);
 		menu.AddItem("none", binfo);
 
@@ -2105,6 +2150,10 @@ public int ability_back(Menu menu, MenuAction action, int param1, int param2)
 				PrintToChat(param1,"\x04您的出门近战武器设为撬棍");
 			}else if( StrEqual(bitem, "cricket_bat") ){
 				player[param1].ClientMelee=13;
+				ClientSaveToFileSave(param1);
+				PrintToChat(param1,"\x04您的出门近战武器设为板球拍");
+			}else if( StrEqual(bitem, "random_secondweapon") ){
+				player[param1].ClientMelee=14;
 				ClientSaveToFileSave(param1);
 				PrintToChat(param1,"\x04您的出门近战武器设为板球拍");
 			}else if( StrEqual(bitem, "none") ){
