@@ -638,7 +638,7 @@ public void SetPlayer(int client)
 		
 		if(player[client].GlowType && g_bEnableGlow)
 		{
-			if(player[client].GlowType < 15)
+			if(player[client].GlowType < 15 || player[client].GlowType >= 17)
 			{
 				if(l4dstats_IsTopPlayer(client, 20) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))
 				{
@@ -674,7 +674,7 @@ public void SetPlayer(int client)
 
 		if(player[client].SkinType)
 		{
-			if(player[client].SkinType < 15)
+			if(player[client].SkinType < 15 || player[client].SkinType >= 17)
 			{
 				if(l4dstats_IsTopPlayer(client, 50) || (CheckCommandAccess(client, "", ADMFLAG_SLAY)))
 				{
