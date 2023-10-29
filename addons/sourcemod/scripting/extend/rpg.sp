@@ -649,7 +649,7 @@ public void SetPlayer(int client)
 					//ClientSaveToFileSave(client);
 				}
 			}			
-			else if(l4dstats_IsTopPlayer(client, 3) || GetUserAdmin(client).ImmunityLevel == 100)
+			else if(l4dstats_IsTopPlayer(client, 3) || GetUserAdmin(client).ImmunityLevel == 100 || (CheckCommandAccess(client, "", ADMFLAG_PASSWORD)))
 			{
 				GetAura(client,player[client].GlowType);
 			}else
@@ -685,7 +685,7 @@ public void SetPlayer(int client)
 					//ClientSaveToFileSave(client);
 				}
 			}			
-			else if(l4dstats_IsTopPlayer(client, 5) || GetUserAdmin(client).ImmunityLevel == 100)
+			else if(l4dstats_IsTopPlayer(client, 5) || GetUserAdmin(client).ImmunityLevel == 100 || (CheckCommandAccess(client, "", ADMFLAG_PASSWORD)))
 			{
 				GetSkin(client,player[client].SkinType);
 			}	
