@@ -1,3 +1,4 @@
+#pragma tabsize 0
 #if defined __item_tracking_included
     #endinput
 #endif
@@ -214,6 +215,7 @@ public void _IT_RoundStartEvent(Event hEvent, const char[] sEventName, bool bDon
             g_bIsRound1Over = false;
         }
     }
+
     // Mapstart happens after round_start most of the time, so we need to wait for g_bIsRound1Over.
     // Plus, we don't want to have conflicts with EntityRemover.
     CreateTimer(1.0, IT_RoundStartTimer, _, TIMER_FLAG_NO_MAPCHANGE);
