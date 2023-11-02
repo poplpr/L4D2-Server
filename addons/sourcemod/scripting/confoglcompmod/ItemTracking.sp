@@ -4,7 +4,7 @@
 #endif
 #define __item_tracking_included
 
-#define IT_MODULE_NAME			"ItemTracking"
+#define IT_MODULE_NAME "ItemTracking"
 
 // Item lists for tracking/decoding/etc
 enum /*ItemList*/
@@ -276,7 +276,7 @@ static void GenerateStoredSpawns()
 }*/
 
 // Produces the lookup trie for weapon spawn entities
-//		to translate to our ADT array of spawns
+// to translate to our ADT array of spawns
 static void CreateItemListTrie()
 {
     g_hItemListTrie = new StringMap();
