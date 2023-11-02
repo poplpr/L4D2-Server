@@ -283,8 +283,7 @@ static void CreateItemListTrie()
     g_hItemListTrie.SetValue("weapon_pain_pills_spawn", IL_PainPills);
     g_hItemListTrie.SetValue("weapon_pain_pills", IL_PainPills);
     g_hItemListTrie.SetValue("weapon_adrenaline_spawn", IL_Adrenaline);
-    g_hItemListTrie.SetValue("weapon_adrenaline", IL_Adrenaline);
-    g_hItemListTrie.SetValue("weapon_pipe_bomb_spawn", IL_PipeBomb);
+    g_hItemListTrie.SetValue("weapon_adrenaline", IL_Adrenaline); g_hItemListTrie.SetValue("weapon_pipe_bomb_spawn", IL_PipeBomb);
     g_hItemListTrie.SetValue("weapon_pipe_bomb", IL_PipeBomb);
     g_hItemListTrie.SetValue("weapon_molotov_spawn", IL_Molotov);
     g_hItemListTrie.SetValue("weapon_molotov", IL_Molotov);
