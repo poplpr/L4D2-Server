@@ -681,7 +681,7 @@ public int Menu_VotesKick(Menu menu, MenuAction action, int param1, int param2)
 		{
 			if (player == param1)
 			{
-				CPrintToChat(param1, "[{olive}TS{default}] Kick yourself? choose again");
+				CPrintToChat(param1, "[{olive}Orz{default}] Kick yourself? choose again");
 				CreateVoteKickMenu(param1);
 				return 0;
 			}
@@ -1289,7 +1289,7 @@ public Action COLD_DOWN(Handle timer,any client)
 		case (map):
 		{
 			CreateTimer(5.0, Changelevel_Map);
-			CPrintToChatAll("[{olive}TS{default}] {green}5{default} sec to change map {blue}%s",votesmapsname);
+			CPrintToChatAll("[{olive}Orz{default}] {green}5{default} sec to change map {blue}%s",votesmapsname);
 			//CPrintToChatAll("{blue}%s",votesmaps);
 			//DisplayBuiltinVotePass(vote, "Vote to change map pass");
 			LogMessage("Vote to change map %s %s pass",votesmaps,votesmapsname);
