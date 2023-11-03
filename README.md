@@ -6,6 +6,7 @@
 - cannounce.smx (这是一个完全不清楚是否好用的插件，仍有待观测。其作用为提示有人进入/退出服务器)
 - linux_auto_restart.smx
 - advertisements.smx
+- L4DVSAutoSpectateOnAFK.smx （这个插件看起来如果对抗生还和特感人满了而旁观会被踢，等之后再测试吧）
 
 # **L4D2 Competitive Rework**
 
