@@ -7,6 +7,7 @@
 - linux_auto_restart.smx
 - advertisements.smx
 - L4DVSAutoSpectateOnAFK.smx （这个插件看起来如果对抗生还和特感人满了而旁观会被踢，等之后再测试吧）
+- 少一个章节结束自动换图的插件
 
 # **L4D2 Competitive Rework**
 
