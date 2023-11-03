@@ -1,3 +1,12 @@
+# 除了 Zonemod 外我自己添加的插件
+
+- l4d_DynamicHostname.smx
+- admin_hp.smx
+- l4d_votes_5.smx
+- cannounce.smx (这是一个完全不清楚是否好用的插件，仍有待观测。其作用为提示有人进入/退出服务器)
+- linux_auto_restart.smx
+- advertisements.smx
+
 # **L4D2 Competitive Rework**
 
 **IMPORTANT NOTES** - **DON'T IGNORE THESE!**
