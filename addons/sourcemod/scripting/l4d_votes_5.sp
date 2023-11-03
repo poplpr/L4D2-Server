@@ -1057,7 +1057,7 @@ public int Handler_VoteCallback(Menu menu, MenuAction action, int param1, int pa
 	CheckVotes();
 	if (action == MenuAction_VoteCancel && param1 == VoteCancel_NoVotes)
 	{
-		CPrintToChatAll("[{olive}Orz{default}] 没有投票 (No votes)");
+		CPrintToChatAll("[{olive}Orz{default}] 没有投票。No votes.");
 		g_votedelay = VOTEDELAY_TIME;
 		EmitSoundToAll("ui/beep_error01.wav");
 		CreateTimer(2.0, VoteEndDelay);
@@ -1079,7 +1079,7 @@ public int Handler_VoteCallback(Menu menu, MenuAction action, int param1, int pa
 			g_votedelay = VOTEDELAY_TIME;
 			CreateTimer(1.0, Timer_VoteDelay, _, TIMER_REPEAT| TIMER_FLAG_NO_MAPCHANGE);
 			EmitSoundToAll("ui/menu_enter05.wav");
-			CPrintToChatAll("[{olive}Orz{default}] {lightgreen}投票通过。{default}（同意 {green}%d%%{default} 票, 总共 {green}%i {default} 票） {lightgreen}Vote pass.{default}(agree {green}%d%%{default}, total {green}%i {default}votes)", RoundToNearest(100.0*percent), totalVotes, RoundToNearest(100.0*percent), totalVotes);
+			CPrintToChatAll("[{olive}Orz{default}] {lightgreen}投票通过。{default}（同意 {green}%d%%{default} 票, 总共 {green}%i {default}票） {lightgreen}Vote pass.{default}(agree {green}%d%%{default}, total {green}%i {default}votes)", RoundToNearest(100.0*percent), totalVotes, RoundToNearest(100.0*percent), totalVotes);
 			CreateTimer(2.0, VoteEndDelay);
 			CreateTimer(3.0, COLD_DOWN,_);
 		}
@@ -1104,14 +1104,14 @@ public Action Timer_forcespectate(Handle timer, any client)
 		if ( (GetClientTeam(client) == 3 || GetClientTeam(client) == 2))
 		{
 			ChangeClientTeam(client, 1);
-			CPrintToChat(client, "[{olive}Orz{default}] 你被投票强制移到旁观！请等待 {green}%ds {default} 重新加入队伍。You have been voted to be forcespectated! Wait {green}%ds {default}to rejoin team again.", g_iSpectatePenaltyCounter[client], g_iSpectatePenaltyCounter[client]);
+			CPrintToChat(client, "[{olive}Orz{default}] 你被投票强制移到旁观！请等待 {green}%d{default} 秒重新加入队伍。You have been voted to be forcespectated! Wait {green}%ds {default}to rejoin team again.", g_iSpectatePenaltyCounter[client], g_iSpectatePenaltyCounter[client]);
 			bClientJoinedTeam = true;	//client tried to join the infected again when not allowed
 		}
 		else if(GetClientTeam(client) == 1 && IsClientIdle(client))
 		{
 			L4D_TakeOverBot(client);
 			ChangeClientTeam(client, 1);
-			CPrintToChat(client, "[{olive}Orz{default}] 你被投票强制移到旁观！请等待 {green}%ds {default} 重新加入队伍。You have been voted to be forcespectated! Wait {green}%ds {default}to rejoin team again.", g_iSpectatePenaltyCounter[client], g_iSpectatePenaltyCounter[client]);
+			CPrintToChat(client, "[{olive}Orz{default}] 你被投票强制移到旁观！请等待 {green}%d{default} 秒重新加入队伍。You have been voted to be forcespectated! Wait {green}%ds {default}to rejoin team again.", g_iSpectatePenaltyCounter[client], g_iSpectatePenaltyCounter[client]);
 			bClientJoinedTeam = true;	//client tried to join the infected again when not allowed
 		}
 		g_iSpectatePenaltyCounter[client]--;
@@ -1228,7 +1228,7 @@ bool CanStartVotes(int client)
 	}
 	if (iNumPlayers < g_iCvarPlayerLimit)
 	{
-		CPrintToChat(client, "[{olive}Orz{default}] 投票无法被开启。因为不足 {red}%d {default}人。Vote cannot be started. Not enough {red}%d {default}players.", g_iCvarPlayerLimit, g_iCvarPlayerLimit);
+		CPrintToChat(client, "[{olive}Orz{default}] 投票无法被开启。因为不足 {red}%d{default} 人。Vote cannot be started. Not enough {red}%d {default}players.", g_iCvarPlayerLimit, g_iCvarPlayerLimit);
 		return false;
 	}
 	return true;
@@ -1290,7 +1290,7 @@ public Action COLD_DOWN(Handle timer,any client)
 		case (map):
 		{
 			CreateTimer(5.0, Changelevel_Map);
-			CPrintToChatAll("[{olive}Orz{default}] {green}5{default} 秒后更换地图 {blue}%s。{green}5{default} sec to change map {blue}%s{default} .", votesmapsname, votesmapsname);
+			CPrintToChatAll("[{olive}Orz{default}] {green}5{default} 秒后更换地图为 {blue}%s。{green}5{default} sec to change map {blue}%s{default} .", votesmapsname, votesmapsname);
 			//CPrintToChatAll("{blue}%s",votesmaps);
 			//DisplayBuiltinVotePass(vote, "Vote to change map pass");
 			LogMessage("Vote to change map %s %s pass",votesmaps,votesmapsname);
