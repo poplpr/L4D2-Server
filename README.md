@@ -1,13 +1,23 @@
-# 除了 Zonemod 外我自己添加的插件
+# 除了 Zonemod 外我自己添加以及修改的插件
 
-- l4d_DynamicHostname.smx
-- admin_hp.smx
-- l4d_votes_5.smx
-- cannounce.smx (这是一个完全不清楚是否好用的插件，仍有待观测。其作用为提示有人进入/退出服务器)
-- linux_auto_restart.smx
-- advertisements.smx
-- L4DVSAutoSpectateOnAFK.smx （这个插件看起来如果对抗生还和特感人满了而旁观会被踢，等之后再测试吧）
-- 少一个章节结束自动换图的插件
+- l4d_DynamicHostname.smx 
+- admin_hp.smx (32)
+- l4d_votes_5.smx  (32)
+- cannounce.smx (这是一个完全不清楚是否好用的插件，仍有待观测。其作用为提示有人进入/退出服务器) (32)
+- linux_auto_restart.smx 
+- advertisements.smx (32)
+- L4DVSAutoSpectateOnAFK.smx （这个插件看起来如果对抗生还和特感人满了而旁观会被踢，等之后再测试吧）(32)
+- l4d2_mission_manager.smx 里面包含了四个文件
+  - acs.smx (64)
+  - l4d2_changelevel.smx 编译完才发现 Sir 里面原本就有，版本还比我这个高
+  - l4d2_mission_manager.smx (64)
+  - l4d2_mm_adminmenu.smx (64)
+
+# TODO
+
+1. 上述所有插件测试
+2. 包抗插件修改
+3. 
 
 # **L4D2 Competitive Rework**
 
