@@ -642,7 +642,7 @@ public int MissionChooserMenuHandler(Menu menu, MenuAction action, int client, i
 				// Browse map list
 			} else {
 				if (IsVoteInProgress()) {
-					ReplyToCommand(client, "\x03[ACS]\x04 %t", "Vote in Progress");
+					ReplyToCommand(client, "\x03[Orz]\x04 %t", "Vote in Progress");
 					return 0;
 				}
 			
@@ -745,7 +745,7 @@ public int MapChooserMenuHandler(Menu menu, MenuAction action, int client, int i
 		}
 		
 		if (IsVoteInProgress()) {
-			ReplyToCommand(client, "\x03[ACS]\x04 %t", "Vote in Progress");
+			ReplyToCommand(client, "\x03[Orz]\x04 %t", "Vote in Progress");
 			return 0;
 		}
 		
@@ -806,7 +806,7 @@ public int ChampVoteHandler(Menu menu, MenuAction action, int param1, int param2
 		Format(buffer, sizeof(buffer), "%T", menuName, param1);	// param1 = clientIndex
 	 	RedrawMenuItem(buffer);
 	} else if (action == MenuAction_VoteCancel && param1 == VoteCancel_NoVotes) {
-		PrintToChatAll("\x03[ACS]\x04 %t", "No Votes Cast");
+		PrintToChatAll("\x03[Orz]\x04 %t", "No Votes Cast");
 	} else if (action == MenuAction_VoteEnd) {
 		// param1: The winning item, param2: vote result
 		int votes, totalVotes;	// totalVotes != numOfPlayers
@@ -849,9 +849,9 @@ public int ChampVoteHandler(Menu menu, MenuAction action, int param1, int param2
 		// A multi-argument vote is "always successful", but have to check if its a Yes/No vote.
 		if (percent < limit) {
 			LogAction(-1, -1, "Vote failed.");
-			PrintToChatAll("\x03[ACS]\x04 %t  \x01[%d,%d,%d]", "Vote Failed", RoundToNearest(100.0*limit), RoundToNearest(100.0*percent), playerCount, yesVotes, noVotes, abstention);
+			PrintToChatAll("\x03[Orz]\x04 %t  \x01[%d,%d,%d]", "Vote Failed", RoundToNearest(100.0*limit), RoundToNearest(100.0*percent), playerCount, yesVotes, noVotes, abstention);
 		} else {
-			PrintToChatAll("\x03[ACS]\x04 %t  \x01[%d,%d,%d]", "Vote Successful", RoundToNearest(100.0*percent), playerCount, yesVotes, noVotes, abstention);
+			PrintToChatAll("\x03[Orz]\x04 %t  \x01[%d,%d,%d]", "Vote Successful", RoundToNearest(100.0*percent), playerCount, yesVotes, noVotes, abstention);
 			
 			char menuInfo[MMC_ITEM_LEN_INFO];
 			menu.GetItem(0, menuInfo, sizeof(menuInfo));
@@ -869,7 +869,7 @@ public int ChampVoteHandler(Menu menu, MenuAction action, int param1, int param2
 					if (IsClientInGame(client)) {
 						LMM_GetMissionLocalizedName(g_iGameMode, missionIndex, localizedName, sizeof(localizedName), client);
 						Format(colorizedName, sizeof(colorizedName), "\x04%s\x01", localizedName);
-						PrintToChat(client,"\x03[ACS]\x01 %t\x01", "Mission is now winning the vote", colorizedName);
+						PrintToChat(client,"\x03[Orz]\x01 %t\x01", "Mission is now winning the vote", colorizedName);
 					}
 				}			
 			} else {
@@ -879,13 +879,13 @@ public int ChampVoteHandler(Menu menu, MenuAction action, int param1, int param2
 					if (IsClientInGame(client)) {
 						LMM_GetMapLocalizedName(g_iGameMode, missionIndex, mapIndex, localizedName, sizeof(localizedName), client);
 						Format(colorizedName, sizeof(colorizedName), "\x04%s\x01", localizedName);
-						PrintToChat(client,"\x03[ACS]\x01 %t", "Map is now winning the vote", colorizedName);
+						PrintToChat(client,"\x03[Orz]\x01 %t", "Map is now winning the vote", colorizedName);
 					}
 				}
 			}
 			
 			Format(colorizedName, sizeof(colorizedName), "\x04%s\x01", mapName);
-			PrintToChatAll("\x03[ACS]\x01 %t", "Changing map", colorizedName);
+			PrintToChatAll("\x03[Orz]\x01 %t", "Changing map", colorizedName);
 			CreateChangeMapTimer(mapName);
 		}
 	} else if (action == MenuAction_End) {
@@ -1067,7 +1067,7 @@ void MakeChMapBroadcastTimer() {
 }
 
 public Action Timer_WelcomeMessage(Handle timer, any param) {
-	PrintToChatAll("\x03[ACS]\x01 %t", "Change map advertise", "\x04!chmap\x01");
+	PrintToChatAll("\x03[Orz]\x01 %t", "Change map advertise", "\x04!chmap\x01");
 }
 
 /*======================================================================================
@@ -1097,11 +1097,11 @@ public void CVarChange_Voting(Handle hCVar, const char[] strOldValue, const char
 	
 	//If the value was changed, then set it and display a message to the server and players
 	if (StringToInt(strNewValue) == 1) {
-		PrintToServer("[ACS] ConVar changed: Voting System ENABLED");
-		PrintToChatAll("[ACS] ConVar changed: Voting System ENABLED");
+		PrintToServer("[Orz] ConVar changed: Voting System ENABLED");
+		PrintToChatAll("[Orz] ConVar changed: Voting System ENABLED");
 	} else {
-		PrintToServer("[ACS] ConVar changed: Voting System DISABLED");
-		PrintToChatAll("[ACS] ConVar changed: Voting System DISABLED");
+		PrintToServer("[Orz] ConVar changed: Voting System DISABLED");
+		PrintToChatAll("[Orz] ConVar changed: Voting System DISABLED");
 	}
 }
 
@@ -1113,11 +1113,11 @@ public void CVarChange_NewVoteWinnerSound(Handle hCVar, const char[] strOldValue
 	
 	//If the value was changed, then set it and display a message to the server and players
 	if (StringToInt(strNewValue) == 1) {
-		PrintToServer("[ACS] ConVar changed: New vote winner sound ENABLED");
-		PrintToChatAll("[ACS] ConVar changed: New vote winner sound ENABLED");
+		PrintToServer("[Orz] ConVar changed: New vote winner sound ENABLED");
+		PrintToChatAll("[Orz] ConVar changed: New vote winner sound ENABLED");
 	} else {
-		PrintToServer("[ACS] ConVar changed: New vote winner sound DISABLED");
-		PrintToChatAll("[ACS] ConVar changed: New vote winner sound DISABLED");
+		PrintToServer("[Orz] ConVar changed: New vote winner sound DISABLED");
+		PrintToChatAll("[Orz] ConVar changed: New vote winner sound DISABLED");
 	}
 }
 
@@ -1130,20 +1130,20 @@ public void CVarChange_VotingAdMode(Handle hCVar, const char[] strOldValue, cons
 	//If the value was changed, then set it and display a message to the server and players
 	switch(StringToInt(strNewValue)) {
 		case 0:	{
-			PrintToServer("[ACS] ConVar changed: Voting display mode: DISABLED");
-			PrintToChatAll("[ACS] ConVar changed: Voting display mode: DISABLED");
+			PrintToServer("[Orz] ConVar changed: Voting display mode: DISABLED");
+			PrintToChatAll("[Orz] ConVar changed: Voting display mode: DISABLED");
 		}
 		case 1:	{
-			PrintToServer("[ACS] ConVar changed: Voting display mode: HINT TEXT");
-			PrintToChatAll("[ACS] ConVar changed: Voting display mode: HINT TEXT");
+			PrintToServer("[Orz] ConVar changed: Voting display mode: HINT TEXT");
+			PrintToChatAll("[Orz] ConVar changed: Voting display mode: HINT TEXT");
 		}
 		case 2:	{
-			PrintToServer("[ACS] ConVar changed: Voting display mode: CHAT TEXT");
-			PrintToChatAll("[ACS] ConVar changed: Voting display mode: CHAT TEXT");
+			PrintToServer("[Orz] ConVar changed: Voting display mode: CHAT TEXT");
+			PrintToChatAll("[Orz] ConVar changed: Voting display mode: CHAT TEXT");
 		}
 		case 3:	{
-			PrintToServer("[ACS] ConVar changed: Voting display mode: OPEN VOTE MENU");
-			PrintToChatAll("[ACS] ConVar changed: Voting display mode: OPEN VOTE MENU");
+			PrintToServer("[Orz] ConVar changed: Voting display mode: OPEN VOTE MENU");
+			PrintToChatAll("[Orz] ConVar changed: Voting display mode: OPEN VOTE MENU");
 		}
 	}
 }
@@ -1160,13 +1160,13 @@ public void CVarChange_VotingAdDelayTime(Handle hCVar, const char[] strOldValue,
 	//If the value was changed, then set it and display a message to the server and players
 	if (fDelayTime > 0.1)
 	{
-		PrintToServer("[ACS] ConVar changed: Voting advertisement delay time changed to %f", fDelayTime);
-		PrintToChatAll("[ACS] ConVar changed: Voting advertisement delay time changed to %f", fDelayTime);
+		PrintToServer("[Orz] ConVar changed: Voting advertisement delay time changed to %f", fDelayTime);
+		PrintToChatAll("[Orz] ConVar changed: Voting advertisement delay time changed to %f", fDelayTime);
 	}
 	else
 	{
-		PrintToServer("[ACS] ConVar changed: Voting advertisement delay time changed to 0.1");
-		PrintToChatAll("[ACS] ConVar changed: Voting advertisement delay time changed to 0.1");
+		PrintToServer("[Orz] ConVar changed: Voting advertisement delay time changed to 0.1");
+		PrintToChatAll("[Orz] ConVar changed: Voting advertisement delay time changed to 0.1");
 	}
 }
 
@@ -1179,16 +1179,16 @@ public void CVarChange_NewMapAdMode(Handle hCVar, const char[] strOldValue, cons
 	//If the value was changed, then set it and display a message to the server and players
 	switch(StringToInt(strNewValue)) {
 		case 0:	{
-			PrintToServer("[ACS] ConVar changed: Next map advertisement display mode: DISABLED");
-			PrintToChatAll("[ACS] ConVar changed: Next map advertisement display mode: DISABLED");
+			PrintToServer("[Orz] ConVar changed: Next map advertisement display mode: DISABLED");
+			PrintToChatAll("[Orz] ConVar changed: Next map advertisement display mode: DISABLED");
 		}
 		case 1:	{
-			PrintToServer("[ACS] ConVar changed: Next map advertisement display mode: HINT TEXT");
-			PrintToChatAll("[ACS] ConVar changed: Next map advertisement display mode: HINT TEXT");
+			PrintToServer("[Orz] ConVar changed: Next map advertisement display mode: HINT TEXT");
+			PrintToChatAll("[Orz] ConVar changed: Next map advertisement display mode: HINT TEXT");
 		}
 		case 2:	{
-			PrintToServer("[ACS] ConVar changed: Next map advertisement display mode: CHAT TEXT");
-			PrintToChatAll("[ACS] ConVar changed: Next map advertisement display mode: CHAT TEXT");
+			PrintToServer("[Orz] ConVar changed: Next map advertisement display mode: CHAT TEXT");
+			PrintToChatAll("[Orz] ConVar changed: Next map advertisement display mode: CHAT TEXT");
 		}
 	}
 }
@@ -1204,11 +1204,11 @@ public void CVarChange_NewMapAdInterval(Handle hCVar, const char[] strOldValue, 
 	
 	//If the value was changed, then set it and display a message to the server and players
 	if (fDelayTime > 60.0) {
-		PrintToServer("[ACS] ConVar changed: Next map advertisement interval changed to %f", fDelayTime);
-		PrintToChatAll("[ACS] ConVar changed: Next map advertisement interval changed to %f", fDelayTime);
+		PrintToServer("[Orz] ConVar changed: Next map advertisement interval changed to %f", fDelayTime);
+		PrintToChatAll("[Orz] ConVar changed: Next map advertisement interval changed to %f", fDelayTime);
 	} else {
-		PrintToServer("[ACS] ConVar changed: Next map advertisement interval changed to 60.0");
-		PrintToChatAll("[ACS] ConVar changed: Next map advertisement interval changed to 60.0");
+		PrintToServer("[Orz] ConVar changed: Next map advertisement interval changed to 60.0");
+		PrintToChatAll("[Orz] ConVar changed: Next map advertisement interval changed to 60.0");
 	}
 }
 
@@ -1223,11 +1223,11 @@ public void CVarChange_MaxFinaleFailures(Handle hCVar, const char[] strOldValue,
 	
 	//If the value was changed, then set it and display a message to the server and players
 	if (iMaxFailures > 0) {
-		PrintToServer("[ACS] ConVar changed: Max Coop finale failures changed to %i", iMaxFailures);
-		PrintToChatAll("[ACS] ConVar changed: Max Coop finale failures changed to %i", iMaxFailures);
+		PrintToServer("[Orz] ConVar changed: Max Coop finale failures changed to %i", iMaxFailures);
+		PrintToChatAll("[Orz] ConVar changed: Max Coop finale failures changed to %i", iMaxFailures);
 	} else {
-		PrintToServer("[ACS] ConVar changed: Max Coop finale failures changed to 0");
-		PrintToChatAll("[ACS] ConVar changed: Max Coop finale failures changed to 0");
+		PrintToServer("[Orz] ConVar changed: Max Coop finale failures changed to 0");
+		PrintToChatAll("[Orz] ConVar changed: Max Coop finale failures changed to 0");
 	}
 }
 /*======================================================================================
@@ -1254,7 +1254,7 @@ public void OnMapEnd() {
 
 //Event fired when the Round Ends
 public Action Event_RoundEnd(Handle hEvent, const char[] strName, bool bDontBroadcast) {
-	// PrintToChatAll("\x03[ACS]\x04 Event_RoundEnd");
+	// PrintToChatAll("\x03[Orz]\x04 Event_RoundEnd");
 	//Check to see if on a finale map, if so change to the next campaign after two rounds
 	if(g_iGameMode == GAMEMODE_VERSUS && OnFinaleOrScavengeMap() == true) {
 		g_iRoundEndCounter++;
@@ -1276,7 +1276,7 @@ public Action Event_RoundEnd(Handle hEvent, const char[] strName, bool bDontBroa
 
 //Event fired when a finale is won
 public Action Event_FinaleWin(Handle hEvent, const char[] strName, bool bDontBroadcast) {
-	// PrintToChatAll("\x03[ACS]\x04 Event_FinaleWin");
+	// PrintToChatAll("\x03[Orz]\x04 Event_FinaleWin");
 	g_bFinaleWon = true;	//This is used so that the finale does not switch twice if this event
 							//happens to land on a max failure count as well as this
 	
@@ -1404,7 +1404,7 @@ void CheckMapForChange() {
 				if (IsClientInGame(client)) {
 					ACS_GetLocalizedMissionName(g_iGameMode, cycleIndex, client, localizedName, sizeof(localizedName));
 					Format(colorizedname, sizeof(colorizedname), "\x04%s\x05", localizedName);
-					PrintToChat(client, "\x03[ACS]\x05 %t", "Campaign finished", colorizedname);
+					PrintToChat(client, "\x03[Orz]\x05 %t", "Campaign finished", colorizedname);
 				}
 			}
 			
@@ -1418,7 +1418,7 @@ void CheckMapForChange() {
 						if (IsClientInGame(client)) {
 							LMM_GetMissionLocalizedName(g_iGameMode, winningMapIndex, localizedName, sizeof(localizedName), client);
 							Format(colorizedname, sizeof(colorizedname), "\x04%s\x05", localizedName);
-							PrintToChat(client, "\x03[ACS]\x05 %t", "Switching to the vote winner", colorizedname);
+							PrintToChat(client, "\x03[Orz]\x05 %t", "Switching to the vote winner", colorizedname);
 						}
 					}
 					
@@ -1443,7 +1443,7 @@ void CheckMapForChange() {
 					if (IsClientInGame(client)) {
 						ACS_GetLocalizedMissionName(g_iGameMode, cycleIndex, client, localizedName, sizeof(localizedName));
 						Format(colorizedname, sizeof(colorizedname), "\x04%s\x05", localizedName);
-						PrintToChat(client, "\x03[ACS]\x05 %t", "Switching campaign to", colorizedname);
+						PrintToChat(client, "\x03[Orz]\x05 %t", "Switching campaign to", colorizedname);
 					}
 				}
 				
@@ -1476,7 +1476,7 @@ void ChangeScavengeMap() {
 				if (IsClientInGame(client)) {
 					LMM_GetMapLocalizedName(g_iGameMode, missionIndex, mapIndex, localizedName, sizeof(localizedName), client);
 					Format(colorizedname, sizeof(colorizedname), "\x04%s\x05", localizedName);
-					PrintToChat(client, "\x03[ACS]\x05 %t", "Switching to the vote winner", colorizedname);
+					PrintToChat(client, "\x03[Orz]\x05 %t", "Switching to the vote winner", colorizedname);
 				}
 			}
 			
@@ -1524,7 +1524,7 @@ void ChangeScavengeMap() {
 						if (IsClientInGame(client)) {
 							LMM_GetMapLocalizedName(g_iGameMode, missionIndex, mapIndex, localizedName, sizeof(localizedName), client);
 							Format(colorizedname, sizeof(colorizedname), "\x04%s\x05", localizedName);
-							PrintToChat(client, "\x03[ACS]\x05 %t", "Switching map to", colorizedname);
+							PrintToChat(client, "\x03[Orz]\x05 %t", "Switching map to", colorizedname);
 						}
 					}	
 
@@ -1683,7 +1683,7 @@ void DisplayNextMapTo_Scavenge(int client, bool replyCMD) {
 		GetWinnerListForDisplay_Scavenge(client, strbuf, strbuf_len);
 
 		if (replyCMD) {
-			ReplyToCommand(client, "\x03[ACS]\x05 %t",
+			ReplyToCommand(client, "\x03[Orz]\x05 %t",
 				g_iWinningMapIndices_Len == 1 ?
 				"The next map is currently" :
 				"The next map will be one of",
@@ -1695,7 +1695,7 @@ void DisplayNextMapTo_Scavenge(int client, bool replyCMD) {
 					"The next map will be one of",
 				strbuf);
 		} else if(g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_CHAT)	{
-			PrintToChat(client, "\x03[ACS]\x05 %t",
+			PrintToChat(client, "\x03[Orz]\x05 %t",
 				g_iWinningMapIndices_Len == 1 ?
 					"The next map is currently" :
 					"The next map will be one of",
@@ -1714,12 +1714,12 @@ void DisplayNextMapTo_Scavenge(int client, bool replyCMD) {
 		//Display the next map in the rotation in the appropriate way
 		if (replyCMD) {
 			Format(colorizedName, sizeof(colorizedName), "\x04%s\x05", localizedName);
-			ReplyToCommand(client, "\x03[ACS]\x05 %t", "The next map is currently", colorizedName);
+			ReplyToCommand(client, "\x03[Orz]\x05 %t", "The next map is currently", colorizedName);
 		} else if (g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_HINT) {
 			PrintHintText(client, "%t", "The next map is currently", localizedName);
 		} else if (g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_CHAT) {
 			Format(colorizedName, sizeof(colorizedName), "\x04%s\x05", localizedName);
-			PrintToChat(client, "\x03[ACS]\x05 %t", "The next map is currently", colorizedName);
+			PrintToChat(client, "\x03[Orz]\x05 %t", "The next map is currently", colorizedName);
 		}
 	}
 }
@@ -1733,7 +1733,7 @@ void DisplayNextMapTo(int client, bool replyCMD) {
 		GetWinnerListForDisplay(client, strbuf, strbuf_len);
 		
 		if (replyCMD) {
-			ReplyToCommand(client, "\x03[ACS]\x05 %t",
+			ReplyToCommand(client, "\x03[Orz]\x05 %t",
 				g_iWinningMapIndices_Len == 1 ?
 				"The next campaign is currently" :
 				"The next campaign will be one of",
@@ -1745,7 +1745,7 @@ void DisplayNextMapTo(int client, bool replyCMD) {
 					"The next campaign will be one of",
 				strbuf);
 		} else if(g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_CHAT)	{
-			PrintToChat(client, "\x03[ACS]\x05 %t",
+			PrintToChat(client, "\x03[Orz]\x05 %t",
 				g_iWinningMapIndices_Len == 1 ?
 					"The next campaign is currently" :
 					"The next campaign will be one of",
@@ -1764,12 +1764,12 @@ void DisplayNextMapTo(int client, bool replyCMD) {
 
 		if (replyCMD) {
 			Format(colorizedName, sizeof(colorizedName), "\x04%s\x05", localizedName);
-			ReplyToCommand(client, "\x03[ACS]\x05 %t", "The next campaign is currently", colorizedName);
+			ReplyToCommand(client, "\x03[Orz]\x05 %t", "The next campaign is currently", colorizedName);
 		} else if (g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_HINT) {
 			PrintHintText(client, "%t", "The next campaign is currently", localizedName);
 		} else if (g_hCVar_NextMapAdMode.IntValue == DISPLAY_MODE_CHAT) {
 			Format(colorizedName, sizeof(colorizedName), "\x04%s\x05", localizedName);
-			PrintToChat(client, "\x03[ACS]\x05 %t", "The next campaign is currently", colorizedName);
+			PrintToChat(client, "\x03[Orz]\x05 %t", "The next campaign is currently", colorizedName);
 		}
 	}
 }
@@ -1797,12 +1797,12 @@ void DisplayNextMapToAll() {
 //Command that a player can use to vote/revote for a map/campaign
 public Action MapVote(int iClient, int args) {
 	if(!g_hCVar_VotingEnabled.BoolValue) {
-		ReplyToCommand(iClient, "\x03[ACS]\x01 %t", "Voting is disable");
+		ReplyToCommand(iClient, "\x03[Orz]\x01 %t", "Voting is disable");
 		return;
 	}
 	
 	if(!OnFinaleOrScavengeMap()) {
-		PrintToChat(iClient, "\x03[ACS]\x01 %t", "Voting is not available");
+		PrintToChat(iClient, "\x03[Orz]\x01 %t", "Voting is not available");
 		return;
 	}
 	
@@ -1818,12 +1818,12 @@ public Action DisplayCurrentVotes(int iClient, int args) {
 	char localizedName[LEN_MISSION_NAME];
 
 	if(!g_hCVar_VotingEnabled.BoolValue) {
-		ReplyToCommand(iClient, "\x03[ACS]\x01 %t", "Voting is disable");
+		ReplyToCommand(iClient, "\x03[Orz]\x01 %t", "Voting is disable");
 		return;
 	}
 	
 	if(!OnFinaleOrScavengeMap()) {
-		PrintToChat(iClient, "\x03[ACS]\x01 %t", "Voting is not available");
+		PrintToChat(iClient, "\x03[Orz]\x01 %t", "Voting is not available");
 		return;
 	}
 			
@@ -1836,7 +1836,7 @@ public Action DisplayCurrentVotes(int iClient, int args) {
 			DisplayNextMapTo(iClient, true);
 		}
 	} else {
-		ReplyToCommand(iClient, "\x03[ACS]\x01 %t", "No one has voted yet");	
+		ReplyToCommand(iClient, "\x03[Orz]\x01 %t", "No one has voted yet");	
 	}
 
 
@@ -1903,7 +1903,7 @@ public Action Timer_DisplayVoteAdToAll(Handle hTimer, any iData) {
 			switch(g_hCVar_VotingAdMode.IntValue) {
 				case DISPLAY_MODE_MENU: VoteMenuDraw(iClient);
 				case DISPLAY_MODE_HINT: PrintHintText(iClient, "%t", "Map vote advertise", "!mapvote", "!mapvotes");
-				case DISPLAY_MODE_CHAT: PrintToChat(iClient, "\x03[ACS]\x05 %t", "Map vote advertise", "\x04!mapvote\x05", "\x04!mapvotes\x05");
+				case DISPLAY_MODE_CHAT: PrintToChat(iClient, "\x03[Orz]\x05 %t", "Map vote advertise", "\x04!mapvote\x05", "\x04!mapvotes\x05");
 			}
 			
 			g_bClientShownVoteAd[iClient] = true;
