@@ -5,7 +5,7 @@
 - l4d_votes_5.smx  (32)
 - cannounce.smx (这是一个完全不清楚是否好用的插件，仍有待观测。其作用为提示有人进入/退出服务器) (32)
 - linux_auto_restart.smx 
-- advertisements.smx (32)
+- advertisements.smx (64)
 - L4DVSAutoSpectateOnAFK.smx （这个插件看起来如果对抗生还和特感人满了而旁观会被踢，等之后再测试吧）(32)
 - l4d2_mission_manager.smx 里面包含了四个文件
   - acs.smx (64)
