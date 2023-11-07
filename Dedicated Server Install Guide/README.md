@@ -39,7 +39,8 @@ After this you should get a black screen which says "login as:".  You should ent
 **dpkg --add-architecture i386 # enable multi-arch  
 apt-get update && apt-get upgrade  
 apt-get install libc6:i386 # install base 32bit libraries  
-apt-get install lib32z1  
+apt-get install lib32z1
+sudo apt-get install lib32gcc-s1 libstdc++6 libstdc++6:i386 libcurl4-gnutls-dev:i386  
 apt-get install screen**
 
 > **Creating a User to run the Servers on**  
