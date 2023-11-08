@@ -1,5 +1,12 @@
 "MatchModes"
 {
+	"Bmod Configs"
+	{
+		"Bmod"
+		{
+			"name" "Bmod 0.0.0"
+		}
+	}
 	"AnneHappy Configs"
 	{
 		"annehappy"
