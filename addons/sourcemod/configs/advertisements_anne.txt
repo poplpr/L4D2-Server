@@ -18,7 +18,7 @@
 	"4"
 	{
 		"type"		"S"
-		"text"		"{LIGHTGREEN}本服OP {GREEN}东{LIGHTGREEN}，欢迎加入组服务器qq群：{GREEN}883237206{LIGHTGREEN} 寻找小伙伴一起开黑"
+		"text"		"{LIGHTGREEN}本服OP {GREEN}神秘人{LIGHTGREEN}，欢迎大家在本服务器玩！"
 	}
 	"5"
 	{
