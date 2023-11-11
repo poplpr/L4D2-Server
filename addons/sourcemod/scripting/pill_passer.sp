@@ -181,7 +181,7 @@ void SDK_OnPostThink_Post(int iClient)
 						}
 					}
 				}
-				else if (iTargetWeaponIndex2 == -1) {
+				if (iTargetWeaponIndex2 == -1) {
 					float fClientOrigin[3], fTargetOrigin[3];
 					GetClientAbsOrigin(iClient, fClientOrigin);
 					GetClientAbsOrigin(iTarget, fTargetOrigin);
