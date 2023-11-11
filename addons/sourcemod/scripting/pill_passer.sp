@@ -148,8 +148,8 @@ void SDK_OnPostThink_Post(int iClient)
 				iTarget = GetClientAimTarget(iClient, true);
 			
 			if (iTarget > 0 && GetClientTeam(iTarget) == L4D2Team_Survivor && !IsPlayerIncap(iTarget)) {
-				int iTargetWeaponIndex = GetPlayerWeaponSlot(iTarget, L4D2WeaponSlot_LightHealthItem);
-				int iTargetWeaponIndex2 = GetPlayerWeaponSlot(iTarget, L4D2WeaponSlot_HeavyHealthItem);
+
+				int iTargetWeaponIndex = GetPlayerWeaponSlot(iTarget, iWeapId == WEPID_FIRST_AID_KIT ? L4D2WeaponSlot_HeavyHealthItem : L4D2WeaponSlot_LightHealthItem);
 				
 				if (iTargetWeaponIndex == -1) {
 					float fClientOrigin[3], fTargetOrigin[3];
@@ -158,37 +158,7 @@ void SDK_OnPostThink_Post(int iClient)
 					
 					if (GetVectorDistance(fClientOrigin, fTargetOrigin, true) < g_flSqRange) {
 						// Remove item
-						int iGiverWeaponIndex = GetPlayerWeaponSlot(iClient, L4D2WeaponSlot_LightHealthItem);
-						RemovePlayerItem(iClient, iGiverWeaponIndex);
-						
-						#if (SOURCEMOD_V_MINOR == 11) || USE_GIVEPLAYERITEM
-							RemoveEntity(iGiverWeaponIndex);
-							iGiverWeaponIndex = GivePlayerItem(iTarget, sWeaponName); // Fixed only in the latest version of sourcemod 1.11
-						#else
-							EquipPlayerWeapon(iTarget, iGiverWeaponIndex);
-						#endif
-						
-						// If the entity was sucessfully given to the player
-						if (iGiverWeaponIndex > 0) {
-							// Call Event
-							Handle hFakeEvent = CreateEvent("weapon_given");
-							SetEventInt(hFakeEvent, "userid", GetClientUserId(iTarget));
-							SetEventInt(hFakeEvent, "giver", GetClientUserId(iClient));
-							SetEventInt(hFakeEvent, "weapon", iWeapId);
-							SetEventInt(hFakeEvent, "weaponentid", iGiverWeaponIndex);
-							
-							FireEvent(hFakeEvent);
-						}
-					}
-				}
-				if (iTargetWeaponIndex2 == -1) {
-					float fClientOrigin[3], fTargetOrigin[3];
-					GetClientAbsOrigin(iClient, fClientOrigin);
-					GetClientAbsOrigin(iTarget, fTargetOrigin);
-					
-					if (GetVectorDistance(fClientOrigin, fTargetOrigin, true) < g_flSqRange) {
-						// Remove item
-						int iGiverWeaponIndex = GetPlayerWeaponSlot(iClient, L4D2WeaponSlot_HeavyHealthItem);
+						int iGiverWeaponIndex = GetPlayerWeaponSlot(iClient, iWeapId == WEPID_FIRST_AID_KIT ? L4D2WeaponSlot_HeavyHealthItem : L4D2WeaponSlot_LightHealthItem);
 						RemovePlayerItem(iClient, iGiverWeaponIndex);
 						
 						#if (SOURCEMOD_V_MINOR == 11) || USE_GIVEPLAYERITEM
