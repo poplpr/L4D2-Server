@@ -135,7 +135,7 @@ void SDK_OnPostThink_Post(int iClient)
 		GetClientWeapon(iClient, sWeaponName, sizeof(sWeaponName));
 		
 		int iWeapId = WeaponNameToId(sWeaponName);
-		if (iWeapId == WEPID_PAIN_PILLS || iWeapId == WEPID_ADRENALINE) {
+		if (iWeapId == WEPID_PAIN_PILLS || iWeapId == WEPID_ADRENALINE || iWeapId == WEPID_FIRST_AID_KIT) {
 			if (g_bLagCompAvailable && g_bLagComp) {
 				g_iPasser = iClient; // better detection in "WantsLagCompensationOnEntity"
 				L4D2_LagComp_StartLagCompensation(iClient, LAG_COMPENSATE_BOUNDS);
