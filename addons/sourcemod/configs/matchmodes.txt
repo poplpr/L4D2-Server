@@ -2,9 +2,9 @@
 {
 	"Bmod Configs"
 	{
-		"Bmod"
+		"bmod"
 		{
-			"name" "Bmod 0.0.0"
+			"name" "Bmod 0.3.0"
 		}
 	}
 	"AnneHappy Configs"
