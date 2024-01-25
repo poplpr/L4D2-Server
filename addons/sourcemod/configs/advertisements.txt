@@ -13,17 +13,17 @@
 	"3"
 	{
 		"type"		"S"
-		"text"		"{GREEN}!away{LIGHTGREEN} 旁观 {GREEN}!slots{LIGHTGREEN} 开位 {GREEN}!rpg{LIGHTGREEN} 娱乐商店"
+		"text"		"{GREEN}!s{LIGHTGREEN} 旁观 {GREEN}!slots 人数{LIGHTGREEN} 开位；如果7人迟迟没人进，可能是卡房，需要用 {GREEN}!slots{LIGHTGREEN} 开更多位置！"
 	}
 	"4"
 	{
 		"type"		"S"
-		"text"		"{LIGHTGREEN}本服OP {GREEN}神秘人{LIGHTGREEN}，欢迎大家在本服务器玩！"
+		"text"		"{LIGHTGREEN}本服OP {GREEN}不愿意透露姓名的神秘人{LIGHTGREEN}，欢迎大家在本服务器玩！"
 	}
 	"5"
 	{
 		"type"		"S"
-		"text"		"{LIGHTGREEN}血量低于{GREEN}40{LIGHTGREEN}时要考虑跳楼表演了 因为会拖慢队伍推进速度哦"
+		"text"		"{LIGHTGREEN}由于OP在药抗总是被踢，因此本服主要面向刚刚脱离包抗的萌新。本服也可以切换为 {GREEN}anne 药役{LIGHTGREEN}。"
 	}
 	"6"
 	{
@@ -33,12 +33,12 @@
 	"7"
 	{
 		"type"		"S"
-		"text"		"{LIGHTGREEN}称号、帽子和生还者轮廓系统已在商店系统上线\n{GREEN}50W积分{LIGHTGREEN}自定义称号可以使用{GREEN}!setch 进行设置和修改"
+		"text"		"{LIGHTGREEN}萌新的学习路线：战役（熟悉地图）->普通包抗（简单熟悉对抗）->本服（进阶）。玩对抗前请上 B 站搜索 {GREEN}VT China{LIGHTGREEN} 学习对抗技巧并在本地简要实践以防止被踢~"
 	}
 	"8"
 	{
 		"type"		"S"
-		"text"		"{LIGHTGREEN}如果某个进度的克不想打，生还者可以使用命令 {GREEN}!voteboss{LIGHTGREEN} 修改Tank和Witch进度"
+		"text"		"{GREEN}萌新小技巧{LIGHTGREEN}：口水需要队友帮你定在固定位置再吐！流行的对抗插件口水蔓延的前期是完全没有伤害的！"
 	}
 	"9"
 	{
@@ -48,7 +48,7 @@
 	"10"
 	{
 		"type"		"S"
-		"text"		"{GREEN}服务器Mod开关{LIGHTGREEN}可以在{GREEN}投票菜单{LIGHTGREEN}中开启"
+		"text"		"{GREEN}萌新小技巧{LIGHTGREEN}：打开设置，进入{GREEN}键盘/鼠标{LIGHTGREEN}，在{GREEN}允许使用开发者控制台{LIGHTGREEN}中选{GREEN}已启用{LIGHTGREEN}，接着按~呼出控制台，输入 {GREEN}cl_interp_ratio 0;cl_interp 0;{LIGHTGREEN} 修改lerp，可以打的更准。"
 	}
 	"11"
 	{
