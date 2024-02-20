@@ -80,10 +80,18 @@ public Plugin myinfo =
 #define FLAGS_INCAP_TANKPUNCH             2
 #define FLAGS_INCAP_TANKROCK              4
 
-#define TEAM_SURVIVOR                     2
-#define TEAM_INFECTED                     3
-
-#define DMG_TYPE_SPIT (DMG_RADIATION|DMG_ENERGYBEAM)
+bool
+	bLateLoad,
+	bTanked[MAXPLAYERS + 1],
+	bCantSwitchHealth[MAXPLAYERS + 1],
+	bCantSwitchSecondary[MAXPLAYERS + 1],
+	bPreventValveSwitch[MAXPLAYERS +1];
+	
+Handle
+	hSecondary[MAXPLAYERS + 1],
+	hHealth[MAXPLAYERS + 1],
+	hTanked[MAXPLAYERS + 1],
+	hValveSwitch[MAXPLAYERS + 1];
 
 bool
 	g_bCantSwitchDropped[MAXPLAYERS+1],
@@ -116,49 +124,11 @@ Cookie
 
 void LoadSDK()
 {
-	GameData conf = new GameData(GAMEDATA_FILE);
-	if (conf == null)
-		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ..."\"");
-	
-	DynamicDetour hDetour = DynamicDetour.FromConf(conf, KEY_FUNCTION);
-	if (!hDetour)
-		SetFailState("Missing detour setup \""...KEY_FUNCTION..."\"");
-	if (!hDetour.Enable(Hook_Pre, DTR_OnEquipSecondWeapon))
-		SetFailState("Failed to pre-detour \""...KEY_FUNCTION..."\"");
-	if (!hDetour.Enable(Hook_Post, DTR_OnEquipSecondWeapon_Post))
-		SetFailState("Failed to post-detour \""...KEY_FUNCTION..."\"");
-	
-	delete hDetour;
-	
-	hDetour = DynamicDetour.FromConf(conf, KEY_FUNCTION_2);
-	if (!hDetour)
-		SetFailState("Missing detour setup \""...KEY_FUNCTION_2..."\"");
-	if (g_bLeft4Dead2)
-	{
-		if (!hDetour.Enable(Hook_Pre, DTR_OnRemoveSecondWeapon_Eb))
-			SetFailState("Failed to pre-detour \""...KEY_FUNCTION_2..."\"");
-	}
-	else
-	{
-		if (!hDetour.Enable(Hook_Pre, DTR_OnRemoveSecondWeapon_Ev))
-			SetFailState("Failed to pre-detour \""...KEY_FUNCTION_2..."\"");
-	}
-	
-	delete hDetour;
-	
-	hDetour = DynamicDetour.FromConf(conf, KEY_FUNCTION_3);
-	if (!hDetour)
-		SetFailState("Missing detour setup \""...KEY_FUNCTION_3..."\"");
-	if (!hDetour.Enable(Hook_Pre, DTR_OnSetViewModel))
-		SetFailState("Failed to pre-detour \""...KEY_FUNCTION_3..."\"");
-	
-	delete hDetour;
-	
-	g_hPatch = MemoryPatch.CreateFromConf(conf, KEY_FUNCTION...KEY_PATCH_SURFIX);
-	if (!g_hPatch.Validate())
-		SetFailState("Failed to validate memory patch \""...KEY_FUNCTION...KEY_PATCH_SURFIX..."\"");
-	
-	delete conf;
+	name = "L4D2 Pick-up Changes",
+	author = "Sir, A1m`",
+	description = "Alters a few things regarding picking up/giving items and incapped Players.",
+	version = "1.2.3",
+	url = "https://github.com/SirPlease/L4D2-Competitive-Rework/"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
