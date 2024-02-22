@@ -10,6 +10,7 @@
 #include <si_target_limit>
 #include <pause>
 #include <ai_smoker_new>
+#include <si_pool>
 
 #define CVAR_FLAG FCVAR_NOTIFY
 #define TEAM_SURVIVOR 2
@@ -123,6 +124,7 @@ bool
 	g_bIgnoreIncappedSurvivorSight,		//是否忽略倒地生还者的视线
 	g_bIsLate = false, 					//text插件是否发送开启刷特命令
 	g_bSmokerAvailable = false,			//ai_smoker_new是否存在
+	g_bSIPoolAvailable = false,			//特感池是否存在
 	g_bTargetSystemAvailable = false;	//目标选择插件是否存在
 // Handle
 Handle 
@@ -135,6 +137,9 @@ ArrayList
 	aTeleportQueue,						//传送队列
 	//aSpawnNavList,						//储存特感生成的navid，用来限制特感不能生成在同一块Navid上
 	aSpawnQueue;						//刷特队列
+
+SIPool 
+	g_hSIPool;
 
 public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_max)
 {
@@ -164,16 +169,19 @@ public any Native_GetNextSpawnTime(Handle plugin, int numParams)
 public void OnAllPluginsLoaded(){
 	g_bTargetSystemAvailable = LibraryExists("si_target_limit");
 	g_bSmokerAvailable = LibraryExists("ai_smoker_new");
+	g_bSIPoolAvailable = LibraryExists("si_pool");
 }
 public void OnLibraryAdded(const char[] name)
 {
     if ( StrEqual(name, "si_target_limit") ) { g_bTargetSystemAvailable = true; }
 	else if( StrEqual(name, "ai_smoker_new") ) { g_bSmokerAvailable = true; }
+	else if( StrEqual(name, "si_pool") ) { g_bSIPoolAvailable = true; }
 }
 public void OnLibraryRemoved(const char[] name)
 {
     if ( StrEqual(name, "si_target_limit") ) { g_bTargetSystemAvailable = false; }
 	else if( StrEqual(name, "ai_smoker_new") ) { g_bSmokerAvailable = false; }
+	else if( StrEqual(name, "si_pool") ) { g_bSIPoolAvailable = false; }
 }
 public void OnPluginStart()
 {
@@ -231,6 +239,11 @@ public void OnPluginStart()
 	// Debug
 	RegAdminCmd("sm_startspawn", Cmd_StartSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
 	RegAdminCmd("sm_stopspawn", Cmd_StopSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
+}
+
+public void OnMapStart()
+{
+    if (g_bSIPoolAvailable && !g_hSIPool) g_hSIPool = SIPool.Instance();
 }
 
 public void OnPluginEnd() {
@@ -718,7 +731,11 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
 				if(!IsTeleport && g_iSpawnMaxCount <= 0){
 					return false;
 				}
-				int entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({0.0, 0.0, 0.0}));
+				int entityindex;
+				if(g_bSIPoolAvailable)
+					entityindex = g_hSIPool.RequestSIBot(iZombieClass, fSpawnPos);
+				else
+					entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({0.0, 0.0, 0.0}));
 				if (IsValidEntity(entityindex) && IsValidEdict(entityindex))
 				{
 					//aSpawnNavList.Push(nav1);
