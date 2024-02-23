@@ -270,19 +270,15 @@
 			"message" "8秒"
 		}
 	}
-	"同步率切换[默认0.014]"
+	"mixmap插件开关"
 	{
-		"sm_cvar nb_update_frequency 0.01"
+		"exec vote/mix_on.cfg"
 		{
-			"message" "0.01[高][过关后需重新投票]"
+			"message" "打开mixmap插件"
 		}
-		"sm_cvar nb_update_frequency 0.014"
+		"exec vote/mix_off.cfg"
 		{
-			"message" "0.014[中][过关后需重新投票]"
-		}
-		"sm_cvar nb_update_frequency 0.03"
-		{
-			"message" "0.03[低][过关后需重新投票]"
+			"message" "关闭mixmap插件"
 		}
 	}
 	"商店选项开关"

@@ -60,4 +60,15 @@
 			"message" "限制旁观tick"
 		}
 	}
+	"mixmap插件开关"
+	{
+		"exec vote/mix_on.cfg"
+		{
+			"message" "打开mixmap插件"
+		}
+		"exec vote/mix_off.cfg"
+		{
+			"message" "关闭mixmap插件"
+		}
+	}
 }
