@@ -39,7 +39,7 @@ public Action SlotsRequest(int client, int args)
 		char sSlots[64];
 		GetCmdArg(1, sSlots, sizeof(sSlots));
 		int Int = StringToInt(sSlots);
-		if (Int > MaxSlots)
+		if (Int > MaxSlots && !((GetUserFlagBits(client) & ADMFLAG_GENERIC ) || client == 0))
 		{
 			CPrintToChat(client, "%t %t", "Tag", "LimitSlotsAbove", MaxSlots);
 		}
