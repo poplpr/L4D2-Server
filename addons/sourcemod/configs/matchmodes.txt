@@ -4,7 +4,7 @@
 	{
 		"bmod"
 		{
-			"name" "Bmod 0.3.2.2.8.9"
+			"name" "Bmod 0.3.2.2.8.9b"
 		}
 	}
 	"AnneHappy Configs"
