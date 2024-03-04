@@ -39,45 +39,42 @@ public Action SlotsRequest(int client, int args)
 		char sSlots[64];
 		GetCmdArg(1, sSlots, sizeof(sSlots));
 		int Int = StringToInt(sSlots);
-		if (Int > MaxSlots && !((GetUserFlagBits(client) & ADMFLAG_GENERIC ) || client == 0))
+		if(CheckCommandAccess(client, "", ADMFLAG_GENERIC) || client == 0)
 		{
-			CPrintToChat(client, "%t %t", "Tag", "LimitSlotsAbove", MaxSlots);
-		}
-		else
-		{
-			if(Int > numSlots())
-			{
-				if(L4D_LobbyIsReserved())
-					L4D_LobbyUnreserve();
-				SetConVarInt(FindConVar("sv_allow_lobby_connect_only"), 0);
-			}
+			char sName[MAX_NAME_LENGTH];
 			if(client == 0)
-			{
-				//CPrintToChatAll("{blue}[{default}Slots{blue}] {olive}管理员 {default}将服务器位置设为 {blue}%i {default}个", Int);
-				char sName[MAX_NAME_LENGTH];
+				sName="远程管理员";
+			else
 				GetClientName(client, sName, sizeof(sName));
-				CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
-				SetConVarInt(FindConVar("sv_maxplayers"), Int);
-				SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
-			}
-			if (GetUserFlagBits(client) & ADMFLAG_GENERIC)
+			CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
+			SetConVarInt(FindConVar("sv_maxplayers"), Int);
+			SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
+		}
+		else{
+			if (Int > MaxSlots)
 			{
-				char sName[MAX_NAME_LENGTH];
-				GetClientName(client, sName, sizeof(sName));
-				CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
-				SetConVarInt(FindConVar("sv_maxplayers"), Int);
-				SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
+				CPrintToChat(client, "%t %t", "Tag", "LimitSlotsAbove", MaxSlots);
 			}
-			else if (Int < GetConVarInt(FindConVar("survivor_limit")))
+			else
 			{
-				CPrintToChat(client, "%t %t", "Tag", "RequiredPlayers");
-			}
-			else if (StartSlotVote(client, sSlots))
-			{
-				strcopy(g_sSlots, sizeof(g_sSlots), sSlots);
-				FakeClientCommand(client, "Vote Yes");
+				if(Int > numSlots())
+				{
+					if(L4D_LobbyIsReserved())
+						L4D_LobbyUnreserve();
+					SetConVarInt(FindConVar("sv_allow_lobby_connect_only"), 0);
+				}
+				if (Int < GetConVarInt(FindConVar("survivor_limit")))
+				{
+					CPrintToChat(client, "%t %t", "Tag", "RequiredPlayers");
+				}
+				else if (StartSlotVote(client, sSlots))
+				{
+					strcopy(g_sSlots, sizeof(g_sSlots), sSlots);
+					FakeClientCommand(client, "Vote Yes");
+				}
 			}
 		}
+		
 	}
 	else
 	{
