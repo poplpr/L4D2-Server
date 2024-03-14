@@ -49,6 +49,12 @@ public Action SlotsRequest(int client, int args)
 			CPrintToChatAll("%t %t", "Tag", "LimitedSlotsTo", sName, Int);
 			SetConVarInt(FindConVar("sv_maxplayers"), Int);
 			SetConVarInt(FindConVar("sv_visiblemaxplayers"), Int);
+			if(Int > numSlots())
+			{
+				if(L4D_LobbyIsReserved())
+					L4D_LobbyUnreserve();
+				SetConVarInt(FindConVar("sv_allow_lobby_connect_only"), 0);
+			}
 		}
 		else{
 			if (Int > MaxSlots)
