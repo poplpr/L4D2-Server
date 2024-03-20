@@ -480,7 +480,10 @@ public Action Timer_KickBot(Handle timer, int client)
 	if (IsClientInGame(client) && !IsClientInKickQueue(client) && IsFakeClient(client))
 	{
 		Debug_Print("踢出特感%N",client);
-		KickClient(client, "You are worthless and was kicked by console");
+		if(g_bSIPoolAvailable)
+			g_hSIPool.ReturnSIBot(client);
+		else
+			KickClient(client, "You are worthless and was kicked by console");
 	}
 	return Plugin_Continue;
 }
