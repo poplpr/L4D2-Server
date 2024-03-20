@@ -4295,6 +4295,16 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	CampaignOver = true;
 
 	StopMapTiming();
+	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0)
+	{
+		return;
+	}
+	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
+	if(TotalTime < 30.0)
+	{
+		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
+		return;
+	}
 
 	if (CurrentGamemodeID == GAMEMODE_SCAVENGE ||
 			CurrentGamemodeID == GAMEMODE_SURVIVAL)
@@ -4338,6 +4348,38 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 		}
 	}
 
+	if((AnneMultiPlayerMode() || SinglePlayerMode())){
+		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
+		{
+			Score = RoundToFloor(Score * 0.4);
+		}
+		else
+		{
+			int inf= GetAnneInfectedNumber();
+			if(inf < 4)
+			{
+				if(AnneMultiPlayerMode())
+					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
+			}
+			else if(inf > 4)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
+			else if(inf > 6)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
+			else if(inf>8)
+				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
+		}	
+	}
+
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
+	}
+
+	if(IsGaoJiRenJiEnabled())
+	{
+		Score = RoundToFloor(Score * 0.5);
+	}
+
 	new maxplayers = MaxClients;
 	for (new i = 1; i <= maxplayers; i++)
 	{
@@ -4369,37 +4411,6 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 					AddScore(i, Score * (-1));
 			}
 		}
-	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode())){
-		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
-		{
-			Score = RoundToFloor(Score * 0.4);
-		}
-		else
-		{
-			int inf= GetAnneInfectedNumber();
-			if(inf < 4)
-			{
-				if(AnneMultiPlayerMode())
-					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
-			}
-			else if(inf > 4)
-				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
-			else if(inf > 6)
-				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
-			else if(inf>8)
-				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
-		}	
-	}
-
-	if(IsAboveFourPeople())
-	{
-		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
-	}
-
-	if(IsGaoJiRenJiEnabled())
-	{
-		Score = RoundToFloor(Score * 0.5);
 	}
 
 	if (Mode && Score > 0)
@@ -9738,6 +9749,17 @@ public CheckSurvivorsWin()
 	decl String:UpdatePoints[32], String:UpdatePointsPenalty[32];
 	new ClientTeam, bool:NegativeScore = GetConVarBool(cvar_EnableNegativeScore);
 
+	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0)
+	{
+		return;
+	}
+	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
+	if(TotalTime < 30.0)
+	{
+		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
+		return;
+	}
+
 	switch (CurrentGamemodeID)
 	{
 		case GAMEMODE_VERSUS:
@@ -11178,6 +11200,12 @@ public StopMapTiming()
 	}
 
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
+	if(TotalTime < 30.0)
+	{
+		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
+		return;
+	}
+
 	MapTimingStartTime = -1.0;
 	MapTimingBlocked = true;
 
