@@ -280,7 +280,7 @@ public void  OnPluginStart()
 	//RegAdminCmd("sm_aruatest", Tryskin, ADMFLAG_ROOT ,"测试轮廓rgb值");
 	for(int i=1;i<MaxClients;i++){
 			player[i].ClientPoints=500;
-			player[i].ClientFirstBuy=true;
+			player[i].ClientFirstBuy=false;
 			player[i].CanBuy=true;
 	}
 }
@@ -335,7 +335,7 @@ public void Event_PlayerDisconnectOrAFK( Event hEvent, const char[] sName, bool 
 		player[client].ClientHat = 0;
 		player[client].GlowType = 0;
 		player[client].SkinType = 0;
-		player[client].ClientFirstBuy = true;
+		player[client].ClientFirstBuy = false;
 		player[client].ClientRecoil = 1;
 		player[client].CanBuy=true;
 		player[client].ClientPoints = 500;
@@ -591,7 +591,7 @@ public void OnClientPostAdminCheck(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 		return;
-	player[client].ClientFirstBuy = true;
+	player[client].ClientFirstBuy = false;
 	player[client].ClientRecoil = 1;
 	player[client].CanBuy=true;
 	player[client].ClientPoints = 500;
