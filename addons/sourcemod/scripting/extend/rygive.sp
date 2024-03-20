@@ -842,7 +842,8 @@ void Miscell(int client, int item) {
 	menu.AddItem("i", "处死所有特感");
 	if(GetClientImmunityLevel(client) > 90)
 		menu.AddItem("j", "特感控制免疫");
-	menu.AddItem("k", "处死所有生还");
+	if(GetClientImmunityLevel(client) > 90)
+		menu.AddItem("k", "处死所有生还");
 	if(GetClientImmunityLevel(client) >= 90)
 		menu.AddItem("l", "传送所有生还到起点");
 	if(GetClientImmunityLevel(client) > 99)
