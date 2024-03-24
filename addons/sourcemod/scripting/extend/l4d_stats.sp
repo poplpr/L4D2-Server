@@ -9734,7 +9734,7 @@ public CheckSurvivorsWin()
 
 	CampaignOver = true;
 	//StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03CampaignOver值没问题!");
-	StopMapTiming();
+	if(!StopMapTiming())return;
 	CurrentGamemodeID = GetCurrentGamemodeID();
 	// Return if gamemode is Scavenge or Survival
 	if (CurrentGamemodeID == GAMEMODE_SCAVENGE ||
@@ -9748,17 +9748,6 @@ public CheckSurvivorsWin()
 	new maxplayers = MaxClients;
 	decl String:UpdatePoints[32], String:UpdatePointsPenalty[32];
 	new ClientTeam, bool:NegativeScore = GetConVarBool(cvar_EnableNegativeScore);
-
-	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0)
-	{
-		return;
-	}
-	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
-	if(TotalTime < 30.0)
-	{
-		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
-		return;
-	}
 
 	switch (CurrentGamemodeID)
 	{
@@ -11147,11 +11136,11 @@ GetCurrentDifficulty()
 	else return 0;
 }
 
-public StopMapTiming()
+public bool StopMapTiming()
 {
 	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0 || StatsDisabled())
 	{
-		return;
+		return false;
 	}
 	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 	{
@@ -11161,7 +11150,7 @@ public StopMapTiming()
 		}
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 	if(!IsNormalMode() && !IsThisRoundValid())
 	{
@@ -11171,7 +11160,7 @@ public StopMapTiming()
 		}
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 	int mode = 0;
 	if(IsAnne())
@@ -11196,14 +11185,14 @@ public StopMapTiming()
 		StatsPrintToChatAll("启用了多人运动模式，不记录这张地图游戏时间!");
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
 	if(TotalTime < 30.0)
 	{
 		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
-		return;
+		return false;
 	}
 
 	MapTimingStartTime = -1.0;
@@ -11242,8 +11231,8 @@ public StopMapTiming()
 	}
 
 	// Game ended because all of the infected team left the server... don't record the time!
-	if (InfectedCounter <= 0)
-		return;
+	//if (InfectedCounter <= 0)
+		//return;
 
 	new GameDifficulty = GetCurrentDifficulty();
 	if(mode > 0)
@@ -11291,6 +11280,7 @@ public StopMapTiming()
 	}
 
 	ClearTrie(MapTimingSurvivors);
+	return true;
 }
 
 GetThisModeBestTime(int UseBuy=0)

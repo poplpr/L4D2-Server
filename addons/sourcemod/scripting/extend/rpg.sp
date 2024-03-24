@@ -591,7 +591,10 @@ public void OnClientPostAdminCheck(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 		return;
-	player[client].ClientFirstBuy = false;
+	if(IsStart)
+		player[client].ClientFirstBuy = false;
+	else
+		player[client].ClientFirstBuy = true;
 	player[client].ClientRecoil = 1;
 	player[client].CanBuy=true;
 	player[client].ClientPoints = 500;
