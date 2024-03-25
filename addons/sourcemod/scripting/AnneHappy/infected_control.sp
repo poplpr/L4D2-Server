@@ -459,7 +459,7 @@ void evt_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
     int type = GetEntProp(client, Prop_Send, "m_zombieClass");
     //防止无声口水
-    if (type != ZC_SPITTER && !g_bSIPoolAvailable)    // 使用SIPool后不会出现无声口水
+    if (type != ZC_SPITTER || g_bSIPoolAvailable)    // 使用SIPool后不会出现无声口水
         CreateTimer(0.5, Timer_KickBot, client);
 
     if (type >= 1 && type <= 6)
