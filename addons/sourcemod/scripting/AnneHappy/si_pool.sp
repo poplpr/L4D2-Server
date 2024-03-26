@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-26 12:05:09
+ * @Last Modified time: 2024-03-26 12:30:27
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -14,7 +14,7 @@
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.03.26#101"
+#define VERSION       "2024.03.26#103"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -230,7 +230,7 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
     if (GetClientCount(false) >= MaxClients) return;
 
 #if DEBUG
-    LogToFile(LOGFILE, "[SIPool] SI size change: %d -> %d of %d pool", iOldPoolSize, iNewPoolSize, zclass_idx);
+    LogToFile(LOGFILE, "[SIPool] (%d)pool sized(%d -> %d)", zclass_idx, iOldPoolSize, iNewPoolSize);
 #endif
 
     bool add;
@@ -268,7 +268,7 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
         InitializeSpecial(bot, _, _, true);
         ResetDeadZombie(bot);
 #if DEBUG
-        LogToFile(LOGFILE, "[SIPool] SI create: %d", bot);
+        LogToFile(LOGFILE, "[SIPool] SI create: %d, (%d)pool sized(%d -> %d)", bot, zclass_idx, iOldPoolSize, iNewPoolSize);
 #endif
     }
 }
@@ -284,14 +284,14 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (!(IsInfected(client) && IsFakeClient(client)) || IsTank(client)) return;
 
-#if DEBUG
-    LogToFile(LOGFILE, "[SIPool] SI dead: %d", client);
-#endif
-
     // Return bot;
     g_iLastDeadTypeIdx = GetZombieClass(client) - 1;
     g_iPoolArray[g_iLastDeadTypeIdx][g_iPoolSize[g_iLastDeadTypeIdx]++] = client;
     ResetDeadZombie(client);
+
+#if DEBUG
+    LogToFile(LOGFILE, "[SIPool] SI dead: %d, (%d)pool sized(%d -> %d)", client, g_iLastDeadTypeIdx, g_iPoolSize[g_iLastDeadTypeIdx] - 1, g_iPoolSize[g_iLastDeadTypeIdx]);
+#endif
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
