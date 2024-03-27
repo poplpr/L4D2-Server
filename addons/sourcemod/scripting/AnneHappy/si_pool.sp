@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-25 21:07:19
+ * @Last Modified time: 2024-03-26 13:39:14
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -10,11 +10,12 @@
 #pragma newdecls required
 
 #define DEBUG 0
+
 #if DEBUG
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.03.25#93"
+#define VERSION       "2024.03.26#121"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -147,18 +148,20 @@ any Native_SIPool_Instance_get(Handle plugin, int numParams)
 
 any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
 {
-    static bool log = false;
     int zclass_idx = GetNativeCell(2) - 1;
     int size = g_iPoolSize[zclass_idx];
     if (size < 1)
     {
+#if DEBUG
+        static bool log = false;
         if (!log)
         {
-            LogMessage("[SIPool] Pool empty or not sized !");
-            LogMessage("[SIPool] SIPool will auto set size to 1 !");
-            LogMessage("[SIPool] This log only showed once.");
+            LogToFile(LOGFILE, "[SIPool] Pool empty or not sized !");
+            LogToFile(LOGFILE, "[SIPool] SIPool will auto set size to 1 !");
+            LogToFile(LOGFILE, "[SIPool] This log only showed once.");
             log = true;
         }
+#endif
         OnPoolSizeChanged(0, 1, zclass_idx);
         g_iPoolSize[zclass_idx] = 1;
     }
@@ -166,11 +169,22 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
     int index = 1;
     size = g_iPoolSize[zclass_idx];
     int bot = g_iPoolArray[zclass_idx][size - index];
-    while (!(IsValidClient(bot) && IsFakeClient(bot) && IsGhost(bot)) && ++index <= size)
-        bot = g_iPoolArray[zclass_idx][size - index];
-    if (index > size && !(IsValidClient(bot) && IsFakeClient(bot) && IsGhost(bot)))
+#if DEBUG
+    LogToFile(LOGFILE, "[SIPool] Start request (%s)pool, current size: %d", g_sZombieClass[zclass_idx], size);
+    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
+#endif
+    while (!(IsValidClient(bot) && IsFakeClient(bot) && !IsPlayerAlive(bot)) && ++index <= size)
     {
-        LogMessage("[SIPool] No SI available !");
+        bot = g_iPoolArray[zclass_idx][size - index];
+#if DEBUG
+        LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
+#endif
+    }
+    if (index > size && !(IsValidClient(bot) && IsFakeClient(bot) && !IsPlayerAlive(bot)))
+    {
+#if DEBUG
+        LogToFile(LOGFILE, "[SIPool] No SI available !");
+#endif
         OnPoolSizeChanged(size, 0, zclass_idx);
         g_iPoolSize[zclass_idx] = 0;
 
@@ -200,7 +214,8 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
     g_iPoolSize[zclass_idx] -= index;
 
 #if DEBUG
-    LogToFile(LOGFILE, "[SIPool] SI request: %d, type: %d", bot, zclass_idx + 1);
+    LogToFile(LOGFILE, "[SIPool] SI request: %d, type: %s", bot, g_sZombieClass[zclass_idx]);
+    LogToFile(LOGFILE, "[SIPool] Finish request (%s)pool, current size: %d", g_sZombieClass[zclass_idx], g_iPoolSize[zclass_idx]);
 #endif
 
     return bot;
@@ -209,29 +224,24 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
 any Native_SIPool_ReturnSIBot(Handle plugin, int numParams)
 {
     int bot = GetNativeCell(2);
-    if (!(IsInfected(bot) && IsFakeClient(bot)))
+    if (!(IsInfected(bot) && IsFakeClient(bot) && IsPlayerAlive(bot)))
     {
-        LogMessage("[SIPool] SI is not available!");
+#if DEBUG
+        LogToFile(LOGFILE, "[SIPool] SI is not available!");
+#endif
         return false;
     }
-
-    // g_iPoolArray[GetZombieClass(bot) - 1][g_iPoolSize[GetZombieClass(bot) - 1]++] = bot;
-    // ResetDeadZombie(bot);
     ForcePlayerSuicide(bot);
-
-    // Return bot dont need to resize...
-    // OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
-    // g_iPoolSize++;
 
     return true;
 }
 
 void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
 {
-    if (GetClientCount(false) >= MaxClients) return;
+    if (GetClientCount(false) >= MaxClients && iOldPoolSize < iNewPoolSize) return;
 
 #if DEBUG
-    LogToFile(LOGFILE, "[SIPool] SI size change: %d -> %d of %d pool", iOldPoolSize, iNewPoolSize, zclass_idx);
+    LogToFile(LOGFILE, "[SIPool] (%s)pool sized(%d -> %d)", g_sZombieClass[zclass_idx], iOldPoolSize, iNewPoolSize);
 #endif
 
     bool add;
@@ -261,7 +271,7 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
             bot = CreateSIBot(zclass_idx);
             if (bot == -1)
             {
-                LogMessage("[SIPool] SI create failed for the unknow reason ?!");
+                LogError("[SIPool] SI create failed for the unknow reason ?!");
                 break;
             }
         }
@@ -269,7 +279,7 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
         InitializeSpecial(bot, _, _, true);
         ResetDeadZombie(bot);
 #if DEBUG
-        LogToFile(LOGFILE, "[SIPool] SI create: %d", bot);
+        LogToFile(LOGFILE, "[SIPool] SI create: %d, (%s)pool sized(%d -> %d)", bot, g_sZombieClass[zclass_idx], iOldPoolSize, iNewPoolSize);
 #endif
     }
 }
@@ -283,16 +293,17 @@ void HookEvents()
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    if (!(IsInfected(client) && IsFakeClient(client))) return;
-
-#if DEBUG
-    LogToFile(LOGFILE, "[SIPool] SI dead: %d", client);
-#endif
+    if (!(IsInfected(client) && IsFakeClient(client)) || IsTank(client)) return;
 
     // Return bot;
+    ResetDeadZombie(client);
     g_iLastDeadTypeIdx = GetZombieClass(client) - 1;
     g_iPoolArray[g_iLastDeadTypeIdx][g_iPoolSize[g_iLastDeadTypeIdx]++] = client;
-    ResetDeadZombie(client);
+
+#if DEBUG
+    LogToFile(LOGFILE, "[SIPool] SI dead: %d, (%s)pool sized(%d -> %d)", client, g_sZombieClass[g_iLastDeadTypeIdx], g_iPoolSize[g_iLastDeadTypeIdx] - 1, g_iPoolSize[g_iLastDeadTypeIdx]);
+    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", client, IsGhost(client), IsPlayerAlive(client));
+#endif
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
@@ -456,7 +467,7 @@ void LoadStringFromAddress(Address pAddr, char[] buffer, int maxlength)
 //         ability = SDKCall(g_hSDK_CBaseAbility_CreateForPlayer, client);
 
 //     if (ability != -1) SetEntPropEnt(client, Prop_Send, "m_customAbility", ability);
-//     else LogMessage("[SIPool] Failed to create ability for %N after %d times tried.", client, ABILITY_TRYTIMES);
+//     else LogToFile(LOGFILE, "[SIPool] Failed to create ability for %N after %d times tried.", client, ABILITY_TRYTIMES);
 // }
 
 void SetStateTransition(int client, int state)

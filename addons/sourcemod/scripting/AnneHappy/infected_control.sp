@@ -792,7 +792,7 @@ bool HasReachedLimit(int zombieclass)
     int count = 0;
     static char convar[16];
     for (int infected = 1; infected <= MaxClients; infected++)
-        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsGhost(infected)
+        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsPlayerAlive(infected)
             && GetEntProp(infected, Prop_Send, "m_zombieClass") == zombieclass)
             count += 1;
 
@@ -973,7 +973,7 @@ void ResetStatus()
     g_iTotalSINum = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (IsInfectedBot(client) && !IsGhost(client))
+        if (IsInfectedBot(client) && !IsPlayerAlive(client))
         {
             g_iTeleCount[client] = 0;
             int type = GetEntProp(client, Prop_Send, "m_zombieClass");
@@ -1331,7 +1331,7 @@ stock int GetCurrentSINum()
 {
     int sum = 0;
     for (int i = 0; i < MaxClients; i++)
-        if (IsInfectedBot(i) && !IsGhost(i))
+        if (IsInfectedBot(i) && !IsPlayerAlive(i))
             sum++;
 
     return sum;
