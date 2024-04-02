@@ -273,6 +273,7 @@ public void  OnPluginStart()
 	RegConsoleCmd("sm_uzi", BuyUzi, "快速买uzi");
 	RegConsoleCmd("sm_pill", BuyPill, "快速买药");
 	RegConsoleCmd("sm_setch", SetCH, "设置自定义称号");
+	RegConsoleCmd("sm_unsetch", UnSetCH, "设置自定义称号");
 	RegConsoleCmd("sm_applytags", ApplyTags, "佩戴自定义称号");
 	RegConsoleCmd("sm_rpg", BuyMenu, "打开购买菜单(只能在游戏中)");
 	RegAdminCmd("sm_rpginfo", RpgInfo, ADMFLAG_ROOT ,"输出rpg人物信息");
@@ -834,7 +835,10 @@ public void ClientTagsSaveToFileSave(int Client)
 	char SteamID[64];
 	GetClientAuthId(Client, AuthId_Steam2,SteamID, sizeof(SteamID));
 	if(StrEqual(SteamID,"BOT"))return;
-	CPrintToChat(Client,"\x04你的称号更新成功，新称号为：\x03%s",player[Client].tags.ChatTag);
+	if(player[Client].tags.ChatTag[0] == '\0')
+		CPrintToChat(Client,"\x04你的称号取消设置");
+	else
+		CPrintToChat(Client,"\x04你的称号更新成功，新称号为：\x03%s",player[Client].tags.ChatTag);
 	Format(query, sizeof(query), "UPDATE RPG SET CHATTAG='%s' WHERE steamid = '%s'", player[Client].tags.ChatTag, SteamID);	
 	SendSQLUpdate(query);
 	return;
@@ -1077,6 +1081,36 @@ public Action SetCH(int client,int args)
  		return Plugin_Handled;
 	}
 	SetTags(client,player[client].tags.ChatTag);
+    /*
+    char temp[32];
+    Format(temp,sizeof(temp),"<%s>",player[client].tags.ChatTag);
+    HexTags_SetClientTag(client, ScoreTag, temp);
+    Format(temp,sizeof(temp),"{green}<%s>",player[client].tags.ChatTag);
+	HexTags_SetClientTag(client, ChatTag, temp);
+    HexTags_SetClientTag(client, ChatColor, "{teamcolor}");
+    HexTags_SetClientTag(client, NameColor, "{lightgreen}");
+    */
+	ClientTagsSaveToFileSave(client);
+	return Plugin_Continue;
+}
+
+//取消已设置称号指令
+public Action UnSetCH(int client,int args)
+{ 
+	if(!IsVaildClient(client)){return Plugin_Handled;}
+	if((g_bl4dstatsSystemAvailable && l4dstats_GetClientScore(client) < 500000 && !(CheckCommandAccess(client, "", ADMFLAG_SLAY))))
+	{
+		ReplyToCommand(client,"你得积分小于50w，不能取消自定义称号");
+		return Plugin_Handled;
+	}
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		ReplyToCommand(client,"\x03错误index");
+		return Plugin_Handled;
+	}
+	player[client].tags.ChatTag = NULL_STRING;
+	if(g_bHextagsSystemAvailable)HexTags_ResetClientTag(client);
+	//SetTags(client,player[client].tags.ChatTag);
     /*
     char temp[32];
     Format(temp,sizeof(temp),"<%s>",player[client].tags.ChatTag);
