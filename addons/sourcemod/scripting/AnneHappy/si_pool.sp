@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-26 13:39:14
+ * @Last Modified time: 2024-04-01 22:49:03
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -15,7 +15,7 @@
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.03.26#121"
+#define VERSION       "2024.04.01#124"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -36,9 +36,9 @@ public Plugin myinfo =
     url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
 };
 
-#define MAXSIZE MAXPLAYERS + 1
+#define MAXSIZE 32    // Max clients count for L4D2;
 
-static char g_sZombieClass[][] = {
+static const char g_sZombieClass[][] = {
     "Smoker",
     "Boomer",
     "Hunter",
@@ -119,15 +119,20 @@ public void OnPluginStart()
 
 public bool OnClientConnect(int client)
 {
-    if (IsFakeClient(client)) return true;
+    if (GetClientCount(false) < MaxClients - 1) return true;
     if (g_iLastDeadTypeIdx == -1) return true;
 
     int size = g_iPoolSize[g_iLastDeadTypeIdx];
     if (size > 0)
     {
-        KickClient(g_iPoolArray[g_iLastDeadTypeIdx][size - 1]);
-        OnPoolSizeChanged(size, size - 1, g_iLastDeadTypeIdx);
-        g_iPoolSize[g_iLastDeadTypeIdx]--;
+        int index = 1;
+        int bot = g_iPoolArray[g_iLastDeadTypeIdx][size - index];
+        while (!IsInfected(bot))
+            bot = g_iPoolArray[g_iLastDeadTypeIdx][size - (++index)];
+
+        if (IsInfected(bot)) KickClient(bot);
+        OnPoolSizeChanged(size, size - index, g_iLastDeadTypeIdx);
+        g_iPoolSize[g_iLastDeadTypeIdx] -= index;
     }
 
     return true;
@@ -376,7 +381,7 @@ void PrepareSDKCalls()
 // #define SMOKER_ADDR  48
 // #define BOOMER_ADDR  60
 // #define TANK_ADDR    72
-static int g_iZombieAddr[ZC_COUNT] = {
+static const int g_iZombieAddr[ZC_COUNT] = {
     48, 60, 0, 24, 12, 36
 };
 void PrepWindowsCreateBotCalls(Address pBaseAddr)
