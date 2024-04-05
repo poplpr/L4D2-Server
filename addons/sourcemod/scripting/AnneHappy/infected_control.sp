@@ -58,9 +58,9 @@ char sLogFile[PLATFORM_MAX_PATH] = "addons/sourcemod/logs/infected_control.txt";
 public Plugin myinfo =
 {
     name = "Direct InfectedSpawn",
-    author = "Caibiii, 夜羽真白，东",
+    author = "Caibiii, 夜羽真白，东, 派蒙",
     description = "特感刷新控制，传送落后特感",
-    version = "2023.09.04",
+    version = "2024.04.05",
     url = "https://github.com/fantasylidong/CompetitiveWithAnne",
 
 
@@ -251,8 +251,8 @@ public void OnPluginStart()
     SetConVarBounds(g_hMaxPlayerZombies, ConVarBound_Upper, true, g_hSiLimit.FloatValue);
 
     // Debug
-    RegAdminCmd("sm_startspawn", Cmd_StartSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
-    RegAdminCmd("sm_stopspawn", Cmd_StopSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
+    RegAdminCmd("sm_startspawn", Cmd_StartSpawn, ADMFLAG_ROOT, "管理员开启特感产卵");
+    RegAdminCmd("sm_stopspawn", Cmd_StopSpawn, ADMFLAG_ROOT, "管理员关闭特感产卵");
 }
 
 public void OnMapStart()
@@ -1518,6 +1518,7 @@ stock int getArrayHunterAndChargetNum()
     return count;
 }
 
+//获取控制特感的数量
 stock int getArrayDominateSINum()
 {
     int count = 0;
@@ -1645,6 +1646,12 @@ int Calculate_Flow(Address pNavArea)
 // @retVal：原 value 值，使用 return Plugin_Handled 覆盖
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 {
+    //修改一次能生成特感数量上限
+    if (strcmp(key, "MaxSpecials", false) == 0 && retVal != g_iSiLimit) {
+		retVal = g_iSiLimit;
+		return Plugin_Handled;
+	}
+    //将特感改为激进攻击
     if ((strcmp(key, "cm_ShouldHurry", false) == 0) || (strcmp(key, "cm_AggressiveSpecials", false) == 0) && retVal != 1)
     {
         retVal = 1;
