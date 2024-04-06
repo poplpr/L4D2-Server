@@ -1689,11 +1689,6 @@ int Calculate_Flow(Address pNavArea)
 // @retVal：原 value 值，使用 return Plugin_Handled 覆盖
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 {
-    //修改一次能生成特感数量上限
-    if (strcmp(key, "MaxSpecials", false) == 0 && retVal != g_iSiLimit) {
-		retVal = g_iSiLimit;
-		return Plugin_Handled;
-	}
     //将特感改为激进攻击
     if ((strcmp(key, "cm_ShouldHurry", false) == 0) || (strcmp(key, "cm_AggressiveSpecials", false) == 0) && retVal != 1)
     {
