@@ -567,7 +567,7 @@ public void OnGameFrame()
                 }
             }
 
-            Debug_Print("spawn_max:%d, tpidx:%d, queue_idx:%d", g_iSpawnMaxCount, g_iTeleportIndex, g_iQueueIndex);
+            //Debug_Print("spawn_max:%d, tpidx:%d, queue_idx:%d", g_iSpawnMaxCount, g_iTeleportIndex, g_iQueueIndex);
             //传送队列优先处理，防止普通刷特刷出来把特感数量刷满了
             if (g_iSpawnMaxCount > 0 && g_iTeleportIndex <= 0 && g_iQueueIndex > 0)
             {
@@ -672,7 +672,7 @@ stock bool Is_Nav_already_token(Address nav)
 stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieClass, bool IsTeleport = false)
 {
     float fSurvivorPos[3];
-    Debug_Print("生还者看不到");
+    //Debug_Print("生还者看不到");
     // 生还数量为 4，循环 4 次，检测此位置到生还的距离是否小于 750 是则刷特，此处可以刷新 1 ~ g_iSiLimit 只特感，如果此处刷完，则上面的 SpawnSpecial 将不再刷特
     for (int count = 0; count < g_iSurvivorNum; count++)
     {
@@ -792,7 +792,7 @@ bool HasReachedLimit(int zombieclass)
     int count = 0;
     static char convar[16];
     for (int infected = 1; infected <= MaxClients; infected++)
-        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsPlayerAlive(infected)
+        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsGhost(infected)
             && GetEntProp(infected, Prop_Send, "m_zombieClass") == zombieclass)
             count += 1;
 
@@ -1331,7 +1331,7 @@ stock int GetCurrentSINum()
 {
     int sum = 0;
     for (int i = 0; i < MaxClients; i++)
-        if (IsInfectedBot(i) && !IsPlayerAlive(i))
+        if (IsInfectedBot(i) && !IsGhost(i))
             sum++;
 
     return sum;
