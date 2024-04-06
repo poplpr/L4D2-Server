@@ -58,9 +58,9 @@ char sLogFile[PLATFORM_MAX_PATH] = "addons/sourcemod/logs/infected_control.txt";
 public Plugin myinfo =
 {
     name = "Direct InfectedSpawn",
-    author = "Caibiii, 夜羽真白，东",
+    author = "Caibiii, 夜羽真白，东, Paimon-Kawaii",
     description = "特感刷新控制，传送落后特感",
-    version = "2023.09.04",
+    version = "2024.04.05",
     url = "https://github.com/fantasylidong/CompetitiveWithAnne",
 
 
