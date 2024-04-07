@@ -1,6 +1,6 @@
 #pragma semicolon 1
 #pragma newdecls required
-#define DEBUG 0
+#define DEBUG 1
 // 头文件
 #include <sourcemod>
 #include <sdktools>
@@ -792,7 +792,7 @@ bool HasReachedLimit(int zombieclass)
     int count = 0;
     static char convar[16];
     for (int infected = 1; infected <= MaxClients; infected++)
-        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsGhost(infected)
+        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsPlayerAlive(infected)
             && GetEntProp(infected, Prop_Send, "m_zombieClass") == zombieclass)
             count += 1;
 
@@ -1331,7 +1331,7 @@ stock int GetCurrentSINum()
 {
     int sum = 0;
     for (int i = 0; i < MaxClients; i++)
-        if (IsInfectedBot(i) && !IsGhost(i))
+        if (IsInfectedBot(i) && !IsPlayerAlive(i))
             sum++;
 
     return sum;
