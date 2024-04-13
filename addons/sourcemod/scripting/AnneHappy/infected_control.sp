@@ -1,6 +1,6 @@
 #pragma semicolon 1
 #pragma newdecls required
-#define DEBUG 1
+#define DEBUG 0
 // 头文件
 #include <sourcemod>
 #include <sdktools>
@@ -973,7 +973,7 @@ void ResetStatus()
     g_iTotalSINum = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (IsInfectedBot(client) && !IsPlayerAlive(client))
+        if (IsInfectedBot(client) && IsPlayerAlive(client))
         {
             g_iTeleCount[client] = 0;
             int type = GetEntProp(client, Prop_Send, "m_zombieClass");
@@ -1331,7 +1331,7 @@ stock int GetCurrentSINum()
 {
     int sum = 0;
     for (int i = 0; i < MaxClients; i++)
-        if (IsInfectedBot(i) && !IsPlayerAlive(i))
+        if (IsInfectedBot(i) && IsPlayerAlive(i))
             sum++;
 
     return sum;
