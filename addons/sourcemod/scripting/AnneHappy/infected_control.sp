@@ -10,7 +10,7 @@
 #include <si_target_limit>
 #include <pause>
 #include <ai_smoker_new>
-#include <si_pool>
+//#include <si_pool>
 
 #define CVAR_FLAG             FCVAR_NOTIFY
 #define TEAM_SURVIVOR         2
@@ -60,7 +60,7 @@ public Plugin myinfo =
     name = "Direct InfectedSpawn",
     author = "Caibiii, 夜羽真白，东, Paimon-Kawaii",
     description = "特感刷新控制，传送落后特感",
-    version = "2024.04.05",
+    version = "2024.04.16",
     url = "https://github.com/fantasylidong/CompetitiveWithAnne",
 
 
@@ -139,8 +139,8 @@ ArrayList
     // aSpawnNavList,						//储存特感生成的navid，用来限制特感不能生成在同一块Navid上
     aSpawnQueue;    //刷特队列
 
-SIPool
-    g_hSIPool;
+//SIPool
+//    g_hSIPool;
 
 public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_max)
 {
@@ -166,7 +166,7 @@ public void OnAllPluginsLoaded()
 {
     g_bTargetSystemAvailable = LibraryExists("si_target_limit");
     g_bSmokerAvailable = LibraryExists("ai_smoker_new");
-    g_bSIPoolAvailable = LibraryExists("si_pool");
+//    g_bSIPoolAvailable = LibraryExists("si_pool");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -175,8 +175,8 @@ public void OnLibraryAdded(const char[] name)
         g_bTargetSystemAvailable = true;
     else if (StrEqual(name, "ai_smoker_new"))
         g_bSmokerAvailable = true;
-    else if (StrEqual(name, "si_pool"))
-        g_bSIPoolAvailable = true;
+//    else if (StrEqual(name, "si_pool"))
+//       g_bSIPoolAvailable = true;
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -185,8 +185,8 @@ public void OnLibraryRemoved(const char[] name)
         g_bTargetSystemAvailable = false;
     else if (StrEqual(name, "ai_smoker_new"))
         g_bSmokerAvailable = false;
-    else if (StrEqual(name, "si_pool"))
-        g_bSIPoolAvailable = false;
+//    else if (StrEqual(name, "si_pool"))
+//        g_bSIPoolAvailable = false;
 }
 
 public void OnPluginStart()
@@ -257,7 +257,7 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-    if (g_bSIPoolAvailable && !g_hSIPool) g_hSIPool = SIPool.Instance();
+//    if (g_bSIPoolAvailable && !g_hSIPool) g_hSIPool = SIPool.Instance();
 }
 
 public void OnPluginEnd()
@@ -480,10 +480,10 @@ Action Timer_KickBot(Handle timer, int client)
     if (IsClientInGame(client) && !IsClientInKickQueue(client) && IsFakeClient(client))
     {
         Debug_Print("踢出特感%N", client);
-        if (g_bSIPoolAvailable)
-            g_hSIPool.ReturnSIBot(client);
-        else KickClient(client, "You are worthless and was kicked by console");
-
+//      if (g_bSIPoolAvailable)
+            //g_hSIPool.ReturnSIBot(client);
+//      else 
+        KickClient(client, "You are worthless and was kicked by console");
         return Plugin_Stop;
     }
     return Plugin_Continue;
@@ -722,9 +722,10 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
                     return false;
 
                 int entityindex;
-                if (g_bSIPoolAvailable)
-                    entityindex = g_hSIPool.RequestSIBot(iZombieClass, fSpawnPos);
-                else entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({ 0.0, 0.0, 0.0 }));
+                //if (g_bSIPoolAvailable)
+                    //entityindex = g_hSIPool.RequestSIBot(iZombieClass, fSpawnPos);
+                //else 
+                entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({ 0.0, 0.0, 0.0 }));
 
                 Debug_Print("请求%d特感，生成：%d", iZombieClass, entityindex);
                 if (IsValidEntity(entityindex) && IsValidEdict(entityindex))
@@ -1310,8 +1311,10 @@ Action Timer_PositionSi(Handle timer)
                         else g_iTotalSINum = 0;
 
                         // KickClient(client, "传送刷特，踢出");
-                        if (g_bSIPoolAvailable) g_hSIPool.ReturnSIBot(client);
-                        else KickClient(client, "传送刷特，踢出");
+                        //if (g_bSIPoolAvailable) 
+                            //g_hSIPool.ReturnSIBot(client);
+                        //else 
+                        KickClient(client, "传送刷特，踢出");
 
                         Debug_Print("当前 <传送队列> 队列长度：%d 队列索引：%d 当前记录特感总数为：%d , 真实数量为：%d", aTeleportQueue.Length, g_iTeleportIndex, g_iTotalSINum, GetCurrentSINum());
                         g_iTeleCount[client] = 0;
