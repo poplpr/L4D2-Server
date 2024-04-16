@@ -3800,10 +3800,10 @@ public Action:event_TankKilled(Handle:event, const String:name[], bool:dontBroad
 	// This was proposed by AlliedModders users el_psycho and PatriotGames (Thanks!)
 	new Score = (BaseScore * ((Players - Deaths) / Players)) / Players;
 
-	// HardCore 奖励增加50%
+	// HardCore 奖励增加100%
 	if(IsAnne() == 2)
 	{
-		Score = view_as<int>(1.5 * Score);
+		Score *= 2;
 	}
 	
 
@@ -4392,7 +4392,7 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	// HardCore 奖励增加50%
 	if(IsAnne() == 2)
 	{
-		Score = view_as<int>(1.5 * Score);
+		Score = RoundToFloor(1.5 * Score);
 	}
 
 	new maxplayers = MaxClients;
@@ -9863,7 +9863,7 @@ public CheckSurvivorsWin()
 	// HardCore 奖励增加50%
 	if(IsAnne() == 2)
 	{
-		Score = view_as<int>(1.5 * Score);
+		Score *= 1.5;
 	}
 
 	new String:All4Safe[64] = "";
