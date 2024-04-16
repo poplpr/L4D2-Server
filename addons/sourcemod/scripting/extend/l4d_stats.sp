@@ -4395,6 +4395,8 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 		Score = RoundToFloor(1.5 * Score);
 	}
 
+	if(!CheckIsOfficalMap())return;
+
 	new maxplayers = MaxClients;
 	for (new i = 1; i <= maxplayers; i++)
 	{
@@ -9866,6 +9868,8 @@ public CheckSurvivorsWin()
 		Score *= 1.5;
 	}
 
+	if(!CheckIsOfficalMap())return;
+
 	new String:All4Safe[64] = "";
 	if (Deaths == 0)
 		Format(All4Safe, sizeof(All4Safe), ", award_allinsafehouse = award_allinsafehouse + 1");
@@ -11991,4 +11995,12 @@ stock bool IsThisRoundValid()
 		return tank_bhop.BoolValue;
 	}
 	return true;
+}
+
+stock bool CheckIsOfficalMap(){
+	char mapname[256];
+	GetCurrentMap(mapname,sizeof(mapname));
+	if(( (mapname[0]=='c') && (mapname[2]=='m') &&(mapname[4]=='_'))||((mapname[0]=='c')&&(mapname[3]=='m')&&(mapname[5]=='_')))
+		return true;
+	return false;
 }
