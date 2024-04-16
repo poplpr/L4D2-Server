@@ -172,7 +172,7 @@ void displaykillinfected()
 }
 public int SortByDamageDesc(int elem1, int elem2, const int[] array, Handle hndl)
 {
-	if (iDidDamage[elem1] + KillInfected[elem1] * CommonInfectedBonus > iDidDamage[elem2] + KillInfected[elem1] * CommonInfectedBonus) return -1;
+	if (iDidDamage[elem1] + KillInfected[elem1] * CommonInfectedBonus > iDidDamage[elem2] + KillInfected[elem2] * CommonInfectedBonus) return -1;
 	else if (iDidDamage[elem2] > iDidDamage[elem1]) return 1;
 	else if (elem1 > elem2) return -1;
 	else if (elem2 > elem1) return 1;
