@@ -254,11 +254,12 @@ public void OnPluginStart()
     RegAdminCmd("sm_startspawn", Cmd_StartSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
     RegAdminCmd("sm_stopspawn", Cmd_StopSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
 }
-
+/*
 public void OnMapStart()
 {
-//    if (g_bSIPoolAvailable && !g_hSIPool) g_hSIPool = SIPool.Instance();
+    if (g_bSIPoolAvailable && !g_hSIPool) g_hSIPool = SIPool.Instance();
 }
+*/
 
 public void OnPluginEnd()
 {
@@ -793,8 +794,7 @@ bool HasReachedLimit(int zombieclass)
     int count = 0;
     static char convar[16];
     for (int infected = 1; infected <= MaxClients; infected++)
-        if (IsClientConnected(infected) && IsClientInGame(infected) && !IsPlayerAlive(infected)
-            && GetEntProp(infected, Prop_Send, "m_zombieClass") == zombieclass)
+        if (IsClientConnected(infected) && IsClientInGame(infected) && IsPlayerAlive(infected) && GetEntProp(infected, Prop_Send, "m_zombieClass") == zombieclass)
             count += 1;
 
     if ((g_hAllChargerMode.BoolValue || g_hAllHunterMode.BoolValue) && count == g_iSiLimit)
@@ -908,10 +908,17 @@ Action CheckShouldSpawnOrNot(Handle timer)
     if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
     if (FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
     //防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
+    /*
     if (g_iEnableSIoption & ENABLE_SPITTER && g_iLastSpawnTime < 4 && !g_bSIPoolAvailable)    // 使用 SIPool 后无此问题
     {
         Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");
         return Plugin_Continue;
+    }
+    */
+    if(g_iEnableSIoption & ENABLE_SPITTER && g_iLastSpawnTime < 4)  
+    {
+    	Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");
+	return Plugin_Continue;
     }
     if (!g_bAutoSpawnTimeControl)
     {
@@ -1018,7 +1025,7 @@ bool IsOnValidMesh(float fReferencePos[3])
     // }
 
     // 我真心建议这样写，可读性不比用if分支差，一个方法太长看着会很乱的
-    return pNavArea != Address_Null && !(L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT);
+    return pNavArea != Address_Null && !((L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT));
 }
 
 //判断该坐标是否可以看到生还或者距离小于g_fSpawnDistanceMin码，减少一层栈函数，增加实时性,单人模式增加2条射线模仿左右眼
@@ -1068,9 +1075,6 @@ stock bool PlayerVisibleTo(float targetposition[3], bool IsTeleport = false)
                 delete trace;    // 用完就 delete，不然迟早会忘
                 if ((GetVectorDistance(targetposition, vStart, false) + 75.0) >= GetVectorDistance(position, targetposition))
                     return true;
-
-                // else // 都 return 了就别 else 了，一堆 大括号 + 缩进 看着眼疼
-                // {
                 spawnPos = targetposition;
                 spawnPos[2] += 40.0;
                 MakeVectorFromPoints(spawnPos, position, vLookAt);
@@ -1086,13 +1090,10 @@ stock bool PlayerVisibleTo(float targetposition[3], bool IsTeleport = false)
                 else delete trace2;
 
                 return true;
-                // delete trace2; // 你都 return 了，还怎么delete？？？
-                // }
             }
             else delete trace;
 
             return true;
-            // delete trace; // 你都 return 了，还怎么delete？？？
         }
     }
     return false;
@@ -1249,8 +1250,12 @@ bool CanBeTeleport(int client)
     if (IsInfectedBot(client) && IsClientInGame(client) && IsPlayerAlive(client) && GetEntProp(client, Prop_Send, "m_zombieClass") != ZC_TANK && !IsPinningSomeone(client))
     {
         // 防止无声口水 (使用 SIPool 后无此问题)
-        if (!g_bSIPoolAvailable && IsSpitter(client) && GetGameTime() - g_fSpitterSpitTime[client] < SPIT_INTERVAL)
-            return false;
+        //if (!g_bSIPoolAvailable && IsSpitter(client) && GetGameTime() - g_fSpitterSpitTime[client] < SPIT_INTERVAL)
+            //return false;
+	if(IsSpitter(client) && GetGameTime() - g_fSpitterSpitTime[client] < SPIT_INTERVAL)
+	{
+		return false;
+	}
 
         if (GetClosetSurvivorDistance(client) < g_fSpawnDistanceMin)
             return false;
