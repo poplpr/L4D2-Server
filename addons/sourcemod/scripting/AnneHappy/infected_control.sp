@@ -728,7 +728,7 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
                 //else 
                 entityindex = L4D2_SpawnSpecial(iZombieClass, fSpawnPos, view_as<float>({ 0.0, 0.0, 0.0 }));
 
-                Debug_Print("请求%d特感，生成：%d", iZombieClass, entityindex);
+                //Debug_Print("请求%d特感，生成：%d", iZombieClass, entityindex);
                 if (IsValidEntity(entityindex) && IsValidEdict(entityindex))
                 {
                     // aSpawnNavList.Push(nav1);
@@ -917,8 +917,8 @@ Action CheckShouldSpawnOrNot(Handle timer)
     */
     if(g_iEnableSIoption & ENABLE_SPITTER && g_iLastSpawnTime < 4)  
     {
-    	Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");
-	return Plugin_Continue;
+    	//Debug_Print("因为可以刷spitter，所以最低4秒起刷，不然容易造成特感数量统计错误，特感生成不出来");
+	    return Plugin_Continue;
     }
     if (!g_bAutoSpawnTimeControl)
     {
@@ -1050,13 +1050,14 @@ stock bool PlayerVisibleTo(float targetposition[3], bool IsTeleport = false)
                             if (GetVectorDistance(temp, position, true) < Pow(INCAPSURVIVORCHECKDIS, 2.0))
                                 sum++;
                         }
-
-                    if (sum == 0)
-                    {
-                        Debug_Print("Teleport方法，目标位置已经不能被正常生还者所看到");
-                        continue;
-                    }
-                    else Debug_Print("Teleport方法，目标位置依旧能被正常生还者看到，sum为：%d", sum);
+                    #if DEBUG
+                        if (sum == 0)
+                        {
+                            Debug_Print("Teleport方法，目标位置已经不能被正常生还者所看到");
+                            continue;
+                        }
+                        else Debug_Print("Teleport方法，目标位置依旧能被正常生还者看到，sum为：%d", sum);
+                    #endif
                 }
                 else continue;
 
@@ -1134,11 +1135,15 @@ stock bool PlayerVisibleToSDK(float targetposition[3], bool IsTeleport = false)
 
                     if (sum == 0)
                     {
-                        Debug_Print("Teleport方法，目标位置已经不能被正常生还者所看到");
+                        #if DEBUG
+                            Debug_Print("Teleport方法，目标位置已经不能被正常生还者所看到");
+                        #endif
                         skipcount++;
                         continue;
                     }
-                    else Debug_Print("Teleport方法，目标位置依旧能被正常生还者看到，sum为：%d", sum);
+                    #if DEBUG
+                        else Debug_Print("Teleport方法，目标位置依旧能被正常生还者看到，sum为：%d", sum);
+                    #endif
                 }
                 else
                 {
@@ -1307,7 +1312,7 @@ Action Timer_PositionSi(Handle timer)
 
                         aTeleportQueue.Push(type);
                         g_iTeleportIndex += 1;
-                        Debug_Print("<传送队列> %N踢出，进入传送队列，当前 <传送队列> 队列长度：%d 队列索引：%d 当前记录特感总数为：%d , 真实数量为：%d", client, aTeleportQueue.Length, g_iTeleportIndex, g_iTotalSINum, GetCurrentSINum());
+                        //Debug_Print("<传送队列> %N踢出，进入传送队列，当前 <传送队列> 队列长度：%d 队列索引：%d 当前记录特感总数为：%d , 真实数量为：%d", client, aTeleportQueue.Length, g_iTeleportIndex, g_iTotalSINum, GetCurrentSINum());
                         //不再单独处理spitter防止无声口水，已经在canbeteleport处理
                         if (g_iSINum[type - 1] > 0) g_iSINum[type - 1]--;
                         else g_iSINum[type - 1] = 0;
@@ -1426,10 +1431,11 @@ bool CheckRushManAndAllPinned()
 
                     return PinnedNumber == iSurvivorIndex;
                 }
-
-        if (!testSurvior)
-            Debug_Print("跑男由于和其他正常生还者过远触发");
-        else Debug_Print("跑男由于和特感过远触发");
+        #if DEBUG
+            if (!testSurvior)
+                Debug_Print("跑男由于和其他正常生还者过远触发");
+            else Debug_Print("跑男由于和特感过远触发");
+        #endif
 
         g_bPickRushMan = true;
         g_iRushManIndex = target;
@@ -1663,7 +1669,7 @@ public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
 
 stock void Debug_Print(char[] format, any...)
 {
-#if (DEBUG)
+#if DEBUG
     {
         char sTime[32];
         FormatTime(sTime, sizeof(sTime), "%I-%M-%S", GetTime());
