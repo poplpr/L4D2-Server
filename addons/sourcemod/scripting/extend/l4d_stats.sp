@@ -3574,23 +3574,25 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	}
 }
 
-stock bool IsAnne(){
+stock int IsAnne(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
 	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
 	{
 		cvar_mode = FindConVar("l4d_ready_cfg_name");
 	}
-	if(cvar_mode == null) return false;
+	if(cvar_mode == null) return 0;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
 	if(StrContains(plugin_name, "AnneHappy", false) != -1)
 	{
-		return true;
+		if(StrContains(plugin_name, "HardCore", false) != -1)
+			return 2;
+		else
+			return 1;
 	}else
 	{
-		return false;
+		return 0;
 	}
 }
-
 
 stock bool IsAllCharger(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
@@ -3797,6 +3799,13 @@ public Action:event_TankKilled(Handle:event, const String:name[], bool:dontBroad
 
 	// This was proposed by AlliedModders users el_psycho and PatriotGames (Thanks!)
 	new Score = (BaseScore * ((Players - Deaths) / Players)) / Players;
+
+	// HardCore 奖励增加50%
+	if(IsAnne() == 2)
+	{
+		Score = view_as<int>(1.5 * Score);
+	}
+	
 
 	decl String:UpdatePoints[32];
 
@@ -4378,6 +4387,12 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	if(IsGaoJiRenJiEnabled())
 	{
 		Score = RoundToFloor(Score * 0.5);
+	}
+
+	// HardCore 奖励增加50%
+	if(IsAnne() == 2)
+	{
+		Score = view_as<int>(1.5 * Score);
 	}
 
 	new maxplayers = MaxClients;
@@ -9844,7 +9859,13 @@ public CheckSurvivorsWin()
 	{
 		Score = RoundToFloor(Score * 0.5);
 	}
-	
+
+	// HardCore 奖励增加50%
+	if(IsAnne() == 2)
+	{
+		Score = view_as<int>(1.5 * Score);
+	}
+
 	new String:All4Safe[64] = "";
 	if (Deaths == 0)
 		Format(All4Safe, sizeof(All4Safe), ", award_allinsafehouse = award_allinsafehouse + 1");
@@ -11163,10 +11184,7 @@ public bool StopMapTiming()
 		return false;
 	}
 	int mode = 0;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11178,6 +11196,12 @@ public bool StopMapTiming()
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	ConVar multiplayer = FindConVar("l4d_multislots_survivors_manager_enable");
 	if(mode > 0 && (multiplayer == null || multiplayer.IntValue == 1 || GetConVarInt(cvar_SurvivorLimit) > 4))
@@ -11292,10 +11316,7 @@ GetThisModeBestTime(int UseBuy=0)
 
 	new GameDifficulty = GetCurrentDifficulty();
 	int mode = 1;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11307,6 +11328,12 @@ GetThisModeBestTime(int UseBuy=0)
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i AND players = %i ORDER BY time LIMIT 1",\
 	 		DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
@@ -11341,10 +11368,7 @@ public GetFastTime(Handle:owner, Handle:hndl, const String:error[], any:dp)
 public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:dp)
 {
 	int mode = 0;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11356,6 +11380,12 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	ResetPack(dp);
 
