@@ -9865,7 +9865,7 @@ public CheckSurvivorsWin()
 	// HardCore 奖励增加50%
 	if(IsAnne() == 2)
 	{
-		Score *= 1.5;
+		Score = RoundToFloor(1.5 * Score);
 	}
 
 	if(!CheckIsOfficalMap())return;
@@ -11171,7 +11171,7 @@ public bool StopMapTiming()
 	{
 		if (GetConVarInt(cvar_AnnounceMode))
 		{
-			StatsPrintToChatAll("此次结果因修改难度或开启高级人机导致 \x04无效 \x01，不记录这张地图游戏时间!");
+			StatsPrintToChatAll("此次结果因修改难度或开启高级人机或使用管理员功能导致 \x04无效 \x01，不记录这张地图游戏时间!");
 		}
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
