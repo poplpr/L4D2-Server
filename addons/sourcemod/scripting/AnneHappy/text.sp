@@ -57,6 +57,12 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_kill", ZiSha);
 	RegAdminCmd("sm_killall", killall, ADMFLAG_BAN, "处死所有玩家");
 }
+
+public void OnPluginEnd()
+{
+	g_hCvarWeapon.RestoreDefault();
+}
+
 public Action player_death(Handle event, char[] name, bool dontBroadcast)
 {
 	if(IsTeamImmobilised())
