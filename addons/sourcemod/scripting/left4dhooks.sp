@@ -18,8 +18,8 @@
 
 
 
-#define PLUGIN_VERSION		"1.143"
-#define PLUGIN_VERLONG		1143
+#define PLUGIN_VERSION		"1.146"
+#define PLUGIN_VERLONG		1146
 
 #define DEBUG				0
 // #define DEBUG			1	// Prints addresses + detour info (only use for debugging, slows server down).
@@ -29,7 +29,7 @@
 
 #define KILL_VSCRIPT		0	// 0=Keep VScript entity after using for "GetVScriptOutput". 1=Kill the entity after use (more resourceful to keep recreating, use if you're maxing out entities and reaching the limit regularly).
 
-#define ALLOW_UPDATER		0	// 0=Off. 1=Allow the plugin to auto-update using the "Updater" plugin by "GoD-Tony". 2=Allow updating and reloading after update.
+#define ALLOW_UPDATER		1	// 0=Off. 1=Allow the plugin to auto-update using the "Updater" plugin by "GoD-Tony". 2=Allow updating and reloading after update.
 
 
 
@@ -681,7 +681,6 @@ public void OnPluginStart()
 	{
 		g_hCvar_VScriptBuffer = CreateConVar("l4d2_vscript_return", "", "Buffer used to return VScript values. Do not use.", FCVAR_DONTRECORD);
 		g_hCvar_AddonsEclipse = CreateConVar("l4d2_addons_eclipse", "-1", "Addons Manager (-1: use addonconfig; 0: disable addons; 1: enable addons.)", FCVAR_NOTIFY);
-		AutoExecConfig(true, "left4dhooks");
 
 		g_hCvar_AddonsEclipse.AddChangeHook(ConVarChanged_Addons);
 		g_iCvar_AddonsEclipse = g_hCvar_AddonsEclipse.IntValue;
@@ -887,6 +886,21 @@ int Native_CTerrorGameRules_IsGenericCooperativeMode(Handle plugin, int numParam
 
 int Native_Internal_IsCoopMode(Handle plugin, int numParams) // Native "L4D_IsCoopMode"
 {
+	if( g_iCurrentMode == GAMEMODE_COOP && g_bLeft4Dead2 )
+	{
+		if( !g_bMapStarted )
+		{
+			ThrowNativeError(SP_ERROR_NOT_RUNNABLE, NATIVE_TOO_EARLY, "L4D_IsCoopMode");
+			return false;
+		}
+
+		ValidateAddress(g_pGameRules, "g_pGameRules");
+		ValidateNatives(g_hSDK_CTerrorGameRules_IsRealismMode, "CTerrorGameRules::IsRealismMode");
+
+		//PrintToServer("#### CALL g_hSDK_CTerrorGameRules_IsRealismMode");
+		return SDKCall(g_hSDK_CTerrorGameRules_IsRealismMode, g_pGameRules) == false;
+	}
+
 	return g_iCurrentMode == GAMEMODE_COOP;
 }
 
@@ -947,6 +961,8 @@ public void OnMapEnd()
 	// Reset hooks - Clear causes memory leaks, delete and re-create
 	// g_iAnimationHookedClients.Clear();
 	// g_iAnimationHookedPlugins.Clear();
+	delete g_iAnimationHookedClients;
+	delete g_iAnimationHookedPlugins;
 	g_iAnimationHookedClients = new ArrayList();
 	g_iAnimationHookedPlugins = new ArrayList(2);
 
@@ -1096,8 +1112,7 @@ int Native_AnimHookDisable(Handle plugin, int numParams) // Native "AnimHookDisa
 	int entity;
 
 	// Loop through all anim hooks
-	int length = g_iAnimationHookedPlugins.Length;
-	for( int i = 0; i < length; i++ )
+	for( int i = g_iAnimationHookedPlugins.Length-1; i >= 0; i-- )
 	{
 		// Get hooked plugin handle
 		target = g_iAnimationHookedPlugins.Get(i, 0);
@@ -1112,8 +1127,6 @@ int Native_AnimHookDisable(Handle plugin, int numParams) // Native "AnimHookDisa
 			if( client == entity )
 			{
 				g_iAnimationHookedPlugins.Erase(i);
-				if( i > 0 ) i--;
-				length--;
 			} else {
 				keep = true;
 			}
@@ -1130,7 +1143,7 @@ int Native_AnimHookDisable(Handle plugin, int numParams) // Native "AnimHookDisa
 	}
 
 	// Remove detour, no more plugins using it
-	if( length == 0 && g_aDetoursHooked.Get(index) == 1 && g_aForceDetours.Get(g_iAnimationDetourIndex) == 1 )
+	if( g_iAnimationHookedPlugins.Length == 0 && g_aDetoursHooked.Get(index) == 1 && g_aForceDetours.Get(g_iAnimationDetourIndex) == 1 )
 	{
 		g_bAnimationRemoveHook = true;
 		RequestFrame(OnFrameRemoveDetour);
