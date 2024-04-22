@@ -4304,10 +4304,6 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	CampaignOver = true;
 
 	StopMapTiming();
-	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0)
-	{
-		return;
-	}
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
 	if(TotalTime < 30.0)
 	{
