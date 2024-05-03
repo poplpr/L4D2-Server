@@ -2655,7 +2655,7 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 	decl String:query[512];	
 	//方便网页显示具体游玩模式
 	int mode = 0;
-	if(IsAnne())
+	if(IsAnne() == 1)
 	{
 		mode = 1;
 	}else if(IsWitchParty())
@@ -2670,6 +2670,9 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	//旁观者更新时间戳，但是不增加游戏时间，这样来方便统计在线人数
 	if(!IsPlayer(Client))
