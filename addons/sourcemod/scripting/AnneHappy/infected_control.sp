@@ -219,7 +219,7 @@ public void OnPluginStart()
     g_hEnableSIoption = CreateConVar("inf_EnableSIoption", "63", "启用生成的特感类型，1 smoker 2 boomer 4 hunter 8 spitter 16 jockey 32 charger,把你想要生成的特感值加起来", CVAR_FLAG, true, 0.0, true, 63.0);
     g_hAllChargerMode = CreateConVar("inf_AllChargerMode", "0", "是否是全牛模式", CVAR_FLAG, true, 0.0, true, 1.0);
     g_hAllHunterMode = CreateConVar("inf_AllHunterMode", "0", "是否是全猎人模式", CVAR_FLAG, true, 0.0, true, 1.0);
-    g_hAntiBaitMode = CreateConVar("inf_AntiBaitMode", "1", "是否开启诱饵模式", CVAR_FLAG, true, 0.0, true, 1.0);
+    g_hAntiBaitMode = CreateConVar("inf_AntiBaitMode", "0", "是否开启诱饵模式", CVAR_FLAG, true, 0.0, true, 1.0);
     g_hBaitFlow = CreateConVar("inf_BaitFlow", "3.0", "一个刷特回合推进进度如果小于这个数值会被判定为消极定点对抗(无tank)情况，可设置值为(1-10)", CVAR_FLAG, true, 0.0, true, 10.0);
     //g_hSIAttackIntent = CreateConVar("inf_SIAttackIntent", "0.48", "如果生还者紧张度低于这个值，没有特殊情况下会提前刷新特感", CVAR_FLAG, true, 0.0, true, 10.0);
     g_hAutoSpawnTimeControl = CreateConVar("inf_EnableAutoSpawnTime", "1", "是否开启自动设置增加时间", CVAR_FLAG, true, 0.0, true, 1.0);
@@ -1127,10 +1127,10 @@ Action CheckShouldSpawnOrNot(Handle timer)
                     }
                     else
                         SpawnCommonInfect(20);
-                    UnPauseTimer(g_fSiInterval / 2);
+                    UnPauseTimer(RoundToFloor(g_fSiInterval / 3) + 2.0);
                     g_iLadderBaitTimeCheckTime = -1;
 #if TESTBUG
-    Debug_Print("靠近梯子Bait检测，刷尸潮,%d秒后刷特", RoundToFloor(g_fSiInterval / 2));
+    Debug_Print("靠近梯子Bait检测，刷尸潮,%d秒后刷特", RoundToFloor((g_fSiInterval / 3) + 2));
 #endif
                 }          
             }
@@ -1141,16 +1141,16 @@ Action CheckShouldSpawnOrNot(Handle timer)
 #if TESTBUG
     Debug_Print("停刷，但是开始偷偷刷小僵尸,当前是第%d次检测", g_iBaitTimeCheckTime);
 #endif
-                if(g_iBaitTimeCheckTime < RoundToFloor(g_fSiInterval / 3) + 2)
+                if(g_iBaitTimeCheckTime < RoundToFloor(g_fSiInterval / 2) + 2)
                 {
                     if(g_hSpawnProcess != INVALID_HANDLE)
                         PauseTimer();
-                    SpawnCommonInfect(3);
+                    SpawnCommonInfect(2);
                 }
                 else
                 {
-                    UnPauseTimer(g_fSiInterval / 2);
-                    SpawnCommonInfect(20);
+                    UnPauseTimer((g_fSiInterval / 3) + 2.0);
+                    SpawnCommonInfect(10);
 #if TESTBUG
     Debug_Print("停刷，停刷超过%ds, 偷刷10个小僵尸，继续刷特", g_iBaitTimeCheckTime);
 #endif
@@ -1158,10 +1158,10 @@ Action CheckShouldSpawnOrNot(Handle timer)
                 }
             }
         }
-        //超过设定射箭3/2，强制4秒后刷特
+        //超过设定射箭1.8倍，强制2秒后刷特
         if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE)
         {
-            UnPauseTimer(4.0);
+            UnPauseTimer(2.0);
         }
         // 如果有停刷值大于0，而且刷特进程等于无效句柄，就继续检测，停刷
         if((g_iBaitTimeCheckTime > 0 || g_iLadderBaitTimeCheckTime > 0 ) && g_hSpawnProcess == INVALID_HANDLE)return Plugin_Continue;
