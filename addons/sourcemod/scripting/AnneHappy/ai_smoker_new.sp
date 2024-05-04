@@ -13,6 +13,8 @@
 #define TEAM_INFECTED 3
 #define SMOKER_MELEE_RANGE 300
 #define SMOKER_ATTACK_COORDINATE 5.0
+
+#define TRACE_RAY_FLAG 					MASK_SHOT | CONTENTS_MONSTERCLIP | CONTENTS_GRATE
 enum AimType
 {
 	AimEye,
@@ -271,7 +273,7 @@ public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)
 								float self_eye_pos[3] = {0.0}, eye_pos[3] = {0.0};
 								GetClientEyePosition(specialInfected, self_eye_pos);
 								GetClientEyePosition(i, eye_pos);
-								Handle hTrace = TR_TraceRayFilterEx(self_eye_pos, eye_pos, MASK_SOLID, RayType_EndPoint, TR_RayFilterBySmoker, specialInfected);
+								Handle hTrace = TR_TraceRayFilterEx(self_eye_pos, eye_pos, TRACE_RAY_FLAG, RayType_EndPoint, TR_RayFilterBySmoker, specialInfected);
 								if (!TR_DidHit(hTrace) && GetVectorDistance(self_eye_pos, eye_pos) < 600.0 && IsValidSurvivor(newtarget))
 								{
 									curTarget = newtarget;
@@ -362,7 +364,7 @@ int SmokerTargetChoose(int iMethod, int iSmoker, int iSpecificTarget = -1)
 	{
 		case 1:
 		{
-			int newtarget = GetClosestSurvivor(fSelfPos, iSpecificTarget);
+			int newtarget = GetClosetMobileSurvivor(iSmoker);
 			if (IsValidSurvivor(newtarget))
 			{
 				iTarget = newtarget;
@@ -388,7 +390,7 @@ int SmokerTargetChoose(int iMethod, int iSmoker, int iSpecificTarget = -1)
 				}
 			}
 			// 检测完毕所有玩家，如果所有玩家主武器不是喷子，选择最近玩家
-			int newtarget = GetClosestSurvivor(fSelfPos, iSpecificTarget);
+			int newtarget = GetClosetMobileSurvivor(iSmoker);
 			if (IsValidSurvivor(newtarget))
 			{
 				iTarget = newtarget;
@@ -450,7 +452,7 @@ int SmokerTargetChoose(int iMethod, int iSmoker, int iSpecificTarget = -1)
 				}
 			}
 			// 检测完毕所有玩家，如果没人正在换弹，选择最近玩家
-			int newtarget = GetClosestSurvivor(fSelfPos, iSpecificTarget);
+			int newtarget = GetClosetMobileSurvivor(iSmoker);
 			if (IsValidSurvivor(newtarget))
 			{
 				iTarget = newtarget;
@@ -470,7 +472,7 @@ int SmokerTargetChoose(int iMethod, int iSmoker, int iSpecificTarget = -1)
 				}
 			}
 			// 检测完毕所有玩家，如果没人正在换弹，选择最近玩家
-			int newtarget = GetClosestSurvivor(fSelfPos, iSpecificTarget);
+			int newtarget = GetClosetMobileSurvivor(iSmoker);
 			if (IsValidSurvivor(newtarget))
 			{
 				iTarget = newtarget;
@@ -552,38 +554,6 @@ bool IsIncapped(int client)
     return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
 }
 
-
-
-// 选择最近玩家
-int GetClosestSurvivor(float refpos[3], int excludeSur = -1)
-{
-	float surPos[3] = {0.0};
-	int closetSur = GetRandomMobileSurvivor();
-	if (IsValidSurvivor(closetSur))
-	{
-		GetClientAbsOrigin(closetSur, surPos);
-		int iClosetAbsDisplacement = RoundToNearest(GetVectorDistance(refpos, surPos));
-		for (int client = 1; client < MaxClients; client++)
-		{
-			if (IsClientConnected(client) && IsClientInGame(client) && GetClientTeam(client) == TEAM_SURVIVOR && IsPlayerAlive(client) && !IsIncapped(client) && !IsPinned(client) && client != excludeSur)
-			{
-				GetClientAbsOrigin(client, surPos);
-				int iAbsDisplacement = RoundToNearest(GetVectorDistance(refpos, surPos));
-				if (iClosetAbsDisplacement < 0)
-				{
-					iClosetAbsDisplacement = iAbsDisplacement;
-					closetSur = client;
-				}
-				else if (iAbsDisplacement < iClosetAbsDisplacement)
-				{
-					iClosetAbsDisplacement = iAbsDisplacement;
-					closetSur = client;
-				}
-			}
-		}
-	}
-	return closetSur;
-}
 
 void ComputeAimAngles(int client, int target, float angles[3], AimType type = AimEye)
 {

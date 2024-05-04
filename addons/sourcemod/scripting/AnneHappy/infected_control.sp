@@ -26,9 +26,9 @@
 #define HIGHERPOS             300.0
 #define HIGHERPOSADDDISTANCE  300.0
 #define INCAPSURVIVORCHECKDIS 500.0
-#define NORMALPOSMULT         1.3
-#define BaitDistance          250.0
-#define LadderDetectDistance  250.0
+#define NORMALPOSMULT         1.4
+#define BaitDistance          200.0
+#define LadderDetectDistance  500.0
 
 // 启用特感类型
 #define ENABLE_SMOKER         (1 << 0)
@@ -335,6 +335,9 @@ stock Action Cmd_StartSpawn(int client, int args)
 {
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
+#if TESTBUG
+        PrintToChatAll("目前是测试版本v1.2");
+#endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
         GetSiLimit();
@@ -606,7 +609,8 @@ public void OnGameFrame()
                     g_fTeleportDistance += 20.0;
 
                 float fSpawnPos[3] = { 0.0 };
-                if (GetSpawnPos(fSpawnPos, g_iTargetSurvivor, g_fTeleportDistance, true))
+                bool posfinded = g_iLadderBaitTimeCheckTime >= 1? getSpanPosByAPIEnhance(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance, true) : GetSpawnPos(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance, true);
+                if (posfinded)
                 {
                     int iZombieClass = aTeleportQueue.Get(0);
                     if (!(iZombieClass >= 1 && iZombieClass <= 6))
@@ -649,7 +653,8 @@ public void OnGameFrame()
                     g_fSpawnDistance += 5.0;
 
                 float fSpawnPos[3] = { 0.0 };
-                if (GetSpawnPos(fSpawnPos, g_iTargetSurvivor, g_fSpawnDistance))
+                bool posfinded = g_iLadderBaitTimeCheckTime == -1? getSpanPosByAPIEnhance(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false) : GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false);
+                if (posfinded)
                 {
                     int iZombieClass = aSpawnQueue.Get(0);
                     if (SpawnInfected(fSpawnPos, g_fSpawnDistance, iZombieClass))
@@ -689,7 +694,7 @@ public void OnGameFrame()
     }
 }
 
-stock bool GetSpawnPos(float fSpawnPos[3], int TargetSurvivor, float SpawnDistance, bool IsTeleport = false)
+stock bool GetSpawnPos(float fSpawnPos[3], const int class, int TargetSurvivor, float SpawnDistance, bool IsTeleport = false)
 {
     if (!IsValidClient(TargetSurvivor)) return false;
 
@@ -705,6 +710,11 @@ stock bool GetSpawnPos(float fSpawnPos[3], int TargetSurvivor, float SpawnDistan
     if( SurAurDistance < BaitDistance)
     {
         SpawnDistance *= (1 + SurAurDistance / BaitDistance);
+    }
+
+    if(g_iLadderBaitTimeCheckTime)
+    {
+        SpawnDistance += BaitDistance;
     }
 
     fMins[0] = fSurvivorPos[0] - SpawnDistance;
@@ -742,17 +752,73 @@ stock bool GetSpawnPos(float fSpawnPos[3], int TargetSurvivor, float SpawnDistan
     }
     return true;
 }
-/*
-stock bool Is_Nav_already_token(Address nav)
-{
-    for(int i = 0; i < aSpawnNavList.Length; i++)
+
+/** thanks 树树子 https://github.com/GlowingTree880/L4D2_LittlePlugins/blob/main/Infected_Control_Rework/inf_pos_find.sp
+* 使用射线并配合 L4D_GetRandomPZSpawnPosition 进行找位, 思路来自鹅国人 (鹅佬)
+* @param client 以这个客户端为中心进行找位
+* @param class 需要刷新的特感类型
+* @param gridIncrement 网格增量
+* @param spawnPos 刷新位置
+* @return void
+**/
+bool getSpanPosByAPIEnhance(float fSpawnPos[3], const int class, int TargetSurvivor, float SpawnDistance, bool IsTeleport = false) {
+    if (!IsValidClient(TargetSurvivor)) return false;
+
+    float fSurvivorPos[3], fDirection[3], fEndPos[3], fMins[3], fMaxs[3];
+    // 根据指定生还者坐标，拓展刷新范围
+    GetClientEyePosition(TargetSurvivor, fSurvivorPos);
+    //增加高度，增加刷房顶的几率
+    if (SpawnDistance < 500.0)
+        fMaxs[2] = fSurvivorPos[2] + 800.0;
+    else fMaxs[2] = fSurvivorPos[2] + SpawnDistance + 300.0;
+
+    float SurAurDistance = GetSurAvrDistance();
+    if( SurAurDistance < BaitDistance)
     {
-        if(nav == aSpawnNavList.Get(i))
-            return true;
+        SpawnDistance *= (1 + SurAurDistance / BaitDistance);
     }
-    return false;
+
+    if(g_iLadderBaitTimeCheckTime)
+    {
+        SpawnDistance += BaitDistance;
+    }
+
+    fMins[0] = fSurvivorPos[0] - SpawnDistance;
+    fMaxs[0] = fSurvivorPos[0] + SpawnDistance;
+    fMins[1] = fSurvivorPos[1] - SpawnDistance;
+    fMaxs[1] = fSurvivorPos[1] + SpawnDistance;
+    fMaxs[2] = fSurvivorPos[2] + SpawnDistance;
+    // 规定射线方向
+    fDirection[0] = 90.0;
+    fDirection[1] = fDirection[2] = 0.0;
+    // 随机刷新位置
+    fSpawnPos[0] = GetRandomFloat(fMins[0], fMaxs[0]);
+    fSpawnPos[1] = GetRandomFloat(fMins[1], fMaxs[1]);
+    fSpawnPos[2] = GetRandomFloat(fSurvivorPos[2], fMaxs[2]);
+    // 找位条件，可视，是否在有效 NavMesh，是否卡住，否则先会判断是否在有效 Mesh 与是否卡住导致某些位置刷不出特感
+    int count2 = 0;
+    //生成的时候只能在有跑男情况下才特意生成到幸存者前方
+    while (PlayerVisibleToSDK(fSpawnPos, IsTeleport) || !IsOnValidMesh(fSpawnPos) || IsPlayerStuck(fSpawnPos) || ((g_bPickRushMan || IsTeleport) && !Is_Pos_Ahead(fSpawnPos, g_iTargetSurvivor)) && count2 <= 20)
+    {
+        count2++;
+        fSpawnPos[0] = GetRandomFloat(fMins[0], fMaxs[0]);
+        fSpawnPos[1] = GetRandomFloat(fMins[1], fMaxs[1]);
+        fSpawnPos[2] = GetRandomFloat(fSurvivorPos[2], fMaxs[2]);
+        TR_TraceRay(fSpawnPos, fDirection, TRACE_RAY_FLAG, RayType_Infinite);
+        if (TR_DidHit())
+        {
+            TR_GetEndPosition(fEndPos);
+            fSpawnPos = fEndPos;
+            fSpawnPos[2] += NAV_MESH_HEIGHT;
+        }
+        ValidMeshAddFlag(fSpawnPos);
+    }
+    // 选择一个刷新位置
+    if (!L4D_GetRandomPZSpawnPosition(TargetSurvivor, class, 20, fSpawnPos))
+        return false;
+    else
+        return true;
 }
-*/
 
 stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieClass, bool IsTeleport = false)
 {
@@ -799,6 +865,11 @@ stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieCla
         if( SurAurDistance < BaitDistance)
         {
             distance *= (1 + SurAurDistance / BaitDistance);
+        }
+
+        if(g_iLadderBaitTimeCheckTime)
+        {
+            SpawnDistance += BaitDistance;
         }
 
         // nav1 和 nav2 必须有网格相连的路，并且生成距离大于distance，增加不能是同nav网格的要求
@@ -1021,9 +1092,9 @@ int IsSurvivorBait()
 #if TESTBUG
     Debug_Print("条件1：[SurAvrDistance]%f     [Ladder]%d", SurAvrDistance, ladder);
 #endif 
-    if( SurAvrDistance > 0 && SurAvrDistance<= 200.0 && ladder)
+    if( SurAvrDistance > 0 && SurAvrDistance<= BaitDistance && g_iTotalSINum <= RoundToFloor(g_iSiLimit / 3.0) && ladder)
     {
-        return 1;
+        g_iLadderBaitTimeCheckTime += 1;
     }
     // 条件2：如果玩家两个回合推进没有超过设定的进度权重而且生还者平均密度低于200，特感小于特感数量/3的情况
     float flow = GetSurAvrFlow();
@@ -1051,7 +1122,7 @@ void PauseTimer()
     {
         g_fUnpauseNextSpawnTime = g_fSiInterval - (GetGameTime() - g_fLastSISpawnStartTime);
 #if TESTBUG
-    Debug_Print("暂停刷特进程，g_fUnpauseNextSpawnTime参考值为%.2f秒", g_fUnpauseNextSpawnTime);
+    Debug_Print("暂停%s刷特进程，刷特进程将由抗诱饵模块接管，原本刷特时间将在%.2f秒后", g_bAutoSpawnTimeControl?"自动":"固定", g_fUnpauseNextSpawnTime);
 #endif
         KillTimer(g_hSpawnProcess);
         g_hSpawnProcess = INVALID_HANDLE;
@@ -1065,14 +1136,14 @@ void UnPauseTimer(float time = 0.0)
         if(time != 0.0)
         {
 #if TESTBUG
-    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", time, g_iLastSpawnTime + time);
+    Debug_Print("恢复刷特，下次刷特时间为%.2f秒后，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", time, g_iLastSpawnTime + time);
 #endif
             g_hSpawnProcess = CreateTimer(time, SpawnNewInfected, _, TIMER_REPEAT);
         }
         else
         {
 #if TESTBUG
-    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", g_fUnpauseNextSpawnTime, g_iLastSpawnTime + g_fUnpauseNextSpawnTime);
+    Debug_Print("恢复刷特，下次刷特时间为%.2f秒后，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", g_fUnpauseNextSpawnTime, g_iLastSpawnTime + g_fUnpauseNextSpawnTime);
 #endif
             g_hSpawnProcess = CreateTimer(g_fUnpauseNextSpawnTime, SpawnNewInfected, _, TIMER_REPEAT);
         }
@@ -1101,17 +1172,19 @@ Action CheckShouldSpawnOrNot(Handle timer)
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
     if( g_bAntiBaitMode )
     {
-        if(g_iLastSpawnTime >= g_fSiInterval)
+        int result = 0;
+        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 0.7) + 1)
         {
-            int result = IsSurvivorBait();
+            result = IsSurvivorBait();
 #if TESTBUG
     Debug_Print("IsSurvivorBait检测结果为%d", result);
 #endif
+/*
             if(result == 1 && g_iLadderBaitTimeCheckTime != -1)
             {
                 //停刷
                 g_iLadderBaitTimeCheckTime ++;
-                if(g_iLadderBaitTimeCheckTime < RoundToFloor(g_fSiInterval / 3) + 2)
+                if(g_iLadderBaitTimeCheckTime < 6)
                 {
                     if(g_hSpawnProcess != INVALID_HANDLE)
                         PauseTimer();
@@ -1128,44 +1201,54 @@ Action CheckShouldSpawnOrNot(Handle timer)
                     }
                     else
                         SpawnCommonInfect(20);
-                    UnPauseTimer(RoundToFloor(g_fSiInterval / 3) + 2.0);
+                    UnPauseTimer(2.0);
                     g_iLadderBaitTimeCheckTime = -1;
 #if TESTBUG
-    Debug_Print("靠近梯子Bait检测，刷尸潮,%d秒后刷特", RoundToFloor((g_fSiInterval / 3) + 2));
+    Debug_Print("靠近梯子Bait检测，刷尸潮,2秒后刷特");
 #endif
                 }          
             }
-            else if((result == 2 || result ==3) && g_iBaitTimeCheckTime != -1)
+            else */
+            if(result == 0)
             {
-                //停刷
-                g_iBaitTimeCheckTime ++;
-#if TESTBUG
-    Debug_Print("停刷，但是开始偷偷刷小僵尸,当前是第%d次检测", g_iBaitTimeCheckTime);
-#endif
-                if(g_iBaitTimeCheckTime < RoundToFloor(g_fSiInterval / 2) + 2)
+                g_iBaitTimeCheckTime = g_iBaitTimeCheckTime >= 2? 2 : g_iBaitTimeCheckTime-1;
+                if(g_iBaitTimeCheckTime <= -1)
                 {
-                    if(g_hSpawnProcess != INVALID_HANDLE)
-                        PauseTimer();
-                    SpawnCommonInfect(2);
-                }
-                else
-                {
-                    UnPauseTimer((g_fSiInterval / 3) + 2.0);
-                    SpawnCommonInfect(10);
-#if TESTBUG
-    Debug_Print("停刷，停刷超过%ds, 偷刷10个小僵尸，继续刷特", g_iBaitTimeCheckTime);
-#endif
                     g_iBaitTimeCheckTime = -1;
                 }
             }
+            else if((result == 2 || result ==3))
+            {
+                //停刷
+                g_iBaitTimeCheckTime ++;
+                //检测到3次停刷
+                if(g_iBaitTimeCheckTime > 2)
+                {
+                    PauseTimer();
+                }
+                if(g_iBaitTimeCheckTime > 6)
+                {
+                    SpawnCommonInfect(5);
+#if TESTBUG
+    Debug_Print("停刷，停刷超过%ds, 刷5个小僵尸，继续停刷", g_iBaitTimeCheckTime);
+#endif
+                }
+            }
         }
-        //超过设定射箭1.8倍，强制2秒后刷特
-        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE)
+
+        // g_iBaitTimeCheckTime == -1 而且时间大于g_fSIinterval 2秒后刷特
+        if(g_iBaitTimeCheckTime == -1 && g_hSpawnProcess == INVALID_HANDLE)
         {
-            UnPauseTimer(2.0);
+            UnPauseTimer(1.0);
         }
-        // 如果有停刷值大于0，而且刷特进程等于无效句柄，就继续检测，停刷
-        if((g_iBaitTimeCheckTime > 0 || g_iLadderBaitTimeCheckTime > 0 ) && g_hSpawnProcess == INVALID_HANDLE)return Plugin_Continue;
+        
+        //超过设定时间2倍，强制1秒后刷特
+        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.6) && g_hSpawnProcess == INVALID_HANDLE)
+        {
+            UnPauseTimer(1.0);
+        }
+        // 如果刷特进程等于无效句柄，就继续检测，停刷
+        if( g_hSpawnProcess == INVALID_HANDLE )return Plugin_Continue;
     }
 
     if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
@@ -1300,6 +1383,26 @@ bool IsOnValidMesh(float fReferencePos[3])
 
     // 我真心建议这样写，可读性不比用if分支差，一个方法太长看着会很乱的
     return pNavArea != Address_Null && !((L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT));
+}
+
+bool ValidMeshAddFlag(float fReferencePos[3])
+{
+    Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
+    if (pNavArea != Address_Null && !(L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT))
+    {
+        static int flag;
+        flag = L4D_GetNavArea_AttributeFlags(pNavArea);
+        flag |= NAV_SPAWN_OBSCURED;
+        L4D_SetNavArea_AttributeFlags(pNavArea, flag);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
+    // 我真心建议这样写，可读性不比用if分支差，一个方法太长看着会很乱的
+    //return pNavArea != Address_Null && !((L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT));
 }
 
 //判断该坐标是否可以看到生还或者距离小于g_fSpawnDistanceMin码，减少一层栈函数，增加实时性,单人模式增加2条射线模仿左右眼
@@ -2193,7 +2296,7 @@ stock void SpawnCommonInfect(int amount)
     float pos[3];
     for(int i = 0; i < amount; i++)
     {
-        L4D_GetRandomPZSpawnPosition(0, ZC_CHARGER, 2, pos);
+        L4D_GetRandomPZSpawnPosition(0, ZC_JOCKEY, 2, pos);
         L4D_SpawnCommonInfected(pos, {0.0, 0.0, 0.0});
     }
 }
