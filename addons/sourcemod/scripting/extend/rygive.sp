@@ -1812,10 +1812,20 @@ int SwitchPlayerTeam_MenuHandler(Menu menu, MenuAction action, int client, int p
 						}
 
 						case 2:
-							ChangeTeamToSurvivor(target, team);
+							{
+								if(IsSuivivorTeamFull())
+									PrintToChat(client, "生还已满");
+								else
+									ChangeTeamToSurvivor(target, team);
+							}
 
 						case 3:
-							ChangeClientTeam(target, targetTeam);
+							{
+								if(IsInfectTeamFull())
+									PrintToChat(client, "感染者已满");
+								else
+									ChangeClientTeam(target, targetTeam);
+							}
 					}
 				}
 				else
@@ -1837,6 +1847,39 @@ int SwitchPlayerTeam_MenuHandler(Menu menu, MenuAction action, int client, int p
 	}
 
 	return 0;
+}
+
+//判断生还是否已经满人
+stock bool IsSuivivorTeamFull() 
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+//判断特感是否已经满人
+stock bool IsInfectTeamFull() 
+{
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && GetClientTeam(i) == 3)
+		{
+			count ++;
+		}
+	}
+	if(count >= FindConVar("z_max_player_zombies").IntValue){
+		return true;
+	}		
+	else
+	{
+		return false;
+	}
 }
 
 void ChangeTeamToSurvivor(int client, int team) {

@@ -257,6 +257,7 @@ public void OnPluginStart()
     g_hEnableSIoption.AddChangeHook(ConVarChanged_Cvars);
     g_hAllChargerMode.AddChangeHook(ConVarChanged_Cvars);
     g_hAllHunterMode.AddChangeHook(ConVarChanged_Cvars);
+    g_hAntiBaitMode.AddChangeHook(ConVarChanged_Cvars);
     g_hAutoSpawnTimeControl.AddChangeHook(ConVarChanged_Cvars);
     g_hAddDamageToSmoker.AddChangeHook(ConVarChanged_Cvars);
     g_hSiLimit.AddChangeHook(MaxPlayerZombiesChanged_Cvars);
