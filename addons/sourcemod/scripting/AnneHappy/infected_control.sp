@@ -1064,14 +1064,14 @@ void UnPauseTimer(float time = 0.0)
         if(time != 0.0)
         {
 #if TESTBUG
-    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度", time);
+    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", time, g_iLastSpawnTime + time);
 #endif
             g_hSpawnProcess = CreateTimer(time, SpawnNewInfected, _, TIMER_REPEAT);
         }
         else
         {
 #if TESTBUG
-    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度", g_fUnpauseNextSpawnTime);
+    Debug_Print("恢复刷特，下次刷特时间为%f ，跳过自动刷特系统调度, 总真实刷特时间为 %.2f 秒", g_fUnpauseNextSpawnTime, g_iLastSpawnTime + g_fUnpauseNextSpawnTime);
 #endif
             g_hSpawnProcess = CreateTimer(g_fUnpauseNextSpawnTime, SpawnNewInfected, _, TIMER_REPEAT);
         }
@@ -1100,7 +1100,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
     if( g_bAntiBaitMode )
     {
-        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval / 2) + 2)
+        if(g_iLastSpawnTime >= g_fSiInterval)
         {
             int result = IsSurvivorBait();
 #if TESTBUG
@@ -1158,14 +1158,14 @@ Action CheckShouldSpawnOrNot(Handle timer)
                 }
             }
         }
+        //超过设定射箭3/2，强制4秒后刷特
+        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE)
+        {
+            UnPauseTimer(4.0);
+        }
+        // 如果有停刷值大于0，而且刷特进程等于无效句柄，就继续检测，停刷
+        if((g_iBaitTimeCheckTime > 0 || g_iLadderBaitTimeCheckTime > 0 ) && g_hSpawnProcess == INVALID_HANDLE)return Plugin_Continue;
     }
-    //超过设定射箭3/2，强制4秒后刷特
-    if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval / 2) + g_fSiInterval && g_hSpawnProcess == INVALID_HANDLE)
-    {
-        UnPauseTimer(4.0);
-    }
-    // 如果有停刷值大于0，而且刷特进程等于无效句柄，就继续检测，停刷
-    if((g_iBaitTimeCheckTime > 0 || g_iLadderBaitTimeCheckTime > 0 ) && g_hSpawnProcess == INVALID_HANDLE)return Plugin_Continue;
 
     if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
     if (FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
@@ -1203,7 +1203,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
             g_hSpawnProcess = CreateTimer(g_fSiInterval * 1.5, SpawnNewInfected, _, TIMER_REPEAT);
         }
     }
-    else if ((IsAllKillersDown() && g_iSpawnMaxCount == 0) || (g_iTotalSINum <= (RoundToFloor(g_iSiLimit / 4.0) + 1) && g_iSpawnMaxCount == 0) || (g_iLastSpawnTime >= g_fSiInterval * 0.5) || (L4D_GetAvgSurvivorIntensity() <= 0.3))
+    else if ((IsAllKillersDown() && g_iSpawnMaxCount == 0) || (g_iTotalSINum <= (RoundToFloor(g_iSiLimit / 4.0) + 1) && g_iSpawnMaxCount == 0) || (g_iLastSpawnTime >= g_fSiInterval * 0.5))
     {
         g_bShouldCheck = false;
         if (g_iSpawnMaxCount == g_iSiLimit)
@@ -2192,7 +2192,7 @@ stock void SpawnCommonInfect(int amount)
     float pos[3];
     for(int i = 0; i < amount; i++)
     {
-        L4D_GetRandomPZSpawnPosition(0, ZC_SMOKER, 2, pos);
+        L4D_GetRandomPZSpawnPosition(0, ZC_CHARGER, 2, pos);
         L4D_SpawnCommonInfected(pos, {0.0, 0.0, 0.0});
     }
 }
