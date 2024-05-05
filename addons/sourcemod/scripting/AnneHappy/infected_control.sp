@@ -317,7 +317,7 @@ stock Action Cmd_StartSpawn(int client, int args)
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
 #if TESTBUG
-        PrintToChatAll("目前是测试版本v1.6");
+        PrintToChatAll("目前是测试版本v1.7");
 #endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
@@ -1151,7 +1151,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
     g_iLastSpawnTime++;
     if (!g_bIsLate) return Plugin_Stop;
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
-    if( g_bAntiBaitMode)
+    if( g_bAntiBaitMode && g_iBaitTimeCheckTime > -5)
     {
         int result = 0;
         //刷特线程已经启动
@@ -1212,13 +1212,14 @@ Action CheckShouldSpawnOrNot(Handle timer)
                 //检测到3次停刷
                 if(g_iBaitTimeCheckTime > 2)
                 {
-                    PauseTimer();
+                    if(g_hSpawnProcess != INVALID_HANDLE)
+                        PauseTimer();
                 }
                 if(g_iBaitTimeCheckTime > 6)
                 {
-                    SpawnCommonInfect(5);
+                    SpawnCommonInfect(4);
 #if TESTBUG
-    Debug_Print("停刷，停刷超过%ds, 刷5个小僵尸，继续停刷", g_iBaitTimeCheckTime);
+    Debug_Print("停刷，停刷超过%ds, 刷15个小僵尸，继续停刷", g_iBaitTimeCheckTime);
 #endif
                 }
             }
@@ -1229,6 +1230,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
 #if TESTBUG
     Debug_Print("g_iBaitTimeCheckTime==-1，满足，1秒后恢复刷特");
 #endif
+                g_iBaitTimeCheckTime = -10;
             }
             
             //超过设定时间1.8倍，强制1秒后刷特
