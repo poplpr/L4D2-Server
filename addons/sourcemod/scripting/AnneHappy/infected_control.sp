@@ -336,7 +336,7 @@ stock Action Cmd_StartSpawn(int client, int args)
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
 #if TESTBUG
-        PrintToChatAll("目前是测试版本v1.2");
+        PrintToChatAll("目前是测试版本v1.5");
 #endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
@@ -1170,10 +1170,11 @@ Action CheckShouldSpawnOrNot(Handle timer)
     g_iLastSpawnTime++;
     if (!g_bIsLate) return Plugin_Stop;
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
-    if( g_bAntiBaitMode )
+    if( g_bAntiBaitMode)
     {
         int result = 0;
-        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 0.7) + 1)
+        //刷特线程已经启动
+        if( !g_bShouldCheck )
         {
             result = IsSurvivorBait();
 #if TESTBUG
@@ -1216,6 +1217,12 @@ Action CheckShouldSpawnOrNot(Handle timer)
                 {
                     g_iBaitTimeCheckTime = -1;
                 }
+                else if(g_iBaitTimeCheckTime >=2 )
+                {
+                    g_iBaitTimeCheckTime = 2;
+                }else{
+                    g_iBaitTimeCheckTime --;
+                }
             }
             else if((result == 2 || result ==3))
             {
@@ -1234,24 +1241,30 @@ Action CheckShouldSpawnOrNot(Handle timer)
 #endif
                 }
             }
-        }
+            // g_iBaitTimeCheckTime == -1 而且时间大于g_fSIinterval 2秒后刷特
+            if(g_iBaitTimeCheckTime == -1 && g_hSpawnProcess == INVALID_HANDLE)
+            {
+                UnPauseTimer(1.0);
+#if TESTBUG
+    Debug_Print("g_iBaitTimeCheckTime==-1，满足，1秒后恢复刷特");
+#endif
+            }
+            
+            //超过设定时间1.8倍，强制1秒后刷特
+            if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE)
+            {
 
-        // g_iBaitTimeCheckTime == -1 而且时间大于g_fSIinterval 2秒后刷特
-        if(g_iBaitTimeCheckTime == -1 && g_hSpawnProcess == INVALID_HANDLE)
-        {
-            UnPauseTimer(1.0);
+                UnPauseTimer(1.0);
+#if TESTBUG
+    Debug_Print("超过设定时间1.8倍，强制1秒后刷特");
+#endif
+            }
+            // 如果刷特进程等于无效句柄，就继续检测，停刷
+            if( g_hSpawnProcess == INVALID_HANDLE )return Plugin_Continue;
         }
-        
-        //超过设定时间2倍，强制1秒后刷特
-        if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.6) && g_hSpawnProcess == INVALID_HANDLE)
-        {
-            UnPauseTimer(1.0);
-        }
-        // 如果刷特进程等于无效句柄，就继续检测，停刷
-        if( g_hSpawnProcess == INVALID_HANDLE )return Plugin_Continue;
     }
 
-    if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+    if (!g_bShouldCheck || g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
     if (FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
     //防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
     /*

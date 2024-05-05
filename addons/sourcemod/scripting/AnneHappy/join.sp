@@ -327,7 +327,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	if(g_bGroupSystemAvailable){
-		if(!Veterans_Get(client, view_as<TARGET_OPTION_INDEX>(GOURP_MEMBER)) || !(CheckCommandAccess(client, "", ADMFLAG_SLAY))){
+		if(!Veterans_Get(client, view_as<TARGET_OPTION_INDEX>(GOURP_MEMBER)) && !(CheckCommandAccess(client, "", ADMFLAG_SLAY))){
 			ShowMotdToPlayer(client);
 		}
 	}else{
