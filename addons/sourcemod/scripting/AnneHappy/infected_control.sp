@@ -3,8 +3,6 @@
 #define DEBUG 0
 #define TESTBUG 0
 
-#define CDIRECTOR_GAMEDATA "l4d2_cdirector" //m_PostMobDelayTimer offset
-
 // 头文件
 #include <sourcemod>
 #include <sdktools>
@@ -94,7 +92,6 @@ ConVar g_hSpawnDistanceMin,            // 特感最低生成距离
 
 // Ints
 int
-    m_PostMobDelayTimerOffset,               //Gameoffset
     g_iSiLimit,                              //特感数量
     g_iRushManIndex,                         //跑男id
     g_iWaveTime,                             // Debug时输出这是第几波刷特
@@ -210,7 +207,6 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnPluginStart()
 {
-    InitGameData();
     // CreateConVar
     g_hSpawnDistanceMin = CreateConVar("inf_SpawnDistanceMin", "250.0", "特感复活离生还者最近的距离限制", CVAR_FLAG, true, 0.0);
     g_hSpawnDistanceMax = CreateConVar("inf_SpawnDistanceMax", "1500.0", "特感复活离生还者最远的距离限制", CVAR_FLAG, true, g_hSpawnDistanceMin.FloatValue);
@@ -280,21 +276,6 @@ public void OnPluginStart()
     RegAdminCmd("sm_stopspawn", Cmd_StopSpawn, ADMFLAG_ROOT, "管理员重置刷特时钟");
 }
 
-void InitGameData()
-{
-	Handle hGamedata2 = LoadGameConfigFile(CDIRECTOR_GAMEDATA);
-	if (!hGamedata2) {
-		SetFailState("Gamedata '%s' missing or corrupt", CDIRECTOR_GAMEDATA);
-	}
-	
-	m_PostMobDelayTimerOffset = GameConfGetOffset(hGamedata2, "CDirectorScriptedEventManager->m_PostMobDelayTimer");
-	if (m_PostMobDelayTimerOffset == -1) {
-		SetFailState("Invalid offset '%s'.", "CDirectorScriptedEventManager->m_PostMobDelayTimer");
-	}
-	
-	delete hGamedata2;
-}
-
 /*
 public void OnMapStart()
 {
@@ -336,7 +317,7 @@ stock Action Cmd_StartSpawn(int client, int args)
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
 #if TESTBUG
-        PrintToChatAll("目前是测试版本v1.5");
+        PrintToChatAll("目前是测试版本v1.6");
 #endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
@@ -1079,7 +1060,7 @@ int IsSurvivorBait()
 { 
     // 前置条件，玩家的紧张度不要高于设定的SIAttactIntent的值，没有坦克或者2个生还倒地的情况,没有尸潮情况下
     //if( intensity >= g_fSIAttackIntent || IsAnyTankOrAboveHalfSurvivorDownOrDied() || IsPanicEventInProgress())
-    if( IsAnyTankOrAboveHalfSurvivorDownOrDied(1) || IsPanicEventInProgress())
+    if( IsAnyTankOrAboveHalfSurvivorDownOrDied(1))
     {
 #if TESTBUG
     Debug_Print("[前置条件]未满足");
@@ -1263,8 +1244,21 @@ Action CheckShouldSpawnOrNot(Handle timer)
             if( g_hSpawnProcess == INVALID_HANDLE )return Plugin_Continue;
         }
     }
-
-    if (!g_bShouldCheck || g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+    if( g_iLastSpawnTime > RoundToFloor(2 * g_fSiInterval) + 4 && !g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE)
+    {
+        //长时间卡住，重启一下刷特进程
+        KillTimer(g_hSpawnProcess);
+        g_hSpawnProcess = INVALID_HANDLE;
+        UnPauseTimer(1.0);
+    }
+    if(g_bAntiBaitMode)
+    {
+        if (!g_bShouldCheck || g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+    }       
+    else
+    {
+        if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+    }    
     if (FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
     //防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
     /*
@@ -2097,37 +2091,6 @@ stock bool IsAnyTankOrAboveHalfSurvivorDownOrDied(int limit = 0)
     
 
     return false;
-}
-
-stock CountdownTimer CountdownPointer()
-{
-	return L4D2Direct_GetScavengeRoundSetupTimer();
-}
-
-stock CountdownTimer PostMobDelayTimer()
-{
-	return view_as<CountdownTimer>(L4D_GetPointer(POINTER_EVENTMANAGER) + view_as<Address>(m_PostMobDelayTimerOffset));
-}
-
-// Сan use prop 'm_bPanicEventInProgress' better?
-// director_force_panic_event & car alarms etc.
-bool IsPanicEventInProgress()
-{
-	CountdownTimer pPanicCountdown = PostMobDelayTimer();
-	
-	#if DEBUG
-	Debug_Print("m_PostMobDelay - duration: %f, timestamp: %f", CTimer_GetDuration(pPanicCountdown), CTimer_GetTimestamp(pPanicCountdown));
-	#endif
-	
-	if (!CTimer_IsElapsed(pPanicCountdown)) {
-		return true;
-	}
-	
-	if (CTimer_HasStarted(L4D2Direct_GetMobSpawnTimer())) {
-		return (RoundFloat(CTimer_GetRemainingTime(L4D2Direct_GetMobSpawnTimer())) <= 10.0);
-	}
-	
-	return false;
 }
 
 stock void CheckAllLadder()
