@@ -685,7 +685,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 		}
 	IsStart=true;
 	valid=true;
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 
