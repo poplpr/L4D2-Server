@@ -2640,12 +2640,13 @@
 	{
 		"tank_ban_flow"
 		{
-			"1"
+			"Early"
 			{
-				"min"		"70"
-				"max"		"100"
+				"min"		"35"
+				"max"		"99"
 			}
 		}
+	}	}
 	}	
 	"l4d2_ff02_factory"
 	{
@@ -2671,10 +2672,11 @@
 	}
 	"l4d2_ff04_plant"
 	{
-		"horde_limit"		"50"
+		"max_distance"		"600"
+		"horde_limit"		"40"
 		"tank_ban_flow"
 		{
-			"1"
+			"Alarm event"
 			{
 				"min"		"56"
 				"max"		"99"
