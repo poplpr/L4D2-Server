@@ -3888,6 +3888,9 @@ GiveAdrenaline(Giver, Recipient, AdrenalineID = -1)
 
 	if (IsClientBot(Giver))
 		return;
+	
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
+		return;
 
 	decl String:RecipientName[MAX_LINE_WIDTH];
 	GetClientName(Recipient, RecipientName, sizeof(RecipientName));
@@ -3991,6 +3994,9 @@ GivePills(Giver, Recipient, PillsID = -1)
 		Pills[PillsID] = 1;
 
 	if (IsClientBot(Giver))
+		return;
+	
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 		return;
 
 	decl String:RecipientName[MAX_LINE_WIDTH];
