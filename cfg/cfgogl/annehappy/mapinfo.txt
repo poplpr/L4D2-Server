@@ -2636,17 +2636,6 @@
 		"end_dist"			"150.000000"
 		"max_distance"		"800"
 	}
-	"l4d2_ff01_woods"
-	{
-		"tank_ban_flow"
-		{
-			"Early"
-			{
-				"min"		"35"
-				"max"		"99"
-			}
-		}
-	}	
 	"l4d2_ff02_factory"
 	{
 		"tank_ban_flow"
@@ -3409,6 +3398,21 @@
 		"ItemLimits"
 		{
 			"pain_pills"    "5"
+		}
+	}
+	"tripday_new_m5"
+	{
+		"tank_ban_flow"
+		{
+			"near_gas_station"
+			{
+				"min"		"52"
+				"max"		"100"
+			}
+		}
+		"ItemLimits"
+		{
+			"pain_pills"	"5"
 		}
 	}
 }
