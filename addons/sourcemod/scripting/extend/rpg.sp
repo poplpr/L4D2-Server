@@ -11,6 +11,7 @@
 #include <hextags>
 #include <l4d_hats>
 #include <godframecontrol>
+#include <readyup>
 #define PLUGIN_VERSION "1.5"
 #define MAX_LINE_WIDTH 64
 #define DB_CONF_NAME  "rpg"
@@ -38,7 +39,7 @@ bool IsAnne = false;
 int InfectedNumber=6;
 bool g_bEnableGlow = true;
 ConVar GaoJiRenJi, AllowBigGun, g_InfectedNumber, g_cShopEnable, g_hEnableGlow;
-bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bMysqlSystemAvailable = false;
+bool g_bGodFrameSystemAvailable = false, g_bHatSystemAvailable = false, g_bHextagsSystemAvailable = false, g_bl4dstatsSystemAvailable = false, g_bMysqlSystemAvailable = false, g_bReadyUpSystemAvailable = false;
 //new lastpoints[MAXPLAYERS + 1];
 
 //枚举变量,修改武器消耗积分在此。
@@ -182,6 +183,7 @@ public void OnAllPluginsLoaded()
 	g_bl4dstatsSystemAvailable = LibraryExists("l4d_stats");
 	g_bHextagsSystemAvailable = LibraryExists("hextags");
 //	g_bpunchangelSystemAvailable = LibraryExists("punch_angle");
+	g_bReadyUpSystemAvailable = LibraryExists("readyup");
 }
 public void OnLibraryAdded(const char[] name)
 {
@@ -190,6 +192,7 @@ public void OnLibraryAdded(const char[] name)
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = true; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = true; }
 //	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = true; }
+	else if ( StrEqual(name, "readyup") ) { g_bReadyUpSystemAvailable = true; }
 }
 public void OnLibraryRemoved(const char[] name)
 {
@@ -198,6 +201,7 @@ public void OnLibraryRemoved(const char[] name)
 	else if ( StrEqual(name, "l4d_stats") ) { g_bl4dstatsSystemAvailable = false; }
 	else if ( StrEqual(name, "hextags") ) { g_bHextagsSystemAvailable = false; }
 //	else if ( StrEqual(name, "punch_angle") ) { g_bpunchangelSystemAvailable = false; }
+	else if ( StrEqual(name, "readyup") ) { g_bReadyUpSystemAvailable = false; }
 }
 
 //god frame send forward implement
@@ -848,6 +852,11 @@ public void ClientTagsSaveToFileSave(int Client)
 //开局发近战能力武器
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
+	if(g_bReadyUpSystemAvailable && IsInReady())
+	{
+		return Plugin_Continue;
+	}
+
 	if(g_cShopEnable.BoolValue){
 		for(int i=1;i<MaxClients;i++){
 			if(IsSurvivor(i))
@@ -863,7 +872,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 		valid = false;
 	}
 	IsStart=true;
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 
