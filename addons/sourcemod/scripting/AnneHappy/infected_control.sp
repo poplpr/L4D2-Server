@@ -1,7 +1,7 @@
 #pragma semicolon 1
 #pragma newdecls required
-#define DEBUG 0
-#define TESTBUG 0
+#define DEBUG 1
+#define TESTBUG 1
 
 // 头文件
 #include <sourcemod>
@@ -42,6 +42,9 @@
 #define RushManDistance       1200.0
 //确认射线类型
 #define TRACE_RAY_FLAG 					MASK_SHOT | CONTENTS_MONSTERCLIP | CONTENTS_GRATE
+
+// max函数定义
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 stock const char InfectedName[10][] = {
     "common",
@@ -137,6 +140,7 @@ bool
     g_bSmokerAvailable = false,          // ai_smoker_new是否存在
     g_bAntiBaitMode = false,             //抗诱饵模式是否开启
     g_bSIPoolAvailable = false,          //特感池是否存在
+    g_bPauseSystemAvailable = false,     // 能否暂停
     g_bTargetSystemAvailable = false;    //目标选择插件是否存在
 
 // Handle
@@ -183,6 +187,7 @@ public void OnAllPluginsLoaded()
     g_bTargetSystemAvailable = LibraryExists("si_target_limit");
     g_bSmokerAvailable = LibraryExists("ai_smoker_new");
     g_bSIPoolAvailable = LibraryExists("si_pool");
+    g_bPauseSystemAvailable = LibraryExists("pause");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -193,6 +198,8 @@ public void OnLibraryAdded(const char[] name)
         g_bSmokerAvailable = true;
     else if (StrEqual(name, "si_pool"))
         g_bSIPoolAvailable = true;
+    else if (StrEqual(name, "pause"))
+        g_bPauseSystemAvailable = true;
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -203,6 +210,8 @@ public void OnLibraryRemoved(const char[] name)
         g_bSmokerAvailable = false;
     else if (StrEqual(name, "si_pool"))
         g_bSIPoolAvailable = false;
+    else if (StrEqual(name, "pause"))
+        g_bPauseSystemAvailable = false;
 }
 
 public void OnPluginStart()
@@ -317,7 +326,7 @@ stock Action Cmd_StartSpawn(int client, int args)
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
 #if TESTBUG
-        PrintToChatAll("目前是测试版本v1.7");
+        PrintToChatAll("目前是测试版本v1.9");
 #endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
@@ -638,7 +647,7 @@ public void OnGameFrame()
                 if (posfinded)
                 {
                     int iZombieClass = aSpawnQueue.Get(0);
-                    if (SpawnInfected(fSpawnPos, g_fSpawnDistance, iZombieClass))
+                    if ( SpawnInfected(fSpawnPos, g_fSpawnDistance, iZombieClass))
                     {
                         g_iSpawnMaxCount -= 1;
                         g_iSINum[iZombieClass - 1] += 1;
@@ -1058,7 +1067,7 @@ public void OnUnpause()
 // 3 生还密度过于集中
 int IsSurvivorBait()
 { 
-    // 前置条件，玩家的紧张度不要高于设定的SIAttactIntent的值，没有坦克或者2个生还倒地的情况,没有尸潮情况下
+    // 前置条件，没有坦克或者1个生还倒地的情况
     //if( intensity >= g_fSIAttackIntent || IsAnyTankOrAboveHalfSurvivorDownOrDied() || IsPanicEventInProgress())
     if( IsAnyTankOrAboveHalfSurvivorDownOrDied(1))
     {
@@ -1071,7 +1080,7 @@ int IsSurvivorBait()
     float SurAvrDistance = GetSurAvrDistance();
     bool ladder = IsLadderArround(GetRandomSurvivor(), LadderDetectDistance);
 #if TESTBUG
-    Debug_Print("条件1：[SurAvrDistance]%f     [Ladder]%d", SurAvrDistance, ladder);
+    Debug_Print("条件1：[生还密度]%f     [附近是否有梯子]%d", SurAvrDistance, ladder);
 #endif 
     if( SurAvrDistance > 0 && SurAvrDistance<= BaitDistance && g_iTotalSINum <= RoundToFloor(g_iSiLimit / 3.0) && ladder)
     {
@@ -1080,20 +1089,12 @@ int IsSurvivorBait()
     // 条件2：如果玩家两个回合推进没有超过设定的进度权重而且生还者平均密度低于200，特感小于特感数量/3的情况
     float flow = GetSurAvrFlow();
 #if TESTBUG
-    Debug_Print("条件2：[flow]%f     [g_fLastSISpawnAurSurFlow]%f", flow, g_fLastSISpawnAurSurFlow);
+    Debug_Print("条件2：[当前进度]%f [最后一次特感生成时生还者进度]%f [当前特感数量]%d(%d) [生还密度]%f", flow, g_fLastSISpawnAurSurFlow, g_iTotalSINum, RoundToFloor(g_iSiLimit / 3.0) + 1, SurAvrDistance);
 #endif 
     if( flow != 0 && flow - g_fLastSISpawnAurSurFlow <= g_fBaitFlow && SurAvrDistance <= BaitDistance && g_iTotalSINum <= RoundToFloor(g_iSiLimit / 3.0) + 1)
     {
         return 2;
     }
-    // 条件3：不要过于贴贴，贴贴变密接
-#if TESTBUG
-    Debug_Print("条件3：[dis]%f     [g_iTotalSINum]%d(%d)", SurAvrDistance, g_iTotalSINum, RoundToFloor(g_iSiLimit / 3.0));
-#endif
-    if( SurAvrDistance < BaitDistance && g_iTotalSINum <= RoundToFloor(g_iSiLimit / 3.0))
-    {
-        return 3;
-    } 
     return 0;
 }
 
@@ -1134,7 +1135,7 @@ void UnPauseTimer(float time = 0.0)
 
 Action CheckShouldSpawnOrNot(Handle timer)
 {
-    if (IsInPause())
+    if (g_bPauseSystemAvailable && IsInPause())
     {
 #if DEBUG
         Debug_Print("处于暂停状态，停止刷特");
@@ -1151,116 +1152,83 @@ Action CheckShouldSpawnOrNot(Handle timer)
     g_iLastSpawnTime++;
     if (!g_bIsLate) return Plugin_Stop;
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
-    if( g_bAntiBaitMode && g_iBaitTimeCheckTime > -5)
-    {
-        int result = 0;
-        //刷特线程已经启动
-        if( !g_bShouldCheck )
-        {
-            result = IsSurvivorBait();
-#if TESTBUG
-    Debug_Print("IsSurvivorBait检测结果为%d", result);
-#endif
-/*
-            if(result == 1 && g_iLadderBaitTimeCheckTime != -1)
-            {
-                //停刷
-                g_iLadderBaitTimeCheckTime ++;
-                if(g_iLadderBaitTimeCheckTime < 6)
-                {
-                    if(g_hSpawnProcess != INVALID_HANDLE)
-                        PauseTimer();
-#if TESTBUG
-    Debug_Print("靠近梯子Bait检测，停刷，第%d次检测", g_iLadderBaitTimeCheckTime);
-#endif
-                }
-                else
-                {
-                    if(!IsPanicEventInProgress())
-                    {
-                        L4D_ResetMobTimer();
-                        L4D_ForcePanicEvent();
-                    }
-                    else
-                        SpawnCommonInfect(20);
-                    UnPauseTimer(2.0);
-                    g_iLadderBaitTimeCheckTime = -1;
-#if TESTBUG
-    Debug_Print("靠近梯子Bait检测，刷尸潮,2秒后刷特");
-#endif
-                }          
-            }
-            else */
-            if(result == 0)
-            {
-                g_iBaitTimeCheckTime = g_iBaitTimeCheckTime >= 2? 2 : g_iBaitTimeCheckTime-1;
-                if(g_iBaitTimeCheckTime <= -1)
-                {
+    if (g_bAntiBaitMode) {
+        // 刷特线程已经启动
+        if (!g_bShouldCheck && g_iLastSpawnTime > RoundToFloor(g_fSiInterval / 2)) {
+            int result = IsSurvivorBait();
+    #if TESTBUG
+            Debug_Print("IsSurvivorBait检测结果为%d", result);
+    #endif
+            if (result == 0 && g_iBaitTimeCheckTime != -10) {
+                // 处理bait时间检查时间的减少和边界条件
+                g_iBaitTimeCheckTime = (g_iBaitTimeCheckTime > 2) ? 2 : g_iBaitTimeCheckTime - 1;
+                if (g_iBaitTimeCheckTime < -1) {
                     g_iBaitTimeCheckTime = -1;
                 }
-                else if(g_iBaitTimeCheckTime >=2 )
-                {
-                    g_iBaitTimeCheckTime = 2;
-                }else{
-                    g_iBaitTimeCheckTime --;
+    #if TESTBUG
+                    Debug_Print("未检测到生还者Bait，g_iBaitTimeCheckTime为 %d", g_iBaitTimeCheckTime);
+    #endif
+            } else if (result == 2) {
+                // 增加bait时间检查时间
+                g_iBaitTimeCheckTime++;
+                // 检测超过3次暂停计时器
+                if (g_iBaitTimeCheckTime > 2 && g_hSpawnProcess != INVALID_HANDLE) {
+                    PauseTimer();
                 }
-            }
-            else if((result == 2 || result ==3))
-            {
-                //停刷
-                g_iBaitTimeCheckTime ++;
-                //检测到3次停刷
-                if(g_iBaitTimeCheckTime > 2)
-                {
-                    if(g_hSpawnProcess != INVALID_HANDLE)
-                        PauseTimer();
-                }
-                if(g_iBaitTimeCheckTime > 6)
-                {
+                // 检测超过6次生成普通僵尸
+                if (g_iBaitTimeCheckTime > 6) {
                     SpawnCommonInfect(4);
-#if TESTBUG
-    Debug_Print("停刷，停刷超过%ds, 刷15个小僵尸，继续停刷", g_iBaitTimeCheckTime);
-#endif
+    #if TESTBUG
+                    Debug_Print("停刷，停刷超过%d次, 刷4个小僵尸，继续停刷", g_iBaitTimeCheckTime);
+    #endif
                 }
             }
-            // g_iBaitTimeCheckTime == -1 而且时间大于g_fSIinterval 2秒后刷特
-            if(g_iBaitTimeCheckTime == -1 && g_hSpawnProcess == INVALID_HANDLE)
-            {
+            // bait时间检查时间为-1且计时器无效，恢复计时器
+            if (g_iBaitTimeCheckTime == -1 && g_hSpawnProcess == INVALID_HANDLE) {
                 UnPauseTimer(1.0);
-#if TESTBUG
-    Debug_Print("g_iBaitTimeCheckTime==-1，满足，1秒后恢复刷特");
-#endif
+    #if TESTBUG
+                Debug_Print("g_iBaitTimeCheckTime==-1，满足，1秒后恢复刷特");
+    #endif
                 g_iBaitTimeCheckTime = -10;
             }
-            
-            //超过设定时间1.8倍，强制1秒后刷特
-            if(g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE)
-            {
-
-                UnPauseTimer(1.0);
-#if TESTBUG
-    Debug_Print("超过设定时间1.8倍，强制1秒后刷特");
-#endif
+            /*
+            // 超过设定时间1.8倍，强制1秒后刷特
+            if (g_iLastSpawnTime >= RoundToFloor(g_fSiInterval * 1.8) && g_hSpawnProcess == INVALID_HANDLE) {
+                // 只有在 g_iBaitTimeCheckTime < 3 时才强制恢复刷特
+                if (g_iBaitTimeCheckTime < 3) {
+                    UnPauseTimer(1.0);
+    #if TESTBUG
+                    Debug_Print("超过设定时间1.8倍，强制1秒后刷特");
+    #endif
+                }
             }
-            // 如果刷特进程等于无效句柄，就继续检测，停刷
-            if( g_hSpawnProcess == INVALID_HANDLE )return Plugin_Continue;
+            */
+            // 如果刷特进程等于无效句柄，就继续检测
+            //if (g_hSpawnProcess == INVALID_HANDLE) return Plugin_Continue;
         }
     }
-    if( g_iLastSpawnTime > RoundToFloor(2 * g_fSiInterval) + 4 && !g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE)
-    {
-        //长时间卡住，重启一下刷特进程
+    /*
+    // 长时间卡住，重启一下刷特进程
+    if (g_iLastSpawnTime > RoundToFloor(2 * g_fSiInterval) + 4 && !g_bShouldCheck && g_hSpawnProcess == INVALID_HANDLE) {
         KillTimer(g_hSpawnProcess);
+        #if TESTBUG
+            Debug_Print("长时间卡住，重置刷特线程");
+        #endif
         g_hSpawnProcess = INVALID_HANDLE;
         UnPauseTimer(1.0);
     }
-    if(g_bAntiBaitMode)
-    {
+    */
+    
+
+    /*if (g_bAntiBaitMode) {
         if (!g_bShouldCheck || g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
-    }       
-    else
-    {
+    } else {
         if (!g_bShouldCheck && g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
-    }    
+    }*/
+
+    if (!g_bShouldCheck || g_hSpawnProcess != INVALID_HANDLE) return Plugin_Continue;
+
+  
     if (FindConVar("survivor_limit").IntValue >= 2 && IsAnyTankOrAboveHalfSurvivorDownOrDied() && g_iLastSpawnTime < RoundToFloor(g_fSiInterval / 2)) return Plugin_Continue;
     //防止0s情况下spitter无法快速踢出导致的特感越刷越少问题
     /*
@@ -1280,10 +1248,10 @@ Action CheckShouldSpawnOrNot(Handle timer)
 
     if (!g_bAutoSpawnTimeControl)
     {
-        g_bShouldCheck = false;
         if (g_iSpawnMaxCount == g_iSiLimit)
         {
 #if DEBUG
+            
             Debug_Print("固定增时系统因为等待刷特数量达到上限，暂停刷特, 总用时：%.1f秒", g_iLastSpawnTime + g_fSiInterval);
 #endif
             g_iLastSpawnTime = 0;
@@ -1293,12 +1261,12 @@ Action CheckShouldSpawnOrNot(Handle timer)
 #if DEBUG
             Debug_Print("固定增时系统开始新一波刷特, 总用时：%.1f秒", g_iLastSpawnTime + g_fSiInterval);
 #endif
+            g_bShouldCheck = false;
             g_hSpawnProcess = CreateTimer(g_fSiInterval * 1.5, SpawnNewInfected, _, TIMER_REPEAT);
         }
     }
     else if ((IsAllKillersDown() && g_iSpawnMaxCount == 0) || (g_iTotalSINum <= (RoundToFloor(g_iSiLimit / 4.0) + 1) && g_iSpawnMaxCount == 0) || (g_iLastSpawnTime >= g_fSiInterval * 0.5))
     {
-        g_bShouldCheck = false;
         if (g_iSpawnMaxCount == g_iSiLimit)
         {
 #if DEBUG
@@ -1311,6 +1279,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
 #if DEBUG
             Debug_Print("自动增时系统开始新一波刷特, 总用时：%.1f秒", g_iLastSpawnTime + g_fSiInterval);
 #endif
+            g_bShouldCheck = false;
             g_hSpawnProcess = CreateTimer(g_fSiInterval, SpawnNewInfected, _, TIMER_REPEAT);
         }
     }
@@ -1669,7 +1638,7 @@ bool CanBeTeleport(int client)
 // 5秒内以1s检测一次，5次没被看到，就可以踢出并加入传送队列
 Action Timer_PositionSi(Handle timer)
 {
-    if (IsInPause())
+    if (g_bPauseSystemAvailable && IsInPause())
     {
 #if DEBUG
         Debug_Print("处于暂停状态，停止传送检测");
@@ -1847,7 +1816,8 @@ int GetTargetSurvivor()
     {
         if (IsValidSurvivor(client) && IsPlayerAlive(client) && (!IsPinned(client) || !IsClientIncapped(client)))
         {
-            g_bIsLate = true;
+            // 这个应该没有必要
+            //g_bIsLate = true;
             if (g_bTargetSystemAvailable && IsClientReachLimit(client))
                 continue;
 
