@@ -24,7 +24,7 @@
 		}
 		"annehappy_hardcore"
 		{
-			"name" "硬核药疫"
+			"name" "硬核药役模式"
 		}
 	}
 	"ZoneMod Configs"

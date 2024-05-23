@@ -11,6 +11,17 @@
 			"message" "服务器端重启"
 		}
 	}
+	"Anne版本选择"
+	{
+		"sm_fm AnneHappy"
+		{
+			"message" "最新版本"
+		}
+		"exec vote/Anne/Anne23-1.cfg"
+		{
+			"message" "23-1月版本"
+		}
+	}
 	"特感数量"
 	{
 		"exec vote/normal/AnneHappy1.cfg"
