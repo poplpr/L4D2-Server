@@ -18,8 +18,8 @@
 
 
 
-#define PLUGIN_VERSION		"1.146"
-#define PLUGIN_VERLONG		1146
+#define PLUGIN_VERSION		"1.150"
+#define PLUGIN_VERLONG		1150
 
 #define DEBUG				0
 // #define DEBUG			1	// Prints addresses + detour info (only use for debugging, slows server down).
@@ -348,6 +348,7 @@ int g_iCanBecomeGhostOffset;
 
 // Other
 Address g_pScriptId;
+int g_iCancelStagger[MAXPLAYERS+1];
 int g_iPlayerResourceRef;
 int g_iOffsetAmmo;
 int g_iPrimaryAmmoType;
@@ -681,6 +682,7 @@ public void OnPluginStart()
 	{
 		g_hCvar_VScriptBuffer = CreateConVar("l4d2_vscript_return", "", "Buffer used to return VScript values. Do not use.", FCVAR_DONTRECORD);
 		g_hCvar_AddonsEclipse = CreateConVar("l4d2_addons_eclipse", "-1", "Addons Manager (-1: use addonconfig; 0: disable addons; 1: enable addons.)", FCVAR_NOTIFY);
+		AutoExecConfig(true, "left4dhooks");
 
 		g_hCvar_AddonsEclipse.AddChangeHook(ConVarChanged_Addons);
 		g_iCvar_AddonsEclipse = g_hCvar_AddonsEclipse.IntValue;
@@ -727,15 +729,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
-	// Reset checkpoints
-	if( !g_bLeft4Dead2 )
-	{
-		for( int i = 1; i <= MaxClients; i++ )
-		{
-			g_bCheckpointFirst[i] = false;
-			g_bCheckpointLast[i] = false;
-		}
-	}
+	ResetVars();
 }
 
 void Event_EnteredStartArea(Event event, const char[] name, bool dontBroadcast)
@@ -806,6 +800,25 @@ public void OnPluginEnd()
 
 	// Target Filters
 	UnloadTargetFilters();
+}
+
+void ResetVars()
+{
+	// Reset L4D1 variables
+	if( !g_bLeft4Dead2 )
+	{
+		for( int i = 1; i <= MaxClients; i++ )
+		{
+			// Reset checkpoints
+			g_bCheckpointFirst[i] = false;
+			g_bCheckpointLast[i] = false;
+
+			// Reset stagger hooks
+			if( g_iCancelStagger[i] )
+				SDKUnhook(i, SDKHook_PostThinkPost, OnThinkCancelStagger);
+			g_iCancelStagger[i] = 0;
+		}
+	}
 }
 
 
@@ -948,15 +961,7 @@ public void OnMapEnd()
 	g_bFinalCheck = false;
 	g_iMaxChapters = 0;
 
-	// Reset checkpoints
-	if( !g_bLeft4Dead2 )
-	{
-		for( int i = 1; i <= MaxClients; i++ )
-		{
-			g_bCheckpointFirst[i] = false;
-			g_bCheckpointLast[i] = false;
-		}
-	}
+	ResetVars();
 
 	// Reset hooks - Clear causes memory leaks, delete and re-create
 	// g_iAnimationHookedClients.Clear();
