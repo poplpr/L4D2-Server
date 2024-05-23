@@ -2567,6 +2567,19 @@
 		"start_extra_dist"	"188.167191"
 		"end_point"			"-7367.650391 8434.535156 -671.968750"
 		"end_dist"			"365.062012"
+		"tank_ban_flow"
+		{
+			"down the platform"
+			{
+				"min"		"57"
+				"max"		"63"
+			}
+			"through the vent"
+			{
+				"min"		"73"
+				"max"		"75"
+			}
+		}
 	}
 	"l4d_dbd2dc_new_dawn"
 	{
@@ -2968,6 +2981,11 @@
 				"min"		"20"
 				"max"		"45"
 			}
+			"being out the cave"
+			{
+				"min"		"82"
+				"max"		"100"
+			}
 		}
 	}
 	"x1m3_city"
@@ -3337,6 +3355,37 @@
 		"start_extra_dist"	"0.000000"
 		"end_dist"			"50.000000"
 	}
+	"tripday_new_m2"
+	{
+		"tank_ban_flow"
+		{
+			"cornfield"
+			{
+				"min"		"45"
+				"max"		"64"
+			}
+		}
+	}
+	"tripday_new_m3"
+	{
+		"tank_ban_flow"
+		{
+			"early"
+			{
+				"min"		"0"
+				"max"		"27"
+			}
+			"near_building"
+			{
+				"min"		"72"
+				"max"		"100"
+			}
+		}
+		"ItemLimits"
+		{
+			"pain_pills"	"1"
+		}
+	}
 	"tripday_new_m4"
 	{
 		"tank_ban_flow"
@@ -3349,7 +3398,7 @@
 		}
 		"ItemLimits"
 		{
-			"pain_pills"    "2"
+			"pain_pills"    "1"
 		}
 	}
 	"tripday_new_m5"
@@ -3364,7 +3413,7 @@
 		}
 		"ItemLimits"
 		{
-			"pain_pills"	"5"
+			"pain_pills"	"2"
 		}
 	}
 }
