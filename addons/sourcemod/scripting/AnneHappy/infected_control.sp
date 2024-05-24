@@ -137,6 +137,7 @@ bool
     g_bAddDamageToSmoker,                //是否对smoker增伤（一般alone模式开启）
     g_bIgnoreIncappedSurvivorSight,      //是否忽略倒地生还者的视线
     g_bIsLate = false,                   // text插件是否发送开启刷特命令
+    g_bIsInfiniteHordeActive = false,    // 是不是处于无限尸潮的机关中
     g_bSmokerAvailable = false,          // ai_smoker_new是否存在
     g_bAntiBaitMode = false,             //抗诱饵模式是否开启
     g_bSIPoolAvailable = false,          //特感池是否存在
@@ -326,7 +327,7 @@ stock Action Cmd_StartSpawn(int client, int args)
     if (L4D_HasAnySurvivorLeftSafeArea())
     {
 #if TESTBUG
-        PrintToChatAll("目前是测试版本v1.9");
+        PrintToChatAll("目前是测试版本v2.0");
 #endif
         ResetStatus();
         CreateTimer(0.1, SpawnFirstInfected);
@@ -461,6 +462,7 @@ void InitStatus()
     g_bPickRushMan = false;
     g_bShouldCheck = false;
     g_bIsLate = false;
+    g_bIsInfiniteHordeActive = false;
     g_iSpawnMaxCount = 0;
     g_fLastSISpawnStartTime = 0.0;
     g_fUnpauseNextSpawnTime = 0.0;
@@ -1069,7 +1071,7 @@ int IsSurvivorBait()
 { 
     // 前置条件，没有坦克或者1个生还倒地的情况
     //if( intensity >= g_fSIAttackIntent || IsAnyTankOrAboveHalfSurvivorDownOrDied() || IsPanicEventInProgress())
-    if( IsAnyTankOrAboveHalfSurvivorDownOrDied(1))
+    if( IsAnyTankOrAboveHalfSurvivorDownOrDied(1) || g_bIsInfiniteHordeActive)
     {
 #if TESTBUG
     Debug_Print("[前置条件]未满足");
@@ -2261,4 +2263,42 @@ stock static bool navIsAheadAnotherNav(Address source, Address target) {
 		return false;
 	}
 	return FloatCompare(L4D2Direct_GetTerrorNavAreaFlow(source), L4D2Direct_GetTerrorNavAreaFlow(target)) > 0;
+}
+
+// ========================================================Forward ============================/
+// status:
+// 1 无限尸潮
+// 2 有限尸潮或者尸潮下一波已经没了
+// 0  尸潮停止
+public void L4D2_HordeStatus(int status)
+{
+    if(status){
+        if(status == 1){
+#if TESTBUG
+            Debug_Print("<尸潮状态> 目前状态为在无限尸潮");
+#endif            
+        }
+        else if(status >= 2){
+#if TESTBUG
+            Debug_Print("<尸潮状态> 目前状态为在只有最后一波了,设置定时器%.1f后重置尸潮状态值, 需要刷尸潮数量为%d", (status - 1) * 10.0, L4D2Direct_GetPendingMobCount());
+#endif
+            CreateTimer((status - 1) * 10.0, ResetHordeStatus, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
+        g_bIsInfiniteHordeActive = true;
+    }
+    else{
+#if TESTBUG
+            Debug_Print("<尸潮状态> 目前状态为在尸潮活动中");
+#endif
+        g_bIsInfiniteHordeActive = false;
+    }
+}
+
+Action ResetHordeStatus(Handle timer)
+{
+    g_bIsInfiniteHordeActive = false;
+#if TESTBUG
+        Debug_Print("<尸潮状态> 1已重置尸潮状态为非无限尸潮模式");
+#endif
+    return Plugin_Stop;
 }

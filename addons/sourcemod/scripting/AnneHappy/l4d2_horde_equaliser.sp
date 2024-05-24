@@ -36,6 +36,8 @@ bool
 	announcedInChat,
 	announcedEventEnd,
 	checkpointAnnounced[MAX_CHECKPOINTS];
+Handle
+	g_hForward;
 
 public Plugin myinfo = 
 {
@@ -49,6 +51,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	InitGameData();
+	g_hForward = CreateGlobalForward("L4D2_HordeStatus", ET_Ignore, Param_Cell);
 	
 	hCvarNoEventHordeDuringTanks = CreateConVar("l4d2_heq_no_tank_horde", "1", "Put infinite hordes on a 'hold up' during Tank fights");
 	hCvarHordeCheckpointAnnounce = CreateConVar("l4d2_heq_checkpoint_sound", "1", "Play the incoming mob sound at checkpoints (each 1/4 of total commons killed off) to simulate L4D1 behaviour");
@@ -114,6 +117,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 		// Our job here is done
 		if (commonTotal >= commonLimit) {
 			if (!announcedEventEnd){
+				SendForward(0);
 				CPrintToChatAll("<{olive}Horde{default}> {olive}尸潮事件 {default}结束，开始冲锋!");
 				announcedEventEnd = true;
 			}
@@ -162,11 +166,16 @@ public Action L4D_OnSpawnMob(int &amount)
 
 	// Excluded map -- don't block any infinite hordes on this one
 	if (commonLimit < 0) {
+		if(!IsInfiniteHordeActive())SendForward(3);
+		else{
+			SendForward(1);
+		}
 		return Plugin_Continue;
 	}
 
 	// If it's a "finite" infinite horde...
 	if (IsInfiniteHordeActive()) {
+		SendForward(1);
 		if (!announcedInChat) {
 			CPrintToChatAll("<{olive}Horde{default}> {blue}有限尸潮事件{default} 已经开始, 将刷出 {olive}%i{default} 个僵尸! 冲或者守，决定在于你们!", commonLimit);
 			announcedInChat = true;
@@ -176,9 +185,14 @@ public Action L4D_OnSpawnMob(int &amount)
 		if (commonTotal >= commonLimit) {
 			SetPendingMobCount(0);
 			amount = 0;
+			SendForward(0);
 			return Plugin_Handled;
 		}
 		// commonTotal += amount;
+	}
+	else
+	{
+		SendForward(2);
 	}
 	
 	// ...or not.
@@ -219,4 +233,10 @@ bool IsTankUp()
 	}
 
 	return false;
+}
+
+public void SendForward(int client){
+	Call_StartForward(g_hForward);
+	Call_PushCell(client);
+	Call_Finish();
 }
