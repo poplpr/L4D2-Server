@@ -166,10 +166,6 @@ public Action L4D_OnSpawnMob(int &amount)
 
 	// Excluded map -- don't block any infinite hordes on this one
 	if (commonLimit < 0) {
-		if(!IsInfiniteHordeActive())SendForward(3);
-		else{
-			SendForward(1);
-		}
 		return Plugin_Continue;
 	}
 
@@ -185,14 +181,9 @@ public Action L4D_OnSpawnMob(int &amount)
 		if (commonTotal >= commonLimit) {
 			SetPendingMobCount(0);
 			amount = 0;
-			SendForward(0);
 			return Plugin_Handled;
 		}
 		// commonTotal += amount;
-	}
-	else
-	{
-		SendForward(2);
 	}
 	
 	// ...or not.
