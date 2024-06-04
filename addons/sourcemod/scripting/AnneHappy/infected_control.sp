@@ -601,7 +601,7 @@ public void OnGameFrame()
                     g_fTeleportDistance += 20.0;
 
                 float fSpawnPos[3] = { 0.0 };
-                bool posfinded = g_iLadderBaitTimeCheckTime >= 1? getSpanPosByAPIEnhance(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance, true) : GetSpawnPos(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance, true);
+                bool posfinded = g_iLadderBaitTimeCheckTime >= 1? GetSpawnPos(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance * 2, true) : GetSpawnPos(fSpawnPos, aTeleportQueue.Get(0), g_iTargetSurvivor, g_fTeleportDistance, true);
                 if (posfinded)
                 {
                     int iZombieClass = aTeleportQueue.Get(0);
@@ -645,7 +645,7 @@ public void OnGameFrame()
                     g_fSpawnDistance += 5.0;
 
                 float fSpawnPos[3] = { 0.0 };
-                bool posfinded = g_iLadderBaitTimeCheckTime == -1? getSpanPosByAPIEnhance(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false) : GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false);
+                bool posfinded = g_iLadderBaitTimeCheckTime == -1? GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance * 2, false) : GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false);
                 if (posfinded)
                 {
                     int iZombieClass = aSpawnQueue.Get(0);
@@ -752,7 +752,7 @@ stock bool GetSpawnPos(float fSpawnPos[3], const int class, int TargetSurvivor, 
 * @param gridIncrement 网格增量
 * @param spawnPos 刷新位置
 * @return void
-**/
+
 bool getSpanPosByAPIEnhance(float fSpawnPos[3], const int class, int TargetSurvivor, float SpawnDistance, bool IsTeleport = false) {
     if (!IsValidClient(TargetSurvivor)) return false;
 
@@ -811,6 +811,7 @@ bool getSpanPosByAPIEnhance(float fSpawnPos[3], const int class, int TargetSurvi
     else
         return true;
 }
+**/
 
 stock bool SpawnInfected(float fSpawnPos[3], float SpawnDistance, int iZombieClass, bool IsTeleport = false)
 {
@@ -1076,7 +1077,7 @@ int IsSurvivorBait()
 #if TESTBUG
     Debug_Print("[前置条件]未满足");
 #endif 
-        g_iLadderBaitTimeCheckTime = 0;
+        g_iLadderBaitTimeCheckTime = -1;
         return 0;
     }
     // 条件1：如果玩家平均密度低于200而且附近有梯子，判断生还在Bait
@@ -1157,7 +1158,7 @@ Action CheckShouldSpawnOrNot(Handle timer)
     // 如果抗诱饵模式开启，而且时间已经超过1半的刷特时间
     if (g_bAntiBaitMode) {
         // 刷特线程已经启动
-        if (!g_bShouldCheck && g_iLastSpawnTime > RoundToFloor(g_fSiInterval / 2)) {
+        if (!g_bShouldCheck && g_iLastSpawnTime > RoundToFloor(g_fSiInterval / 2) + 2) {
             int result = IsSurvivorBait();
     #if TESTBUG
             Debug_Print("IsSurvivorBait检测结果为%d", result);
@@ -1174,8 +1175,8 @@ Action CheckShouldSpawnOrNot(Handle timer)
             } else if (result == 2) {
                 // 增加bait时间检查时间
                 g_iBaitTimeCheckTime++;
-                // 检测超过3次暂停计时器
-                if (g_iBaitTimeCheckTime > 2 && g_hSpawnProcess != INVALID_HANDLE) {
+                // 检测超过4次,暂停计时器
+                if (g_iBaitTimeCheckTime > 3 && g_hSpawnProcess != INVALID_HANDLE) {
                     PauseTimer();
                 }
                 // 检测超过6次生成普通僵尸
@@ -1366,7 +1367,7 @@ bool IsOnValidMesh(float fReferencePos[3])
     return pNavArea != Address_Null && !((L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT));
 }
 
-bool ValidMeshAddFlag(float fReferencePos[3])
+stock bool ValidMeshAddFlag(float fReferencePos[3])
 {
     Address pNavArea = L4D2Direct_GetTerrorNavArea(fReferencePos);
     if (pNavArea != Address_Null && !(L4D_GetNavArea_SpawnAttributes(pNavArea) & CHECKPOINT))
