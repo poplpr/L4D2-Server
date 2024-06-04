@@ -103,7 +103,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ip", ShowAnneServerIP);
 	RegConsoleCmd("sm_web", ShowAnneServerWeb);
 	//RegConsoleCmd("sm_getbot", GetBot);
-	RegAdminCmd("sm_restartmap", RestartMap, ADMFLAG_ROOT, "restarts map");
 	HookEvent("player_disconnect", PlayerDisconnect_Event, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
 	ChangeLobby();
@@ -196,13 +195,9 @@ int GetIndexBySteamID(const char[] SteamID)
 	return -1;
 }
 
-public Action RestartMap(int client,int args)
-{
-	CrashMap();
-	return Plugin_Handled;
-}
 
-void CrashMap()
+
+stock void CrashMap()
 {
 	char mapname[64];
 	GetCurrentMap(mapname, sizeof(mapname));

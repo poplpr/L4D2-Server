@@ -79,7 +79,8 @@ public Action ZiSha(int client, int args)
 
 public Action killall(int client, int args)
 {
-	SlaySurvivors();
+	if(IsValidClient(client) && GetClientTeam(client) == 2)
+		SlaySurvivors();
 	return Plugin_Handled;
 }
 

@@ -44,7 +44,8 @@ void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue
 
 Action Cmd_RestartServer(int client, int args)
 {
-	LogToFilePlus("手动重启服务器...");
+	if(client == 0)return Plugin_Handled;
+	LogToFilePlus("%N手动重启服务器...", client);
 	RestartServer();
 	return Plugin_Handled;
 }
