@@ -42,7 +42,7 @@
 				"signature"		"CTerrorGun::EquipSecondWeapon"
 				"linux"
 				{
-					"offset"	"100h"
+					"offset"	"10Ah"
 					"verify"	"\x0F\x84"
 					"patch"		"\x90\xE9"
 				}
