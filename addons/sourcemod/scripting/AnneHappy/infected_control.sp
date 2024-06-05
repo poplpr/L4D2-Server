@@ -645,7 +645,7 @@ public void OnGameFrame()
                     g_fSpawnDistance += 5.0;
 
                 float fSpawnPos[3] = { 0.0 };
-                bool posfinded = g_iLadderBaitTimeCheckTime == -1? GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance * 2, false) : GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false);
+                bool posfinded = g_iLadderBaitTimeCheckTime >= 1? GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance * 2, false) : GetSpawnPos(fSpawnPos, aSpawnQueue.Get(0), g_iTargetSurvivor, g_fSpawnDistance, false);
                 if (posfinded)
                 {
                     int iZombieClass = aSpawnQueue.Get(0);
@@ -1077,7 +1077,7 @@ int IsSurvivorBait()
 #if TESTBUG
     Debug_Print("[前置条件]未满足");
 #endif 
-        g_iLadderBaitTimeCheckTime = -1;
+        g_iLadderBaitTimeCheckTime = 0;
         return 0;
     }
     // 条件1：如果玩家平均密度低于200而且附近有梯子，判断生还在Bait
