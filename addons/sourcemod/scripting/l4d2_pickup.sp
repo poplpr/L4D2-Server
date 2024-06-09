@@ -254,7 +254,7 @@ public void OnClientPutInServer(int client)
 	HookValidClient(client, true);
 	
 	if (!QuerySwitchCookie(client, g_iSwitchOnPickup[client]))
-		g_iSwitchOnPickup[client] = g_iSwitchFlags & (FLAGS_SWITCH_MELEE|FLAGS_SWITCH_GUNS);
+		g_iSwitchOnPickup[client] = g_iSwitchFlags & FLAGS_SWITCH_GUNS;
 }
 
 public void OnClientDisconnect(int client)
