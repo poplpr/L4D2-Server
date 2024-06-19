@@ -73,12 +73,12 @@ public void OnPluginStart()
 	g_hPounceAngleStd = CreateConVar("ai_hunter_angle_std", "20.0", "与基本角度允许的偏差范围", CVAR_FLAG, true, 0.0);
 	g_hStraightPounceDistance = CreateConVar("ai_hunter_straight_pounce_distance", "200.0", "hunter 允许直扑的范围", CVAR_FLAG, true, 0.0);
 	g_hAimOffset = CreateConVar("ai_hunter_aim_offset", "360.0", "与目标水平角度在这一范围内且在直扑范围外，ht 不会直扑", CVAR_FLAG, true, 0.0, true, 360.0);
-	g_hNoSightPounceRange = CreateConVar("ai_hunter_no_sign_pounce_range", "300,250", "hunter 不可见目标时允许飞扑的范围（水平，垂直，逗号分隔，0,0 | x,0 | 0,x=禁用 0 的部分）", CVAR_FLAG);
+	g_hNoSightPounceRange = CreateConVar("ai_hunter_no_sign_pounce_range", "300,0", "hunter 不可见目标时允许飞扑的范围（水平，垂直，逗号分隔，0,0 | x,0 | 0,x=禁用 0 的部分）", CVAR_FLAG);
 	g_hBackVision = CreateConVar("ai_hunter_back_vision", "25", "hunter 处在空中时视角背对生还者的概率，0=禁用", CVAR_FLAG, true, 0.0, true, 100.0);
 	g_hMeleeFirst = CreateConVar("ai_hunter_melee_first", "300.0,1000.0", "hunter 每次准备突袭时是否先按右键（最小最大距离，逗号分隔，0=禁用）");
 	g_hHighPounceHeight = CreateConVar("ai_hunter_high_pounce", "400", "hunter 在与目标多高时会直扑目标", CVAR_FLAG, true, 0.0);
 	g_hWallDetectDistance = CreateConVar("ai_hunter_wall_detect_distance", "-1.0", "hunter 视线前方有墙体，有多少概率飞向墙体", CVAR_FLAG, true, 0.0);
-	g_hAnglePounceCount = CreateConVar("ai_hunter_angle_diff", "2", "hunter 进行由随机数生成器生成角度侧飞时，左右飞的次数差不能大于这个值", CVAR_FLAG, true, 0.0);
+	g_hAnglePounceCount = CreateConVar("ai_hunter_angle_diff", "3", "hunter 进行由随机数生成器生成角度侧飞时，左右飞的次数差不能大于这个值", CVAR_FLAG, true, 0.0);
 	// 挂钩 cvar 变动
 	g_hMeleeFirst.AddChangeHook(meleeFirstRangeChangedHandler);
 	g_hNoSightPounceRange.AddChangeHook(noSightPounceRangeChangedHandler);

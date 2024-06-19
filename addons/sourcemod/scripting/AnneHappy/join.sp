@@ -202,7 +202,7 @@ public Action RestartMap(int client,int args)
 	return Plugin_Handled;
 }
 
-void CrashMap()
+stock void CrashMap()
 {
 	char mapname[64];
 	GetCurrentMap(mapname, sizeof(mapname));
@@ -327,7 +327,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	if(g_bGroupSystemAvailable){
-		if(!Veterans_Get(client, view_as<TARGET_OPTION_INDEX>(GOURP_MEMBER))){
+		if(!Veterans_Get(client, view_as<TARGET_OPTION_INDEX>(GOURP_MEMBER)) && !(CheckCommandAccess(client, "", ADMFLAG_SLAY))){
 			ShowMotdToPlayer(client);
 		}
 	}else{

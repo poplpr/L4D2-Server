@@ -10,6 +10,7 @@
 #include <hextags>
 #include <l4d_hats>
 #include <godframecontrol>
+#include <readyup>
 #define PLUGIN_VERSION "1.3"
 #define MAX_LINE_WIDTH 64
 
@@ -35,6 +36,7 @@ bool IsAllowBigGun = false;
 int InfectedNumber=6;
 ConVar AllowBigGun, g_InfectedNumber;
 bool g_bGodFrameSystemAvailable = false;
+bool g_bReadyUpSystemAvailable = false;
 //new lastpoints[MAXPLAYERS + 1];
 
 //枚举变量,修改武器消耗积分在此。
@@ -120,14 +122,17 @@ public bool IsValidClient(int client)
 
 public void OnAllPluginsLoaded(){
 	g_bGodFrameSystemAvailable = LibraryExists("l4d2_godframes_control_merge");
+	g_bReadyUpSystemAvailable = LibraryExists("readyup");
 }
 public void OnLibraryAdded(const char[] name)
 {
-    if ( StrEqual(name, "l4d2_godframes_control_merge") ) { g_bGodFrameSystemAvailable = true; }
+	if ( StrEqual(name, "l4d2_godframes_control_merge") ) { g_bGodFrameSystemAvailable = true; }
+	if ( StrEqual(name, "readyup") ) { g_bReadyUpSystemAvailable = true; }
 }
 public void OnLibraryRemoved(const char[] name)
 {
-    if ( StrEqual(name, "l4d2_godframes_control_merge") ) { g_bGodFrameSystemAvailable = false; }
+	if ( StrEqual(name, "l4d2_godframes_control_merge") ) { g_bGodFrameSystemAvailable = false; }
+	if ( StrEqual(name, "readyup") ) { g_bReadyUpSystemAvailable = false; }
 }
 
 //god frame send forward implement
@@ -678,6 +683,10 @@ public void ClientTagsSaveToFileSave(int Client)
 //开局发近战能力武器
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
+	if(g_bReadyUpSystemAvailable && IsInReady())
+	{
+		return Plugin_Continue;
+	}
 	for(int i=1;i<MaxClients;i++)
 		if(IsSurvivor(i))
 		{
@@ -685,7 +694,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 		}
 	IsStart=true;
 	valid=true;
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 

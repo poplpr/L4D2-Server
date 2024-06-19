@@ -2655,7 +2655,7 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 	decl String:query[512];	
 	//方便网页显示具体游玩模式
 	int mode = 0;
-	if(IsAnne())
+	if(IsAnne() == 1)
 	{
 		mode = 1;
 	}else if(IsWitchParty())
@@ -2670,6 +2670,9 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	//旁观者更新时间戳，但是不增加游戏时间，这样来方便统计在线人数
 	if(!IsPlayer(Client))
@@ -3574,23 +3577,25 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	}
 }
 
-stock bool IsAnne(){
+stock int IsAnne(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
 	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
 	{
 		cvar_mode = FindConVar("l4d_ready_cfg_name");
 	}
-	if(cvar_mode == null) return false;
+	if(cvar_mode == null) return 0;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
 	if(StrContains(plugin_name, "AnneHappy", false) != -1)
 	{
-		return true;
+		if(StrContains(plugin_name, "HardCore", false) != -1)
+			return 2;
+		else
+			return 1;
 	}else
 	{
-		return false;
+		return 0;
 	}
 }
-
 
 stock bool IsAllCharger(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
@@ -3798,6 +3803,13 @@ public Action:event_TankKilled(Handle:event, const String:name[], bool:dontBroad
 	// This was proposed by AlliedModders users el_psycho and PatriotGames (Thanks!)
 	new Score = (BaseScore * ((Players - Deaths) / Players)) / Players;
 
+	// HardCore 奖励增加100%
+	if(IsAnne() == 2)
+	{
+		Score *= 2;
+	}
+	
+
 	decl String:UpdatePoints[32];
 
 	switch (CurrentGamemodeID)
@@ -3875,6 +3887,9 @@ GiveAdrenaline(Giver, Recipient, AdrenalineID = -1)
 		Adrenaline[AdrenalineID] = 1;
 
 	if (IsClientBot(Giver))
+		return;
+	
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 		return;
 
 	decl String:RecipientName[MAX_LINE_WIDTH];
@@ -3979,6 +3994,9 @@ GivePills(Giver, Recipient, PillsID = -1)
 		Pills[PillsID] = 1;
 
 	if (IsClientBot(Giver))
+		return;
+	
+	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 		return;
 
 	decl String:RecipientName[MAX_LINE_WIDTH];
@@ -4295,6 +4313,12 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	CampaignOver = true;
 
 	StopMapTiming();
+	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
+	if(TotalTime < 30.0)
+	{
+		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
+		return;
+	}
 
 	if (CurrentGamemodeID == GAMEMODE_SCAVENGE ||
 			CurrentGamemodeID == GAMEMODE_SURVIVAL)
@@ -4338,6 +4362,46 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 		}
 	}
 
+	if((AnneMultiPlayerMode() || SinglePlayerMode())){
+		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
+		{
+			Score = RoundToFloor(Score * 0.4);
+		}
+		else
+		{
+			int inf= GetAnneInfectedNumber();
+			if(inf < 4)
+			{
+				if(AnneMultiPlayerMode())
+					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
+			}
+			else if(inf > 4)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
+			else if(inf > 6)
+				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
+			else if(inf>8)
+				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
+		}	
+	}
+
+	if(IsAboveFourPeople())
+	{
+		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
+	}
+
+	if(IsGaoJiRenJiEnabled())
+	{
+		Score = RoundToFloor(Score * 0.5);
+	}
+
+	// HardCore 奖励增加50%
+	if(IsAnne() == 2)
+	{
+		Score = RoundToFloor(1.5 * Score);
+	}
+
+	if(!CheckIsOfficalMap())return;
+
 	new maxplayers = MaxClients;
 	for (new i = 1; i <= maxplayers; i++)
 	{
@@ -4369,37 +4433,6 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 					AddScore(i, Score * (-1));
 			}
 		}
-	}
-	if((AnneMultiPlayerMode() || SinglePlayerMode())){
-		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
-		{
-			Score = RoundToFloor(Score * 0.4);
-		}
-		else
-		{
-			int inf= GetAnneInfectedNumber();
-			if(inf < 4)
-			{
-				if(AnneMultiPlayerMode())
-					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
-			}
-			else if(inf > 4)
-				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
-			else if(inf > 6)
-				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
-			else if(inf>8)
-				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
-		}	
-	}
-
-	if(IsAboveFourPeople())
-	{
-		Score = RoundToFloor(Score * (4.0 / getSurvivorNum()));
-	}
-
-	if(IsGaoJiRenJiEnabled())
-	{
-		Score = RoundToFloor(Score * 0.5);
 	}
 
 	if (Mode && Score > 0)
@@ -9723,7 +9756,7 @@ public CheckSurvivorsWin()
 
 	CampaignOver = true;
 	//StatsPrintToChatTeam(TEAM_SURVIVORS, "\x03CampaignOver值没问题!");
-	StopMapTiming();
+	if(!StopMapTiming())return;
 	CurrentGamemodeID = GetCurrentGamemodeID();
 	// Return if gamemode is Scavenge or Survival
 	if (CurrentGamemodeID == GAMEMODE_SCAVENGE ||
@@ -9833,7 +9866,15 @@ public CheckSurvivorsWin()
 	{
 		Score = RoundToFloor(Score * 0.5);
 	}
-	
+
+	// HardCore 奖励增加50%
+	if(IsAnne() == 2)
+	{
+		Score = RoundToFloor(1.5 * Score);
+	}
+
+	if(!CheckIsOfficalMap())return;
+
 	new String:All4Safe[64] = "";
 	if (Deaths == 0)
 		Format(All4Safe, sizeof(All4Safe), ", award_allinsafehouse = award_allinsafehouse + 1");
@@ -11125,21 +11166,21 @@ GetCurrentDifficulty()
 	else return 0;
 }
 
-public StopMapTiming()
+public bool StopMapTiming()
 {
 	if (!MapTimingEnabled() || MapTimingStartTime <= 0.0 || StatsDisabled())
 	{
-		return;
+		return false;
 	}
 	if(g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID))
 	{
 		if (GetConVarInt(cvar_AnnounceMode))
 		{
-			StatsPrintToChatAll("此次结果因修改难度或开启高级人机导致 \x04无效 \x01，不记录这张地图游戏时间!");
+			StatsPrintToChatAll("此次结果因修改难度或开启高级人机或使用管理员功能导致 \x04无效 \x01，不记录这张地图游戏时间!");
 		}
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 	if(!IsNormalMode() && !IsThisRoundValid())
 	{
@@ -11149,13 +11190,10 @@ public StopMapTiming()
 		}
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 	int mode = 0;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11167,6 +11205,12 @@ public StopMapTiming()
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	ConVar multiplayer = FindConVar("l4d_multislots_survivors_manager_enable");
 	if(mode > 0 && (multiplayer == null || multiplayer.IntValue == 1 || GetConVarInt(cvar_SurvivorLimit) > 4))
@@ -11174,10 +11218,16 @@ public StopMapTiming()
 		StatsPrintToChatAll("启用了多人运动模式，不记录这张地图游戏时间!");
 		MapTimingStartTime = -1.0;
 		MapTimingBlocked = true;
-		return;
+		return false;
 	}
 
 	new Float:TotalTime = GetEngineTime() - MapTimingStartTime;
+	if(TotalTime < 30.0)
+	{
+		StatsPrintToChatAll("记录时间小于30s，数据应该不对，没有分数奖励!(PS: 30s能完成的图算啥图)");
+		return false;
+	}
+
 	MapTimingStartTime = -1.0;
 	MapTimingBlocked = true;
 
@@ -11214,8 +11264,8 @@ public StopMapTiming()
 	}
 
 	// Game ended because all of the infected team left the server... don't record the time!
-	if (InfectedCounter <= 0)
-		return;
+	//if (InfectedCounter <= 0)
+		//return;
 
 	new GameDifficulty = GetCurrentDifficulty();
 	if(mode > 0)
@@ -11263,6 +11313,7 @@ public StopMapTiming()
 	}
 
 	ClearTrie(MapTimingSurvivors);
+	return true;
 }
 
 GetThisModeBestTime(int UseBuy=0)
@@ -11274,10 +11325,7 @@ GetThisModeBestTime(int UseBuy=0)
 
 	new GameDifficulty = GetCurrentDifficulty();
 	int mode = 1;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11289,6 +11337,12 @@ GetThisModeBestTime(int UseBuy=0)
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	Format(query, sizeof(query), "SELECT time FROM %stimedmaps WHERE map = '%s' AND gamemode = %i AND difficulty = %i AND mutation = '%s'  AND sinum = %i AND sitime = %i AND anneversion = '%s' AND mode = %i AND usebuy = %i AND auto = %i AND players = %i ORDER BY time LIMIT 1",\
 	 		DbPrefix, MapName, CurrentGamemodeID, GameDifficulty, CurrentMutation, GetAnneInfectedNumber(), GetAnneSISpawnTime(),\
@@ -11323,10 +11377,7 @@ public GetFastTime(Handle:owner, Handle:hndl, const String:error[], any:dp)
 public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:dp)
 {
 	int mode = 0;
-	if(IsAnne())
-	{
-		mode = 1;
-	}else if(IsWitchParty())
+	if(IsWitchParty())
 	{
 		mode = 2;
 	}else if(IsAllCharger())
@@ -11338,6 +11389,12 @@ public UpdateMapTimingStat(Handle:owner, Handle:hndl, const String:error[], any:
 	}else if(Is1vht())
 	{
 		mode = 5;
+	}else if(IsAnne() == 1)
+	{
+		mode = 1;
+	}else if(IsAnne() == 2)
+	{
+		mode = 6;
 	}
 	ResetPack(dp);
 
@@ -11943,4 +12000,12 @@ stock bool IsThisRoundValid()
 		return tank_bhop.BoolValue;
 	}
 	return true;
+}
+
+stock bool CheckIsOfficalMap(){
+	char mapname[256];
+	GetCurrentMap(mapname,sizeof(mapname));
+	if(( (mapname[0]=='c') && (mapname[2]=='m') &&(mapname[4]=='_'))||((mapname[0]=='c')&&(mapname[3]=='m')&&(mapname[5]=='_')))
+		return true;
+	return false;
 }

@@ -2567,6 +2567,19 @@
 		"start_extra_dist"	"188.167191"
 		"end_point"			"-7367.650391 8434.535156 -671.968750"
 		"end_dist"			"365.062012"
+		"tank_ban_flow"
+		{
+			"down the platform"
+			{
+				"min"		"57"
+				"max"		"63"
+			}
+			"through the vent"
+			{
+				"min"		"73"
+				"max"		"75"
+			}
+		}
 	}
 	"l4d_dbd2dc_new_dawn"
 	{
@@ -2636,17 +2649,6 @@
 		"end_dist"			"150.000000"
 		"max_distance"		"800"
 	}
-	"l4d2_ff01_woods"
-	{
-		"tank_ban_flow"
-		{
-			"1"
-			{
-				"min"		"70"
-				"max"		"100"
-			}
-		}
-	}	
 	"l4d2_ff02_factory"
 	{
 		"tank_ban_flow"
@@ -2671,10 +2673,11 @@
 	}
 	"l4d2_ff04_plant"
 	{
-		"horde_limit"		"50"
+		"max_distance"		"600"
+		"horde_limit"		"40"
 		"tank_ban_flow"
 		{
-			"1"
+			"Alarm event"
 			{
 				"min"		"56"
 				"max"		"99"
@@ -2977,6 +2980,11 @@
 			{
 				"min"		"20"
 				"max"		"45"
+			}
+			"being out the cave"
+			{
+				"min"		"82"
+				"max"		"100"
 			}
 		}
 	}
@@ -3347,6 +3355,37 @@
 		"start_extra_dist"	"0.000000"
 		"end_dist"			"50.000000"
 	}
+	"tripday_new_m2"
+	{
+		"tank_ban_flow"
+		{
+			"cornfield"
+			{
+				"min"		"45"
+				"max"		"64"
+			}
+		}
+	}
+	"tripday_new_m3"
+	{
+		"tank_ban_flow"
+		{
+			"early"
+			{
+				"min"		"0"
+				"max"		"27"
+			}
+			"near_building"
+			{
+				"min"		"72"
+				"max"		"100"
+			}
+		}
+		"ItemLimits"
+		{
+			"pain_pills"	"1"
+		}
+	}
 	"tripday_new_m4"
 	{
 		"tank_ban_flow"
@@ -3359,7 +3398,31 @@
 		}
 		"ItemLimits"
 		{
-			"pain_pills"    "2"
+			"pain_pills"    "1"
+		}
+	}
+	"tripday_new_m5"
+	{
+		"tank_ban_flow"
+		{
+			"near_gas_station"
+			{
+				"min"		"52"
+				"max"		"100"
+			}
+		}
+		"ItemLimits"
+		{
+			"pain_pills"	"2"
 		}
 	}
 }
+//=======================================================================
+//=============== Outline 跨越边境
+	"outline_m4"
+	{
+		"ItemLimits"
+		{
+			"pain_pills"	"1"
+		}
+	}

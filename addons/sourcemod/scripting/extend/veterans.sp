@@ -50,7 +50,7 @@ new Handle:g_cvAPIkey;
 public Plugin:myinfo = 
 {
 	name = "VeteransOnly",
-	author = "Soroush Falahati",
+	author = "Soroush Falahati, 东",
 	description = "Kicks the players without enough playtime in the game",
 	version = PLUGIN_VERSION,
 	url = "https://falahati.net/"
@@ -146,12 +146,15 @@ public OnPluginStart()
 		"Should we exclude players that are members of our Steam group?",
 		FCVAR_NONE, true, 0.0, true, 1.0
 	);
+	/*
 	cvar_groupID = CreateConVar(
 		"sm_veterans_groupid",
-		"25622692",
+		"",
 		"Steam Group ID (same as your sv_steamgroup)",
 		FCVAR_NONE
 	);
+	*/
+	cvar_groupID = FindConVar("sv_steamgroup");
 	cvar_banTime = CreateConVar(
 		"sm_veterans_bantime",
 		"10",
@@ -669,11 +672,13 @@ public void HTTPResponse_GetUserGroups(HTTPResponse response, int client)
 		dataObj = view_as<JSONObject>(jsonArray.Get(i));
 		GetConVarString(cvar_groupID, groupID, sizeof(groupID));
 		if ( dataObj.GetString("gid", keyname, sizeof(keyname))
-			&& strcmp(keyname, groupID) == 0 )
+			&& StrContains(groupID, keyname, false) != -1 )
 		{
+			//LogError("%s %s %d", groupID, keyname, StrContains(groupID, keyname, false) != -1);
 			player[client].isGroupMember = 1;
 			break;
 		}
+		//LogError("%s %s %d", groupID, keyname, StrContains(groupID, keyname, false) != -1);
 	}
 	
 	delete jsonArray;
