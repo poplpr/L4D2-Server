@@ -11,17 +11,6 @@
 			"message" "服务器端重启"
 		}
 	}
-	"Anne版本选择"
-	{
-		"sm_fm AnneHappy"
-		{
-			"message" "最新版本"
-		}
-		"exec vote/Anne/Anne23-1.cfg"
-		{
-			"message" "23-1月版本"
-		}
-	}
 	"特感数量"
 	{
 		"exec vote/normal/AnneHappy1.cfg"
@@ -310,6 +299,14 @@
 		{
 			"message" "关闭大枪购买"
 		}
+		"sm_cvar rpg_allow_UseB 1"
+		{
+			"message" "允许使用B数"
+		}
+		"sm_cvar rpg_allow_UseB 0"
+		{
+			"message" "禁止使用B数"
+		}
 	}
 	"开关Mod"
 	{
@@ -389,13 +386,21 @@
 		{
 			"message" "关闭Tank连跳"
 		}
+		"sm_cvar ai_TankSneakTime 8.0"
+		{
+			"message" "开启狡猾Tank（[22-12~2405版本有效]）"
+		}
+		"sm_cvar ai_TankSneakTime 0.0"
+		{
+			"message" "关闭狡猾Tank[22-12~2405版本有效]"
+		}
 		"exec vote/Consume_on.cfg"
 		{
-			"message" "开启消耗克[22-7版本起有效]"
+			"message" "开启消耗克[22-7~2405版本有效]"
 		}
 		"exec vote/Consume_off.cfg"
 		{
-			"message" "关闭消耗克[22-7版本起有效]"
+			"message" "关闭消耗克[22-7~2405版本有效]"
 		}
 		"sm_cvar l4d_multislots_autokicktank 1"
 		{

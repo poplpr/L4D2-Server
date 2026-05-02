@@ -13,9 +13,17 @@
 	}
 	"Anne版本选择"
 	{
-		"sm_fm AnneHappy"
+		"sm_fchmatch AnneHappy"
 		{
 			"message" "最新版本"
+		}
+		"exec vote/Anne/Anne25-10.cfg"
+		{
+			"message" "25-10月版本"
+		}
+		"exec vote/Anne/Anne24-5.cfg"
+		{
+			"message" "24-5月版本"
 		}
 		"exec vote/Anne/Anne23-1.cfg"
 		{
@@ -24,75 +32,75 @@
 	}
 	"特感数量"
 	{
-		"exec vote/normal/AnneHappy1.cfg"
+		"exec vote/hardcore/AnneHappy1.cfg"
 		{
 			"message" "1特模式"
 		}
-		"exec vote/normal/AnneHappy2.cfg"
+		"exec vote/hardcore/AnneHappy2.cfg"
 		{
 			"message" "2特模式"
 		}
-		"exec vote/normal/AnneHappy3.cfg"
+		"exec vote/hardcore/AnneHappy3.cfg"
 		{
 			"message" "3特模式"
 		}
-		"exec vote/normal/AnneHappy4.cfg"
+		"exec vote/hardcore/AnneHappy4.cfg"
 		{
 			"message" "4特模式"
 		}
-		"exec vote/normal/AnneHappy5.cfg"
+		"exec vote/hardcore/AnneHappy5.cfg"
 		{
 			"message" "5特模式"
 		}
-		"exec vote/normal/AnneHappy6.cfg"
+		"exec vote/hardcore/AnneHappy6.cfg"
 		{
 			"message" "6特模式"
 		}
-		"exec vote/normal/AnneHappy7.cfg"
+		"exec vote/hardcore/AnneHappy7.cfg"
 		{
 			"message" "7特模式"
 		}
-		"exec vote/normal/AnneHappy8.cfg"
+		"exec vote/hardcore/AnneHappy8.cfg"
 		{
 			"message" "8特模式"
 		}
-		"exec vote/normal/AnneHappy9.cfg"
+		"exec vote/hardcore/AnneHappy9.cfg"
 		{
 			"message" "9特模式"
 		}
-		"exec vote/normal/AnneHappy10.cfg"
+		"exec vote/hardcore/AnneHappy10.cfg"
 		{
 			"message" "10特模式"
 		}
-		"exec vote/normal/AnneHappy11.cfg"
+		"exec vote/hardcore/AnneHappy11.cfg"
 		{
 			"message" "11特模式"
 		}
-		"exec vote/normal/AnneHappy12.cfg"
+		"exec vote/hardcore/AnneHappy12.cfg"
 		{
 			"message" "12特模式"
 		}
-		"exec vote/normal/AnneHappy13.cfg"
+		"exec vote/hardcore/AnneHappy13.cfg"
 		{
 			"message" "13特模式"
 		}
-		"exec vote/normal/AnneHappy14.cfg"
+		"exec vote/hardcore/AnneHappy14.cfg"
 		{
 			"message" "14特模式"
 		}
-		"exec vote/normal/AnneHappy15.cfg"
+		"exec vote/hardcore/AnneHappy15.cfg"
 		{
 			"message" "15特模式"
 		}
-		"exec vote/normal/AnneHappy16.cfg"
+		"exec vote/hardcore/AnneHappy16.cfg"
 		{
 			"message" "16特模式"
 		}
-		"exec vote/normal/AnneHappy17.cfg"
+		"exec vote/hardcore/AnneHappy17.cfg"
 		{
 			"message" "17特模式"
 		}
-		"exec vote/normal/AnneHappy18.cfg"
+		"exec vote/hardcore/AnneHappy18.cfg"
 		{
 			"message" "18特模式"
 		}
@@ -190,46 +198,6 @@
 		"sm_cvar versus_special_respawn_interval 20"
 		{
 			"message" "20秒"
-		}
-		"sm_cvar versus_special_respawn_interval 21"
-		{
-			"message" "21秒"
-		}
-		"sm_cvar versus_special_respawn_interval 22"
-		{
-			"message" "22秒"
-		}
-		"sm_cvar versus_special_respawn_interval 23"
-		{
-			"message" "23秒"
-		}
-		"sm_cvar versus_special_respawn_interval 24"
-		{
-			"message" "24秒"
-		}
-		"sm_cvar versus_special_respawn_interval 25"
-		{
-			"message" "25秒"
-		}
-		"sm_cvar versus_special_respawn_interval 26"
-		{
-			"message" "26秒"
-		}
-		"sm_cvar versus_special_respawn_interval 27"
-		{
-			"message" "27秒"
-		}
-		"sm_cvar versus_special_respawn_interval 28"
-		{
-			"message" "28秒"
-		}
-		"sm_cvar versus_special_respawn_interval 29"
-		{
-			"message" "29秒"
-		}
-		"sm_cvar versus_special_respawn_interval 30"
-		{
-			"message" "30秒"
 		}
 	}
 	"人数控制"
@@ -399,17 +367,6 @@
 			"message" "关闭mixmap插件"
 		}
 	}
-	"开关Mod"
-	{
-		"exec vote/mod_on.cfg"
-		{
-			"message" "开启Mod"
-		}
-		"exec vote/mod_off.cfg"
-		{
-			"message" "关闭Mod"
-		}
-	}
 	"Tank选项"
 	{
 		"sm_cvar ai_tank_bhop 1"
@@ -422,19 +379,19 @@
 		}
 		"sm_cvar ai_TankSneakTime 8.0"
 		{
-			"message" "开启狡猾Tank（特感生成8s前才压制，）"
+			"message" "开启狡猾Tank（[22-12~2405版本有效]）"
 		}
 		"sm_cvar ai_TankSneakTime 0.0"
 		{
-			"message" "关闭狡猾Tank[22-12版本起有效]"
+			"message" "关闭狡猾Tank[22-12~2405版本有效]"
 		}
 		"exec vote/Consume_on.cfg"
 		{
-			"message" "开启消耗克[22-7版本起有效]"
+			"message" "开启消耗克[22-7~2405版本有效]"
 		}
 		"exec vote/Consume_off.cfg"
 		{
-			"message" "关闭消耗克[22-7版本起有效]"
+			"message" "关闭消耗克[22-7~2405版本有效]"
 		}
 		"sm_cvar l4d_multislots_autokicktank 1"
 		{
@@ -443,17 +400,6 @@
 		"sm_cvar l4d_multislots_autokicktank 0"
 		{
 			"message" "关闭坦克自动踢出系统"
-		}
-	}
-	"开关hud"
-	{
-		"sm_cvar l4d2_scripted_hud_enable 1"
-		{
-			"message" "打开hud"
-		}
-		"sm_cvar l4d2_scripted_hud_enable 0"
-		{
-			"message" "关闭hud"
 		}
 	}
 	"地图选择"

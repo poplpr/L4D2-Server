@@ -1,6 +1,10 @@
 /*
 	Changelog
 	---------
+	    0.8 (Sir + J.)
+		    - Corrected Sound level to the actual level used by the files when played normally.
+		0.7 (Forgetest)
+		    - Fix sounds continuing on round restarts.
 		0.6 (A1m`)
 			- Removed unnecessary comments, unnecessary functions and extra code.
 			- Fixed return value in repeat timer, timer must be called more than 1 time. Replaced return value from 'Plugin_Stop' to 'Plugin_Continue'.
@@ -38,7 +42,7 @@ ConVar
 Handle
 	g_hJockeySoundTimer[MAXPLAYERS + 1] = {null, ...};
 
-public const char g_sJockeySound[][] =
+stock const char g_sJockeySound[][] =
 {
 	"player/jockey/voice/idle/jockey_recognize02.wav",
 	"player/jockey/voice/idle/jockey_recognize06.wav",
@@ -63,7 +67,7 @@ public Plugin myinfo =
 	name = "Unsilent Jockey",
 	author = "Tabun, robex, Sir, A1m`",
 	description = "Makes jockeys emit sound constantly.",
-	version = "0.7",
+	version = "0.8",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -94,7 +98,12 @@ public void L4D_OnEnterGhostState(int client)
 	ChangeJockeyTimerStatus(client, false);
 }
 
-public void PlayerSpawn_Event(Event event, const char[] name, bool dontBroadcast)
+public void OnClientDisconnect(int client)
+{
+    ChangeJockeyTimerStatus(client, false);
+}
+
+void PlayerSpawn_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
@@ -118,7 +127,7 @@ public void PlayerSpawn_Event(Event event, const char[] name, bool dontBroadcast
 	RequestFrame(JockeyRideEnd_NextFrame, GetClientUserId(client));
 }
 
-public void PlayerDeath_Event(Event event, const char[] name, bool dontBroadcast)
+void PlayerDeath_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
@@ -131,7 +140,7 @@ public void PlayerDeath_Event(Event event, const char[] name, bool dontBroadcast
 	ChangeJockeyTimerStatus(client, false);
 }
 
-public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
+void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
@@ -144,7 +153,7 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	ChangeJockeyTimerStatus(client, false);
 }
 
-public void JockeyRideStart_Event(Event event, const char[] name, bool dontBroadcast)
+void JockeyRideStart_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
@@ -152,7 +161,7 @@ public void JockeyRideStart_Event(Event event, const char[] name, bool dontBroad
 	ChangeJockeyTimerStatus(client, false);
 }
 
-public void JockeyRideEnd_Event(Event event, const char[] name, bool dontBroadcast)
+void JockeyRideEnd_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
@@ -174,10 +183,18 @@ void JockeyRideEnd_NextFrame(any userid)
 
 Action delayedJockeySound(Handle timer, any client)
 {
-	int rndPick = GetRandomInt(0, (sizeof(g_sJockeySound) - 1));
-	EmitSoundToAll(g_sJockeySound[rndPick], client, SNDCHAN_VOICE);
+    // 目标无效/不再是活着的非幽灵猴子 -> 停止这个重复计时器
+    if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client)
+        || GetClientTeam(client) != TEAM_INFECTED
+        || GetEntProp(client, Prop_Send, "m_zombieClass") != ZC_JOCKEY
+        || GetEntProp(client, Prop_Send, "m_isGhost"))
+    {
+        return Plugin_Stop; // 关键：停止重复
+    }
 
-	return Plugin_Continue;
+    int rndPick = GetRandomInt(0, (sizeof(g_sJockeySound) - 1));
+    EmitSoundToAll(g_sJockeySound[rndPick], client, SNDCHAN_VOICE, SNDLEVEL_HELICOPTER);
+    return Plugin_Continue;
 }
 
 void ChangeJockeyTimerStatus(int client, bool bEnable)
@@ -186,7 +203,7 @@ void ChangeJockeyTimerStatus(int client, bool bEnable)
 		KillTimer(g_hJockeySoundTimer[client], false);
 		g_hJockeySoundTimer[client] = null;
 	}
-	
+
 	if (bEnable) {
 		g_hJockeySoundTimer[client] = CreateTimer(g_hJockeyVoiceInterval.FloatValue, delayedJockeySound, client, TIMER_REPEAT);
 	}

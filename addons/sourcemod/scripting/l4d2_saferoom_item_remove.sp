@@ -35,7 +35,7 @@ public Plugin myinfo =
 	name = "Saferoom Item Remover",
 	author = "Tabun, Sir, A1m`",
 	description = "Removes any saferoom item (start or end).",
-	version = "1.1",
+	version = "1.1.1",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -50,14 +50,14 @@ public void OnPluginStart()
 	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 }
 
-public void Event_RoundStart(Event hEvent, const char[] sEventName, bool bDontBroadcast)
+void Event_RoundStart(Event hEvent, const char[] sEventName, bool bDontBroadcast)
 {
 	if (g_hCvarEnabled.BoolValue) {
 		CreateTimer(DELAY_ROUNDSTART, Timer_DelayedOnRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
-public Action Timer_DelayedOnRoundStart(Handle hTimer)
+Action Timer_DelayedOnRoundStart(Handle hTimer)
 {
 	// check for any items in the end saferoom, and remove them
 	char sClassname[128];
@@ -83,7 +83,7 @@ public Action Timer_DelayedOnRoundStart(Handle hTimer)
 			if (iCvarSafeRoomValue & eSAFEROOM_END) {
 				if (SAFEDETECT_IsEntityInEndSaferoom(i)) {
 					// kill the item
-					KillEntity(i);
+					RemoveEntity(i);
 					
 					iCountEnd++;
 					continue;
@@ -93,7 +93,7 @@ public Action Timer_DelayedOnRoundStart(Handle hTimer)
 			if (iCvarSafeRoomValue & eSAFEROOM_START) {
 				if (SAFEDETECT_IsEntityInStartSaferoom(i)) {
 					// kill the item
-					KillEntity(i);
+					RemoveEntity(i);
 					
 					iCountStart++;
 					continue;
@@ -152,11 +152,3 @@ void PrepareTrie()
 	//g_hTrieItems.SetValue("prop_physics", eITEM_KILLABLE);
 }
 
-void KillEntity(int iEntity)
-{
-#if SOURCEMOD_V_MINOR > 8
-	RemoveEntity(iEntity);
-#else
-	AcceptEntityInput(iEntity, "Kill");
-#endif
-}

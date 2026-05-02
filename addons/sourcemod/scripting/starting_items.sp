@@ -8,7 +8,6 @@
 #include <readyup>
 
 #define DEBUG					0
-#define USE_GIVEPLAYERITEM		0 // Works correctly only in the latest version of sourcemod 1.11 (GivePlayerItem sourcemod native)
 #define ENTITY_NAME_MAX_SIZE	64
 
 enum
@@ -38,7 +37,7 @@ public Plugin myinfo =
 	name = "Starting Items",
 	author = "CircleSquared, Jacob, A1m`",
 	description = "Gives health items and throwables to survivors at the start of each round",
-	version = "2.2",
+	version = "2.2.1",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -81,7 +80,7 @@ public void OnRoundIsLive()
 	DetermineItems();
 }
 
-public void PlayerLeftStartArea(Event hEvent, const char[] sEventName, bool bDontBroadcast)
+void PlayerLeftStartArea(Event hEvent, const char[] sEventName, bool bDontBroadcast)
 {
 	if (!g_bReadyUpAvailable) {
 		DetermineItems();
@@ -153,8 +152,8 @@ void GiveStartingItems(StringMap &hItemsStringMap)
 
 void GivePlayerWeaponByName(int iClient, const char[] sWeaponName)
 {
-#if (SOURCEMOD_V_MINOR == 11) || USE_GIVEPLAYERITEM
-	GivePlayerItem(iClient, sWeaponName); // Fixed only in the latest version of sourcemod 1.11
+#if (SOURCEMOD_V_MINOR >= 12 || (SOURCEMOD_V_MINOR == 11 && SOURCEMOD_V_REV >= 6754))
+	GivePlayerItem(iClient, sWeaponName); // Was fixed in v1.11.6754 (https://github.com/alliedmodders/sourcemod/commit/59840685a49a4e85eeb0d7f6271e861)
 #else
 	int iEntity = CreateEntityByName(sWeaponName);
 	if (iEntity == -1) {
@@ -170,7 +169,7 @@ void GivePlayerWeaponByName(int iClient, const char[] sWeaponName)
 }
 
 #if DEBUG
-public Action Cmd_GiveStartingItems(int iClient, int iArgs)
+Action Cmd_GiveStartingItems(int iClient, int iArgs)
 {
 	DetermineItems();
 	PrintToChat(iClient, "DetermineItems()");

@@ -14,7 +14,7 @@ Configs
 	"cfg/vote/frequency/high.cfg"	"高频率同步"
 	"cfg/vote/frequency/medium.cfg"	"中频率同步"
 	"cfg/vote/frequency/low.cfg"	"低频率同步"
-	"cfg/sourcemod/c3m1_4ht_without_mod.cfg"	"切换到c3m1 4ht 无mod"
-	"cfg/sourcemod/c3m1_4ht_with_mod.cfg"		"切换到c3m1 4ht 有mod"
+	"cfg/vote/mod_on.cfg"	"开启mod"
+	"cfg/vote/mod_off.cfg"	"关闭mod"
 
 }

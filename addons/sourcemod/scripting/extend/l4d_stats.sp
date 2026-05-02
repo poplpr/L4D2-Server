@@ -960,6 +960,7 @@ public OnPluginStart()
 	{
 		EnableSounds_Charger_Ram = false;
 	}
+	delete L4DStatsConf;
 }
 
 
@@ -1340,6 +1341,10 @@ public OnPluginEnd()
 	//	CloseHandle(ClearPlayerMenu);
 	//	ClearPlayerMenu = INVALID_HANDLE;
 	//}
+	delete MapTimingSurvivors; 
+ 	delete MapTimingInfected; 
+ 	delete FriendlyFireDamageTrie; 
+ 	delete PlayerRankVoteTrie; 
 }
 
 // Show rank on connect.
@@ -1571,7 +1576,16 @@ public Action Event_RoundEnd(Handle:event, String:event_name[], bool:dontBroadca
 		Score = 0;
 	}
 	
+	if(IsAnne() == 2)
+	{
+		Score = RoundToFloor(view_as<float>(Score) * 0.4);
+	}
 
+	if(IsFunGame())
+	{
+		//娱乐模式团灭不掉分
+		return Plugin_Continue;
+	}
 	
 	for(int i = 1; i <= MaxClients; i++){
 		if(IsClientConnected(i) && IsClientInGame(i) && (GetClientTeam(i) == 2 || ClientEnabled[i]) && !IsFakeClient(i) && Score > 0){
@@ -2675,7 +2689,7 @@ public UpdatePlayerFull(Client, const String:SteamID[], const String:Name[])
 		mode = 6;
 	}
 	//旁观者更新时间戳，但是不增加游戏时间，这样来方便统计在线人数
-	if(!IsPlayer(Client))
+	if(!IsPlayer(Client) || IsFunGame() > 2)
 		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), lastannemode = %i, lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, mode, CurrentGamemodeID, Name, IP, SteamID);
 	else
 		Format(query, sizeof(query), "UPDATE %splayers SET lastontime = UNIX_TIMESTAMP(), %s = %s + 1, lastannemode = %i, lastgamemode = %i, name = '%s', ip = '%s' WHERE steamid = '%s'", DbPrefix, Playtime, Playtime, mode, CurrentGamemodeID, Name, IP, SteamID);
@@ -2961,7 +2975,7 @@ public Action:timer_FriendlyFireDamageEnd(Handle:timer, any:dp)
         decl String:query[1024];
         Format(query, sizeof(query), "UPDATE %splayers SET %s = %s - %i, award_friendlyfire = award_friendlyfire + 1 WHERE steamid = '%s'", DbPrefix, UpdatePoints, UpdatePoints, Score, AttackerID);
         SendSQLUpdate(query);
-        
+
         new Mode = 0;
         if (Score > 0)
         	Mode = GetConVarInt(cvar_AnnounceMode);
@@ -3080,7 +3094,6 @@ public Action:timer_UpdatePlayers(Handle:timer, Handle:hndl)
 
 	if (StatsDisabled())
 		return;
-
 	UpdateMapStat("playtime", 1);
 
 	new maxplayers = MaxClients;
@@ -3526,6 +3539,10 @@ public Action:event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 				Format(UpdatePoints, sizeof(UpdatePoints), "points");
 			}
 		}
+		if(IsFunGame())
+		{
+			Score = 0;
+		}
 
 		new len = 0;
 		decl String:query[1024];
@@ -3597,6 +3614,24 @@ stock int IsAnne(){
 	}
 }
 
+
+stock int IsFunGame(){
+	//判断游戏是否是娱乐模式，alone 1vht删除特感分(返回1)，witchparty allcharger realismCoop RealismRealism versus 等其他模式不加分不减分，不记游戏时间，只做统计(返回2)
+	if(IsAnne())
+	{
+		return 0;
+	}
+	if(IsAlone() || Is1vht())
+	{
+		return 1;
+	}
+	if(IsWitchParty() || IsAllCharger())
+	{
+		return 2;
+	}
+	return 3;
+}
+
 stock bool IsAllCharger(){
 	decl String:plugin_name[MAX_LINE_WIDTH];
 	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
@@ -3606,6 +3641,42 @@ stock bool IsAllCharger(){
 	if(cvar_mode == null) return false;
 	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
 	if(StrContains(plugin_name, "AllCharger", false) != -1)
+	{
+		return true;
+	}else
+	{
+		return false;
+	}
+}
+
+stock bool IsMutationCoop()
+{
+	decl String:plugin_name[MAX_LINE_WIDTH];
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return 0;
+	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
+	if(StrContains(plugin_name, "AnneCoop", false) != -1)
+	{
+		return true;
+	}else
+	{
+		return false;
+	}
+}
+
+stock bool IsRealism()
+{
+	decl String:plugin_name[MAX_LINE_WIDTH];
+	if(cvar_mode == null && FindConVar("l4d_ready_cfg_name"))
+	{
+		cvar_mode = FindConVar("l4d_ready_cfg_name");
+	}
+	if(cvar_mode == null) return 0;
+	GetConVarString(cvar_mode, plugin_name, sizeof(plugin_name));
+	if(StrContains(plugin_name, "AnneRealism", false) != -1)
 	{
 		return true;
 	}else
@@ -3846,6 +3917,11 @@ public Action:event_TankKilled(Handle:event, const String:name[], bool:dontBroad
 
 	decl String:iID[MAX_LINE_WIDTH];
 	decl String:query[512];
+	if(IsFunGame())
+	{
+		Score = 0;
+		//return Plugin_Continue;
+	}
 
 	for (new i = 1; i <= maxplayers; i++)
 	{
@@ -3935,6 +4011,11 @@ GiveAdrenaline(Giver, Recipient, AdrenalineID = -1)
 		{
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
+	}
+	if(IsFunGame())
+	{
+		Score = 0;
+		//return Plugin_Continue;
 	}
 
 	decl String:query[1024];
@@ -4043,6 +4124,11 @@ GivePills(Giver, Recipient, PillsID = -1)
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
 	}
+	if(IsFunGame())
+	{
+		Score = 0;
+		//return Plugin_Continue;
+	}
 
 	decl String:query[1024];
 	Format(query, sizeof(query), "UPDATE %splayers SET %s = %s + %i, award_pills = award_pills + 1 WHERE steamid = '%s'", DbPrefix, UpdatePoints, UpdatePoints, Score, GiverID);
@@ -4135,6 +4221,11 @@ public Action:event_DefibPlayer(Handle:event, const String:name[], bool:dontBroa
 		{
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
+	}
+	if(IsFunGame())
+	{
+		Score = 0;
+		//return Plugin_Continue;
 	}
 
 	decl String:query[1024];
@@ -4231,6 +4322,11 @@ public Action:event_HealPlayer(Handle:event, const String:name[], bool:dontBroad
 		{
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
+	}
+	if(IsFunGame())
+	{
+		Score = 0;
+		//return Plugin_Continue;
 	}
 
 	decl String:query[1024];
@@ -4365,19 +4461,19 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	if((AnneMultiPlayerMode() || SinglePlayerMode())){
 		if((g_brpgAvailable && !L4D_RPG_GetGlobalValue(INDEX_VALID)) || !IsThisRoundValid())
 		{
-			Score = RoundToFloor(Score * 0.4);
+			Score = RoundToFloor(view_as<float>(Score) * 0.4);
 		}
 		else
 		{
 			int inf= GetAnneInfectedNumber();
-			if(inf < 4)
+			if(inf <= 4)
 			{
 				if(AnneMultiPlayerMode())
 					Score = RoundToFloor(Score * (1 - (4 - inf) * 0.2));
 			}
-			else if(inf > 4)
+			else if(inf > 4 && inf <= 6)
 				Score = RoundToFloor(Score + Score * (inf - 4) * 0.1);
-			else if(inf > 6)
+			else if(inf > 6 && inf <= 8)
 				Score = RoundToFloor(Score + Score * (inf - 4) * 0.2);
 			else if(inf>8)
 				Score = RoundToFloor(Score + Score * (inf-4)*0.3);
@@ -4398,6 +4494,14 @@ public Action:event_CampaignWin(Handle:event, const String:name[], bool:dontBroa
 	if(IsAnne() == 2)
 	{
 		Score = RoundToFloor(1.5 * Score);
+	}
+
+	if(IsFunGame() > 1)
+	{
+		//娱乐模式完成关卡统一只给100分
+		if(Score > 400)
+			Score = 400;
+		//return Plugin_Continue;
 	}
 
 	if(!CheckIsOfficalMap())return;
@@ -4598,7 +4702,12 @@ public Action:event_PlayerBlindEnd(Handle:event, const String:name[], bool:dontB
 {
 	if (StatsDisabled())
 		return;
-
+	
+	if(IsFunGame())
+	{
+		//娱乐模式团灭不掉分也不奖励分
+		return ;
+	}
 	new Player = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if (StatsGetClientTeam(Player) != TEAM_SURVIVORS)
@@ -5308,12 +5417,12 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 {
 	int human = CheckSurvivorsHumans();
 	if (StatsDisabled() || CampaignOver || human < 3)
-		return;
+		return Plugin_Continue;
 
 	new Killer = GetClientOfUserId(GetEventInt(event, "attacker"));
 
 	if (Killer == 0 || IsClientBot(Killer) || !IsClientInGame(Killer))
-		return;
+		return Plugin_Continue;
 
 	new Charger = GetClientOfUserId(GetEventInt(event, "userid"));
 	decl String:query[1024], String:KillerName[MAX_LINE_WIDTH], String:KillerID[MAX_LINE_WIDTH], String:UpdatePoints[32];
@@ -5373,7 +5482,7 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 	SendSQLUpdate(query);
 
 	if (Score <= 0)
-		return;
+		return Plugin_Continue;
 
 	UpdateMapStat("points", Score);
 	AddScore(Killer, Score);
@@ -5386,6 +5495,8 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 
 		if (IsMatador)
 		{
+			if(IsFunGame() == 2)
+				return Plugin_Continue;
 			if (Mode == 1 || Mode == 2)
 				StatsPrintToChat(Killer, "你 \x04秒了个牛\x01 获得 \x04%i \x01分!", Score);
 			else if (Mode == 3)
@@ -5404,6 +5515,8 @@ public Action:event_ChargerKilled(Handle:event, const String:name[], bool:dontBr
 			}
 			else
 				Format(VictimName, sizeof(VictimName), "a survivor");
+			if(StrEqual(KillerName, VictimName))
+				return Plugin_Continue;
 
 			if (Mode == 1 || Mode == 2)
 				StatsPrintToChat(Killer, "你将 \x05%s\x01 从 \x04%s\x01 手里救下获得 \x04%i \x01分!", VictimName, ChargerName, Score);
@@ -5687,7 +5800,11 @@ public Action:event_GascanPoured(Handle:event, const String:name[], bool:dontBro
 			Format(UpdatePoints, sizeof(UpdatePoints), "points");
 		}
 	}
-
+	if(IsFunGame() > 1)
+	{
+		Score = 0;
+		//return Plugin_Continue;
+	}
 	decl String:query[1024];
 	Format(query, sizeof(query), "UPDATE %splayers SET %s = %s + %i, award_gascans_poured = award_gascans_poured + 1 WHERE steamid = '%s'", DbPrefix, UpdatePoints, UpdatePoints, Score, PlayerID);
 
@@ -6334,6 +6451,15 @@ public Action:event_Award_L4D2(Handle:event, const String:name[], bool:dontBroad
 		else {
 			Score= 0;
 		}
+		if(IsFunGame())
+		{
+			Score = 0;
+			//return Plugin_Continue;
+		}
+		if(IsAnne() == 2)
+		{
+			Score = RoundToFloor(view_as<float>(Score) * 0.4);			
+		}
 		if (Mode && Score > 0)
 			StatsPrintToChat(User, "\x03所有幸存者 \x01都 \x03掉了 \x04%i \x01分 by \x03大家又坐牢了!", Score);
 		Mode=0;
@@ -6560,6 +6686,11 @@ public Action:event_WitchCrowned(Handle:event, const String:name[], bool:dontBro
 		if(IsWitchParty())
 		{
 			Score = RoundToCeil(Score / 2.0);
+		}
+		if(IsFunGame())
+		{
+			Score = 0;
+			//return Plugin_Continue;
 		}
 
 		decl String:query[1024];
@@ -9873,7 +10004,13 @@ public CheckSurvivorsWin()
 		Score = RoundToFloor(1.5 * Score);
 	}
 
-	if(!CheckIsOfficalMap())return;
+	if(IsFunGame() > 1)
+	{
+		if(Score > 200){
+			Score = 200;
+		}
+		//return Plugin_Continue;
+	}
 
 	new String:All4Safe[64] = "";
 	if (Deaths == 0)
@@ -10058,7 +10195,10 @@ CheckSurvivorsAllDown()
 
 	if (!GetConVarBool(cvar_EnableNegativeScore))
 		return;
-
+	if(IsFunGame())
+	{
+		return ;
+	}
 	if (CurrentGamemodeID == GAMEMODE_VERSUS)
 	{
 		Score = ModifyScoreDifficultyFloatNR(GetConVarInt(cvar_Restart), 0.75, 0.5, TEAM_SURVIVORS);
@@ -10151,6 +10291,10 @@ GetGamemodeID(const String:Gamemode[])
 	else if (StrEqual(Gamemode, "realism", false))
 	{
 		return GAMEMODE_REALISM;
+	}
+	else if (StrEqual(Gamemode, "mutation4", false) && IsMutationCoop())
+	{
+		return GAMEMODE_COOP;
 	}
 	else if (StrEqual(Gamemode, "mutation12", false))
 	{

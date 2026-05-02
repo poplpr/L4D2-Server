@@ -1,618 +1,840 @@
 #pragma semicolon 1
 #pragma newdecls required
 #pragma tabsize 0
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <colors>
 #include <l4d2lib>
 #include <left4dhooks>
-#include <colors>
 #undef REQUIRE_PLUGIN
 #include <CreateSurvivorBot>
 #include <witch_and_tankifier>
 
-#define CVAR_FLAGS			FCVAR_NOTIFY
-#define IsValidClient(%1)		(1 <= %1 <= MaxClients && IsClientInGame(%1))
-#define IsValidAliveClient(%1)	(1 <= %1 <= MaxClients && IsClientInGame(%1) && IsPlayerAlive(%1))
+// =============================================
+// AnneServer Server Function (structured + BeQuiet-style)
+// 仅保留你要求的静音功能：
+//   - 抑制 server_cvar 改动广播
+//   - 抑制玩家改名广播（含仅旁观者的选项）
+//   - 旁观可见队内聊天
+//   - 屏蔽以 ! / 开头的聊天命令输出
+// 其他 TextMsg/PZDmgMsg、死亡/倒地/离开/电击器 等屏蔽项全部移除。
+// 版本：2025-10-20
+// =============================================
+
+#define CVAR_FLAGS                     FCVAR_NOTIFY
+#define IsValidClient(%1)              (1 <= %1 && %1 <= MaxClients && IsClientInGame(%1))
+#define IsValidAliveClient(%1)         (IsValidClient(%1) && IsPlayerAlive(%1))
 
 enum ZombieClass
 {
-	ZC_SMOKER = 1,
-	ZC_BOOMER,
-	ZC_HUNTER,
-	ZC_SPITTER,
-	ZC_JOCKEY,
-	ZC_CHARGER,
-	ZC_WITCH,
-	ZC_TANK
-};
-char sFinalmapNamp[14][] =
-{
-	"c1m4_atrium",
-	"c2m5_concert",
-	"c3m4_plantation",
-	"c4m5_milltown_escape",
-	"c5m5_bridge",
-	"c6m3_port",
-	"c7m3_port",
-	"c8m5_rooftop",
-	"c9m2_lots",
-	"c10m5_houseboat",
-	"c11m5_runway",
-	"c12m5_cornfield",
-	"c13m4_cutthroatcreek",
-	"c14m2_lighthouse"
+    ZC_SMOKER = 1,
+    ZC_BOOMER,
+    ZC_HUNTER,
+    ZC_SPITTER,
+    ZC_JOCKEY,
+    ZC_CHARGER,
+    ZC_WITCH,
+    ZC_TANK
 };
 
-public Plugin myinfo = 
+static const char sFinalMapName[14][] =
 {
-	name 			= "AnneServer Server Function",
-	author 			= "def075, Caibiii，东",
-	description 	= "Advanced Special Infected AI",
-	version 		= "2022.10.09",
-	url 			= "https://github.com/Caibiii/AnneServer"
-}
+    "c1m4_atrium",
+    "c2m5_concert",
+    "c3m4_plantation",
+    "c4m5_milltown_escape",
+    "c5m5_bridge",
+    "c6m3_port",
+    "c7m3_port",
+    "c8m5_rooftop",
+    "c9m2_lots",
+    "c10m5_houseboat",
+    "c11m5_runway",
+    "c12m5_cornfield",
+    "c13m4_cutthroatcreek",
+    "c14m2_lighthouse"
+};
 
+public Plugin myinfo =
+{
+    name        = "AnneServer Server Function (quiet minimal)",
+    author      = "def075, Caibiii, 东, simplified by ChatGPT",
+    description = "Helpers + BeQuiet-style suppressors only (server_cvar / namechange / spec chat)",
+    version     = "2025.10.20",
+    url         = "https://github.com/Caibiii/AnneServer"
+};
 
+// ====== 全局 ConVar / 状态（保留原生还管理等） ======
 ConVar hMaxSurvivors, hSurvivorsManagerEnable, hCvarAutoKickTank;
-int iMaxSurvivors, iEnable, iAutoKickTankEnable, iRound = 0;
-bool g_bWitchAndTankSystemAvailable = false;
+ConVar g_cvResetOnTransition;          // 满血+清背包（原逻辑）
+ConVar g_cvHeal50OnTransition;         // 新增：通关/切图最低50实血+重置倒地次数
+
+int   iMaxSurvivors, iEnable, iAutoKickTankEnable;
+int   g_RoundWipeCount = 0;
+
+bool  g_bWitchAndTankSystemAvailable = false;
+
+// ---- 黑白提醒 ----
+ConVar g_cvBWEnable, g_cvBWTeam, g_cvBWSound;
+bool   g_bwAnnounced[MAXPLAYERS + 1];
+char   g_bwSound[PLATFORM_MAX_PATH];
+
+// ---- 仅保留 BeQuiet 风格静音开关 ----
+ConVar hCvarCvarChange, hCvarNameChange, hCvarSpecNameChange, hCvarSpecSeeChat;
+bool   bCvarChange, bNameChange, bSpecNameChange, bSpecSeeChat;
 
 public void OnPluginStart()
 {
-	AddNormalSoundHook(view_as<NormalSHook>(OnNormalSound));
-	AddAmbientSoundHook(view_as<AmbientSHook>(OnAmbientSound));
-	HookEvent("witch_killed", WitchKilled_Event);
-	HookEvent("round_start", RoundStart_Event);
-	HookEvent("finale_win", ResetSurvivors);
-	HookEvent("map_transition", ResetSurvivors);
-	HookEvent("player_spawn", 	Event_PlayerSpawn);
-	HookEvent("player_incapacitated", OnPlayerIncappedOrDeath);
-	HookEvent("player_death", OnPlayerIncappedOrDeath);
-	RegConsoleCmd("sm_setbot", SetBot);
-	RegAdminCmd("sm_kicktank", KickMoreTankThanOne, ADMFLAG_KICK, "有多只tank得情况，随机踢至只有一只");
-	SetConVarBounds(FindConVar("survivor_limit"), ConVarBound_Upper, true, 31.0);
-	RegAdminCmd("sm_addbot", ADMAddBot, ADMFLAG_ROOT, "Attempt to add a survivor bot (this bot will not be kicked by this plugin until someone takes over)");
-	RegAdminCmd("sm_delbot", ADMDelBot, ADMFLAG_ROOT, "Attempt to del a survivor bot if have more bot slots");
-	hSurvivorsManagerEnable = CreateConVar("l4d_multislots_survivors_manager_enable", "0", "Enable or Disable survivors manage",CVAR_FLAGS, true, 0.0, true, 1.0);
-	hMaxSurvivors	= CreateConVar("l4d_multislots_max_survivors", "4", "Kick AI Survivor bots if numbers of survivors has exceeded the certain value. (does not kick real player, minimum is 4)", CVAR_FLAGS, true, 4.0, true, 8.0);
-	hCvarAutoKickTank = CreateConVar("l4d_multislots_autokicktank", "0", "Auto kick tank when tank number above one", CVAR_FLAGS, true, 0.0, true, 1.0);
-	hSurvivorsManagerEnable.AddChangeHook(ConVarChanged_Cvars);
-	hMaxSurvivors.AddChangeHook(ConVarChanged_Cvars);
-	hCvarAutoKickTank.AddChangeHook(ConVarChanged_Cvars);
-	GetCvars();
-} 
+    // ---- 声音屏蔽（烟花/演唱会）----
+    AddNormalSoundHook(view_as<NormalSHook>(OnNormalSound));
+    AddAmbientSoundHook(view_as<AmbientSHook>(OnAmbientSound));
 
-public Action L4D2_OnEndVersusModeRound(bool countSurvivors)
+    // ---- 事件注册（保留原逻辑）----
+    HookEvent("witch_killed",            WitchKilled_Event);
+    HookEvent("round_start",             RoundStart_Event);
+    HookEvent("finale_win",              ResetSurvivors);
+    HookEvent("map_transition",          ResetSurvivors);
+    HookEvent("player_spawn",            Event_PlayerSpawn);
+    HookEvent("player_incapacitated",    OnPlayerIncappedOrDeath);
+    HookEvent("player_death",            OnPlayerIncappedOrDeath);
+
+    // ---- 管理命令 ----
+    RegConsoleCmd("sm_setbot", SetBot);
+    RegAdminCmd("sm_kicktank", KickMoreTankThanOne, ADMFLAG_KICK, "有多只Tank时，随机踢至只有一只");
+    SetConVarBounds(FindConVar("survivor_limit"), ConVarBound_Upper, true, 31.0);
+    RegAdminCmd("sm_addbot",   ADMAddBot, ADMFLAG_ROOT, "添加一个生还者Bot（不会被本插件踢）");
+    RegAdminCmd("sm_delbot",   ADMDelBot, ADMFLAG_ROOT, "删除一个未被接管的生还者Bot");
+    RegConsoleCmd("sm_zs", ZiSha);
+    RegConsoleCmd("sm_kill", ZiSha);
+
+    // ---- 生还管理 ConVar ----
+    hSurvivorsManagerEnable = CreateConVar("l4d_multislots_survivors_manager_enable", "0",
+        "是否启用生还者数量管理 (0/1)", CVAR_FLAGS, true, 0.0, true, 1.0);
+    hMaxSurvivors = CreateConVar("l4d_multislots_max_survivors", "4",
+        "生还者最大人数（仅踢Bot，不踢真人，最小4，最大8）", CVAR_FLAGS, true, 4.0, true, 8.0);
+    hCvarAutoKickTank = CreateConVar("l4d_multislots_autokicktank", "0",
+        "当场上Tank>1时，是否自动踢至只剩1只 (0/1)", CVAR_FLAGS, true, 0.0, true, 1.0);
+
+    // ---- 切图/通关重置开关 ----
+    g_cvResetOnTransition = CreateConVar("anne_reset_on_transition", "0",
+        "通关/切图时是否执行 RestoreHealth + ResetInventory (0=否,1=是)", CVAR_FLAGS, true, 0.0, true, 1.0);
+
+    // ---- 最低50实血（仅在未启用满血清背包时使用）----
+    g_cvHeal50OnTransition = CreateConVar("anne_heal50_on_transition", "0",
+        "通关/切图时，若生还者实血<50则补至50，并重置倒地次数；>=50不变。仅在 anne_reset_on_transition=0 时生效",
+        CVAR_FLAGS, true, 0.0, true, 1.0);
+
+    // ---- 黑白提醒 ----
+    HookEvent("revive_success",       Event_ReviveSuccess);
+    HookEvent("heal_success",         Event_HealSuccess);
+    HookEvent("defibrillator_used",   Event_DefibUsed);
+
+    g_cvBWEnable = CreateConVar("l4d_bw_notify_enable", "1", "启用生还黑白提醒 (0/1)", CVAR_FLAGS, true, 0.0, true, 1.0);
+    g_cvBWTeam   = CreateConVar("l4d_bw_notify_team",   "1", "0=只提醒本人, 1=全队广播", CVAR_FLAGS, true, 0.0, true, 1.0);
+    g_cvBWSound  = CreateConVar("l4d_bw_notify_sound",  "ui/beep07.wav", "黑白时播放的音效（留空不播）", CVAR_FLAGS);
+    g_cvBWSound.GetString(g_bwSound, sizeof(g_bwSound));
+    g_cvBWSound.AddChangeHook(CvarChanged_BWSound);
+
+    // ---- BeQuiet 风格：CVAR + 事件 + 聊天监听 ----
+    hCvarCvarChange      = CreateConVar("bq_cvar_change_suppress", "1", "Silence Server Cvars being changed, this makes for a clean chat with no disturbances.");
+    hCvarNameChange      = CreateConVar("bq_name_change_suppress", "1", "Silence Player name Changes.");
+    hCvarSpecNameChange  = CreateConVar("bq_name_change_spec_suppress", "1", "Silence Spectating Player name Changes.");
+    hCvarSpecSeeChat     = CreateConVar("bq_show_player_team_chat_spec", "1", "Show Spectators Survivors and Infected Team chat?");
+
+    bCvarChange     = GetConVarBool(hCvarCvarChange);
+    bNameChange     = GetConVarBool(hCvarNameChange);
+    bSpecNameChange = GetConVarBool(hCvarSpecNameChange);
+    bSpecSeeChat    = GetConVarBool(hCvarSpecSeeChat);
+
+    hCvarCvarChange.AddChangeHook(cvarChanged);
+    hCvarNameChange.AddChangeHook(cvarChanged);
+    hCvarSpecNameChange.AddChangeHook(cvarChanged);
+    hCvarSpecSeeChat.AddChangeHook(cvarChanged);
+
+    // Events (Pre)
+    HookEvent("server_cvar",       Event_ServerCvar_Pre,       EventHookMode_Pre);
+    HookEvent("player_changename", Event_PlayerChangeName_Pre, EventHookMode_Pre);
+
+    // Chat listeners
+    AddCommandListener(Say_Callback,     "say");
+    AddCommandListener(TeamSay_Callback, "say_team");
+
+    // ---- 监听变更 & 初始化 ----
+    hSurvivorsManagerEnable.AddChangeHook(ConVarChanged_Cvars);
+    hMaxSurvivors.AddChangeHook(ConVarChanged_Cvars);
+    hCvarAutoKickTank.AddChangeHook(ConVarChanged_Cvars);
+
+    AutoExecConfig(true, "anne_server_helper"); // 统一写入 cfg/sourcemod/anne_server_helper.cfg
+
+    ConVarChanged_Cvars(null, "", ""); // 初始化读取
+    cvarChanged(null, "", "");        // 同步 BeQuiet 开关
+}
+
+public void OnAllPluginsLoaded()
 {
-	if(countSurvivors == false && L4D_HasAnySurvivorLeftSafeArea())
-	{
-		iRound += 1;
-		CPrintToChatAll("[{olive}提示{default}]这是你们第 {blue}%d{default} 次团灭，请继续努力", iRound);
-	}
-	return Plugin_Continue;
+    g_bWitchAndTankSystemAvailable = LibraryExists("witch_and_tankifier");
 }
 
-public void OnAllPluginsLoaded(){
-	g_bWitchAndTankSystemAvailable = LibraryExists("witch_and_tankifier");
-}
 public void OnLibraryAdded(const char[] name)
 {
-    if ( StrEqual(name, "witch_and_tankifier") ) { g_bWitchAndTankSystemAvailable = true; }
+    if (StrEqual(name, "witch_and_tankifier")) g_bWitchAndTankSystemAvailable = true;
 }
+
 public void OnLibraryRemoved(const char[] name)
 {
-    if ( StrEqual(name, "witch_and_tankifier") ) { g_bWitchAndTankSystemAvailable = true; }
+    if (StrEqual(name, "witch_and_tankifier")) g_bWitchAndTankSystemAvailable = false;
 }
 
-public void ConVarChanged_Cvars(Handle convar, const char[] oldValue, const char[] newValue)
+public void OnMapStart()
 {
-	GetCvars();
+    if (g_bwSound[0] != ' ')
+        PrecacheSound(g_bwSound, true);
 }
 
-public void OnPlayerIncappedOrDeath(Handle event, char[] name, bool dontBroadcast) {
-	int client = GetClientOfUserId(GetEventInt(event,"userid"));
-	if(!client)
-		return;
-	if(!IsClientConnected(client) || !IsClientInGame(client))
-	if((GetClientTeam(client) !=2))
-		return;
-	if(IsTeamImmobilised())
-	{
-		SlaySurvivors();
-	}
-}
-
-bool IsTeamImmobilised() {
-	bool bIsTeamImmobilised = true;
-	for (int client = 1; client < MaxClients; client++) {
-		if (IsSurvivor(client) && IsPlayerAlive(client)) {
-			if (!L4D_IsPlayerIncapacitated(client) ) {		
-				bIsTeamImmobilised = false;				
-				break;
-			} 
-		} 
-	}
-	return bIsTeamImmobilised;
-}
-
-void SlaySurvivors() { //incap everyone
-	for (int client = 1; client < (MAXPLAYERS + 1); client++) {
-		if (IsSurvivor(client) && IsPlayerAlive(client)) {
-			ForcePlayerSuicide(client);
-		}
-	}
-}
-
-void GetCvars()
+public void OnConfigsExecuted()
 {
-	iEnable = hSurvivorsManagerEnable.IntValue;
-	iMaxSurvivors = hMaxSurvivors.IntValue;
-	iAutoKickTankEnable = hCvarAutoKickTank.IntValue;
-	if(iEnable){
-		if(GetSurvivorCount() < iMaxSurvivors)
-		{
-			for(int i=1, j = iMaxSurvivors - GetSurvivorCount(); i <= j; i++ )
-			{
-				SpawnFakeClient();
-			}
-		}else if(GetSurvivorCount() > iMaxSurvivors){
-			for(int i=1, j = GetSurvivorCount() - iMaxSurvivors; i <= j; i++ )
-			{
-				if(!GetRandomSurvivor(-1,1))
-				{
-					ChangeClientTeam(GetRandomSurvivor(),1);
-					KickClient(GetRandomSurvivor(-1,1));
-				}
-				else	
-					KickClient(GetRandomSurvivor(-1,1));
-			}
-		}
-	}
+    // 同步一次 CVar
+    cvarChanged(null, "", "");
+}
+
+public void ConVarChanged_Cvars(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    iEnable             = hSurvivorsManagerEnable.IntValue;
+    iMaxSurvivors       = hMaxSurvivors.IntValue;
+    iAutoKickTankEnable = hCvarAutoKickTank.IntValue;
+
+    if (!iEnable) return;
+
+    int cur = GetSurvivorCount();
+    if (cur < iMaxSurvivors)
+    {
+        int need = iMaxSurvivors - cur;
+        for (int i = 0; i < need; i++)
+            SpawnFakeClientNearRandomSurvivor();
+    }
+    else if (cur > iMaxSurvivors)
+    {
+        int over = cur - iMaxSurvivors;
+        for (int i = 0; i < over; i++)
+            if (!KickAnySurvivorBot()) break;
+    }
+}
+
+// ====== BeQuiet：变更监听聚合 ======
+void cvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    bCvarChange     = GetConVarBool(hCvarCvarChange);
+    bNameChange     = GetConVarBool(hCvarNameChange);
+    bSpecNameChange = GetConVarBool(hCvarSpecNameChange);
+    bSpecSeeChat    = GetConVarBool(hCvarSpecSeeChat);
+}
+
+// ====== 事件抑制（仅保留这两个） ======
+public Action Event_ServerCvar_Pre(Event event, const char[] name, bool dontBroadcast)
+{
+    if (bCvarChange) return Plugin_Handled;
+    return Plugin_Continue;
+}
+
+public Action Event_PlayerChangeName_Pre(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!IsValidClient(client)) return Plugin_Continue;
+
+    if (GetClientTeam(client) == 1 && bSpecNameChange)
+        return Plugin_Handled; // 旁观者改名静音
+
+    if (bNameChange)
+        return Plugin_Handled; // 全部改名静音
+
+    return Plugin_Continue;
+}
+
+// ====== 聊天监听：拦截命令、旁观可见队内聊天 ======
+public Action Say_Callback(int client, const char[] command, int args)
+{
+    // 无条件屏蔽以 ! 或 / 开头的命令输出（与 BeQuiet 一致）
+    if (args >= 1)
+    {
+        char first[MAX_NAME_LENGTH];
+        GetCmdArg(1, first, sizeof first);
+        if (first[0] == '!' || first[0] == '/')
+            return Plugin_Handled;
+    }
+    return Plugin_Continue;
+}
+
+public Action TeamSay_Callback(int client, const char[] command, int args)
+{
+    // 无条件屏蔽以 ! 或 / 开头的命令输出
+    if (args >= 1)
+    {
+        char first[MAX_NAME_LENGTH];
+        GetCmdArg(1, first, sizeof first);
+        if (first[0] == '!' || first[0] == '/')
+            return Plugin_Handled;
+    }
+
+    // 旁观可见队内聊天
+    if (bSpecSeeChat && IsValidClient(client) && GetClientTeam(client) != 1)
+    {
+        char sChat[256];
+        GetCmdArgString(sChat, sizeof sChat);
+        StripQuotes(sChat);
+
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (!IsValidClient(i) || GetClientTeam(i) != 1) continue;
+            if (GetClientTeam(client) == 2)
+                CPrintToChat(i, "[{olive}旁观{default}] {blue}%N{default}：%s", client, sChat);
+            else
+                CPrintToChat(i, "[{olive}旁观{default}] {red}%N{default}：%s", client, sChat);
+        }
+    }
+    return Plugin_Continue;
+}
+
+// ====== 原有逻辑：对局与管理 ======
+public Action L4D2_OnEndVersusModeRound(bool countSurvivors)
+{
+    if (!countSurvivors && L4D_HasAnySurvivorLeftSafeArea())
+    {
+        g_RoundWipeCount++;
+        CPrintToChatAll("[{olive}提示{default}] 这是你们第 {blue}%d{default} 次团灭，请继续努力", g_RoundWipeCount);
+    }
+    return Plugin_Continue;
 }
 
 public void Event_PlayerSpawn(Event hEvent, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId( hEvent.GetInt( "userid" ));
-	if( IsValidClient(client) && IsAiTank(client) && iAutoKickTankEnable){
-		KickMoreTank(true);
-	}
-		
+    int client = GetClientOfUserId(hEvent.GetInt("userid"));
+
+    if (IsValidClient(client) && IsAiTank(client) && iAutoKickTankEnable)
+        KickMoreTank(true);
+
+    if (IsValidClient(client) && GetClientTeam(client) == 2)
+        g_bwAnnounced[client] = false;
 }
 
+public void OnPlayerIncappedOrDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!IsValidClient(client)) return;
+    if (GetClientTeam(client) != 2)    return;
 
+    if (IsTeamImmobilised())
+        SlaySurvivors();
+}
 
+bool IsTeamImmobilised()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsSurvivor(i) && IsPlayerAlive(i))
+        {
+            if (!L4D_IsPlayerIncapacitated(i))
+                return false;
+        }
+    }
+    return true;
+}
 
-////////////////////////////////////
-// Callbacks
-////////////////////////////////////
+void SlaySurvivors()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsSurvivor(i) && IsPlayerAlive(i))
+            ForcePlayerSuicide(i);
+    }
+}
+
+// ====== 管理命令：生还者 Bot 增/删 & 对齐 ======
 public Action ADMAddBot(int client, int args)
 {
-	if(client == 0 || (IsValidClient(client) && GetUserAdmin(client).ImmunityLevel < 90) || !iEnable)
-		return Plugin_Handled;
-	
-	if(IsAnySurvivorBotExists())
-	{
-		PrintToChat(client, "\x04还有未接管的bot，请生还者队伍满了之后再次尝试.");
-		return Plugin_Handled;
-	}
-	ConVar surLimit = FindConVar("survivor_limit");
-	if(surLimit.IntValue < 8)
-	{
-		PrintToChat(client, "\x04不是8人运动，还没达到上限呢！.");
-		return Plugin_Handled;
-	}
-	if(SpawnFakeClient() == true){
-		PrintToChat(client, "\x04一个生还者Bot被生成.");	
-		SetConVarInt(surLimit, surLimit.IntValue + 1);
-	}
-	else
-		PrintToChat(client,  "\x04暂时无法生成生还者Bot.");
-	
-	return Plugin_Handled;
+    if (client == 0 || !iEnable) return Plugin_Handled;
+
+    AdminId id = GetUserAdmin(client);
+    if (id == INVALID_ADMIN_ID || GetAdminImmunityLevel(id) < 90)
+        return Plugin_Handled;
+
+    if (IsAnySurvivorBotExists())
+    {
+        PrintToChat(client, "还有未接管的Bot，请先接管或等生还队满再试。");
+        return Plugin_Handled;
+    }
+
+    ConVar surLimit = FindConVar("survivor_limit");
+    if (surLimit.IntValue < 8)
+    {
+        PrintToChat(client, "不是 8 人运动，还没达到上限呢！");
+        return Plugin_Handled;
+    }
+
+    if (SpawnFakeClientNearRandomSurvivor())
+    {
+        PrintToChat(client, "一个生还者Bot已生成。");
+        SetConVarInt(surLimit, surLimit.IntValue + 1);
+    }
+    else
+    {
+        PrintToChat(client, "暂时无法生成生还者Bot。");
+    }
+    return Plugin_Handled;
 }
 
 public Action ADMDelBot(int client, int args)
 {
-	if(client == 0 || (IsValidClient(client) && GetUserAdmin(client).ImmunityLevel < 90) || !iEnable)
-		return Plugin_Handled;
-	
-	if(!KickAnySurvivorBot())
-	{
-		PrintToChat(client, "\x04不存在未接管的bot，你还删个鬼！");
-	}
-	return Plugin_Handled;
+    if (client == 0 || !iEnable) return Plugin_Handled;
+
+    AdminId id = GetUserAdmin(client);
+    if (id == INVALID_ADMIN_ID || GetAdminImmunityLevel(id) < 90)
+        return Plugin_Handled;
+
+    if (!KickAnySurvivorBot())
+    {
+        PrintToChat(client, "不存在未接管的Bot。");
+    }
+    else
+    {
+        ConVar surLimit = FindConVar("survivor_limit");
+        SetConVarInt(surLimit, surLimit.IntValue - 1);
+    }
+    return Plugin_Handled;
 }
 
-stock bool KickAnySurvivorBot()
+public Action SetBot(int client, int args)
 {
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsValidClient(i) && GetClientTeam(i) == 2 && IsFakeClient(i))
-		{
-			KickClient(i);
-			ConVar surLimit = FindConVar("survivor_limit");
-			SetConVarInt(surLimit, surLimit.IntValue - 1);
-			return true;
-		}
-	}
-	return false;
+    if (!iEnable) return Plugin_Handled;
+
+    int cur = GetSurvivorCount();
+    if (cur < iMaxSurvivors)
+    {
+        int need = iMaxSurvivors - cur;
+        for (int i = 0; i < need; i++)
+            SpawnFakeClientNearRandomSurvivor();
+    }
+    else if (cur > iMaxSurvivors)
+    {
+        int over = cur - iMaxSurvivors;
+        for (int i = 0; i < over; i++)
+            if (!KickAnySurvivorBot()) break;
+    }
+    return Plugin_Handled;
 }
 
-stock bool IsAnySurvivorBotExists()
+public Action ZiSha(int client, int args)
 {
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsValidClient(i) && GetClientTeam(i) == 2 && IsFakeClient(i))
-			return true;
-	}
-	return false;
+    ForcePlayerSuicide(client);
+    return Plugin_Handled;
 }
 
-//踢出数量大于1的tank
-public Action KickMoreTankThanOne(int client, int args)
-{
-	if(client == 0)
-		return Plugin_Continue;
-	
-	KickMoreTank(false);
-	
-	return Plugin_Handled;
-}
-
-public void KickMoreTank(bool autoKick){
-	int tankNum = 0, tank[32];
-	for(int i = 0; i < MaxClients; i++){
-		if( IsValidClient(i) && IsAiTank(i)){
-			tank[tankNum++] = i;
-		}
-	}
-	if(tankNum <= 1){
-		if(!autoKick)
-			PrintToChatAll("\x04一切正常还想踢克逃课？");
-	}else{
-		for(int i = tankNum - 1; i > 0; i--){
-			KickClient(i, "过分了啊，一个克就够难了, %N 被踢出", tank[i]);
-		}
-		PrintToChatAll("\x04已经踢出多余的克");
-	}
-}
-// 是否 ai 坦克
-bool IsAiTank(int client)
-{
-	return view_as<bool>(GetInfectedClass(client) == view_as<int>(ZC_TANK) && IsFakeClient(client));
-}
-
-// 获取特感类型，成功返回特感类型，失败返回 0
-stock int GetInfectedClass(int client)
-{
-	if (IsValidInfected(client))
-	{
-		return GetEntProp(client, Prop_Send, "m_zombieClass");
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-// 判断特感是否有效，有效返回 true，无效返回 false
-stock bool IsValidInfected(int client)
-{
-	if (IsValidClient(client) && GetClientTeam(client) == 2)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-
-//try to spawn survivor
-bool SpawnFakeClient()
-{
-	//check if there are any alive survivor in server
-	int iAliveSurvivor = GetRandomSurvivor(1);
-	if(iAliveSurvivor == 0)
-		return false;
-		
-	// create fakeclient
-	int fakeclient = CreateSurvivorBot();
-	
-	// if entity is valid
-	if(fakeclient > 0 && IsClientInGame(fakeclient))
-	{
-		float teleportOrigin[3];
-		GetClientAbsOrigin(iAliveSurvivor, teleportOrigin)	;
-		TeleportEntity( fakeclient, teleportOrigin, NULL_VECTOR, NULL_VECTOR);
-		return true;
-	}
-	
-	return false;
-}
-
-
-
-public Action SetBot(int client, int args) 
-{
-    if(iEnable){
-		if(GetSurvivorCount() < iMaxSurvivors)
-		{
-			for(int i=1, j = iMaxSurvivors - GetSurvivorCount(); i <= j; i++ )
-			{
-				SpawnFakeClient();
-			}
-		}else if(GetSurvivorCount() > iMaxSurvivors){
-			for(int i=1, j = GetSurvivorCount() - iMaxSurvivors; i <= j; i++ )
-			{
-				if(!GetRandomSurvivor(-1,1))
-				{
-					ChangeClientTeam(GetRandomSurvivor(),1);
-					KickClient(GetRandomSurvivor(-1,1));
-				}
-				else	
-					KickClient(GetRandomSurvivor(-1,1));
-			}
-		}
-	}
-	return Plugin_Handled;
-}
-
-
-
-/**
- * @brief Get survivor count.
- * 
- * @return          Survivor count.
- */
- 
-stock int GetSurvivorCount()
+// ====== 生还工具 ======
+int GetSurvivorCount()
 {
     int count = 0;
     for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i))
             count++;
-
     return count;
 }
 
-public Action OnNormalSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
+bool IsAnySurvivorBotExists()
 {
-	return (StrContains(sample, "firewerks", true) > -1) ? Plugin_Stop : Plugin_Continue;
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsValidClient(i) && GetClientTeam(i) == 2 && IsFakeClient(i))
+            return true;
+    return false;
 }
 
-public Action OnAmbientSound(char sample[PLATFORM_MAX_PATH], int &entity, float &volume, int &level, int &pitch, float pos[3], int &flags, float &delay)
+bool KickAnySurvivorBot()
 {
-	return (StrContains(sample, "firewerks", true) > -1) ? Plugin_Stop : Plugin_Continue;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && GetClientTeam(i) == 2 && IsFakeClient(i))
+        {
+            KickClient(i, "AnneServer: remove surplus survivor bot.");
+            return true;
+        }
+    }
+    return false;
 }
 
-public Action ResetSurvivors(Handle event, char[] name, bool dontBroadcast)
+bool SpawnFakeClientNearRandomSurvivor()
 {
-	iRound = 0;
-	RestoreHealth();
-	ResetInventory();
-	return Plugin_Continue;
+    int anchor = PickRandomSurvivor(true);
+    if (anchor == 0) return false;
+
+    int fakeclient = CreateSurvivorBot();
+    if (fakeclient > 0 && IsClientInGame(fakeclient))
+    {
+        float pos[3];
+        GetClientAbsOrigin(anchor, pos);
+        TeleportEntity(fakeclient, pos, NULL_VECTOR, NULL_VECTOR);
+        return true;
+    }
+    return false;
 }
 
-public Action L4D_OnFirstSurvivorLeftSafeArea() 
+int PickRandomSurvivor(bool aliveOnly)
 {
-	SetBot(0,0);
-	//SetGodMode(false);
-	CreateTimer(0.5, Timer_AutoGive, _, TIMER_FLAG_NO_MAPCHANGE);
-	return Plugin_Stop;
+    int list[33];
+    int n = 0;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsValidClient(i) || GetClientTeam(i) != 2)
+            continue;
+        if (aliveOnly && !IsPlayerAlive(i))
+            continue;
+        list[n++] = i;
+    }
+    if (n == 0) return 0;
+    return list[GetRandomInt(0, n - 1)];
 }
 
-stock void SetGodMode(bool canset)
+// ====== 多Tank 踢出 ======
+public Action KickMoreTankThanOne(int client, int args)
 {
-	int flags = GetCommandFlags("god");
-	SetCommandFlags("god", flags & ~ FCVAR_NOTIFY);
-	SetConVarInt(FindConVar("god"), canset);
-	SetCommandFlags("god", flags);
-	SetConVarInt(FindConVar("sv_infinite_ammo"), canset);
+    if (client == 0) return Plugin_Continue;
+    KickMoreTank(false);
+    return Plugin_Handled;
 }
 
-public Action Timer_AutoGive(Handle timer) 
+void KickMoreTank(bool autoKick)
 {
-	for (int client = 1; client <= MaxClients; client++) 
-	{
-		if (IsSurvivor(client)) 
-		{
-			//增加死亡玩家复活
-			if(!IsPlayerAlive(client))
-				L4D_RespawnPlayer(client);
-			BypassAndExecuteCommand(client, "give","pain_pills"); 
-			BypassAndExecuteCommand(client, "give","health"); 
-			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);		
-			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
-			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", false);
-			if(IsFakeClient(client))
-			{
-				for (int i = 0; i < 1; i++) 
-				{ 
-					DeleteInventoryItem(client, i);		
-				}
-				BypassAndExecuteCommand(client, "give","smg_silenced");
-				BypassAndExecuteCommand(client, "give","pistol_magnum");
-			}
-		}
-	}
-	return Plugin_Continue;
+    int tanks[33];
+    int tn = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsValidClient(i)) continue;
+        if (IsAiTank(i))
+            tanks[tn++] = i;
+    }
+
+    if (tn <= 1)
+    {
+        if (!autoKick)
+            PrintToChatAll("一切正常，还想踢克逃课？");
+        return;
+    }
+
+    int keepIndex = GetRandomInt(0, tn - 1);
+    int keep = tanks[keepIndex];
+
+    for (int k = 0; k < tn; k++)
+    {
+        int c = tanks[k];
+        if (c == keep) continue;
+        KickClient(c, "过分了啊，一个克就够难了, %N 被踢出", c);
+    }
+    PrintToChatAll("已经踢出多余的克");
 }
 
-//最终图禁用流程克，只启用第一个最终事件克
-public void RoundStart_Event(Handle event, char[] name, bool dontBroadcast){
-	CreateTimer(1.0, HandleSetTank, _, TIMER_REPEAT);
+bool IsAiTank(int client)
+{
+    return (GetInfectedClass(client) == view_as<int>(ZC_TANK) && IsFakeClient(client));
 }
 
-public Action HandleSetTank(Handle timer)
+int GetInfectedClass(int client)
 {
-	if(g_bWitchAndTankSystemAvailable && L4D_IsMissionFinalMap()){
-		char mapname[256];
-		GetCurrentMap(mapname, sizeof(mapname));
-		if(!CheckOfficalFinal(mapname)){
-			ServerCommand("static_tank_map %s", mapname);
-			ServerCommand("tank_map_only_first_event %s", mapname);
-		}	
-	}
-	return Plugin_Stop;
+    if (IsValidInfected(client))
+        return GetEntProp(client, Prop_Send, "m_zombieClass");
+    return 0;
 }
 
-bool CheckOfficalFinal(char[] mapname){
-	for(int i = 0; i < 14; i++){
-		if(strcmp(sFinalmapNamp[i], mapname, false) == 1)
-			return true;
-	}
-	return false;
+bool IsValidInfected(int client)
+{
+    return (IsValidClient(client) && GetClientTeam(client) == 3);
 }
 
-//秒妹回实血
-public void WitchKilled_Event(Handle event, char[] name, bool dontBroadcast)
+// ====== 最终章 Tank 限制 ======
+public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2 && IsPlayerAlive(client) && !IsPlayerIncap(client))
-	{
-		int maxhp = GetEntProp(client, Prop_Data, "m_iMaxHealth");
-		int targetHealth = GetSurvivorPermHealth(client) + 15;
-		if(targetHealth > maxhp)
-		{
-			targetHealth = maxhp;
-		}
-		SetSurvivorPermHealth(client, targetHealth);
-	}
+    CreateTimer(1.0, Timer_SetFinaleTankRule, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-void ResetInventory() 
+public Action Timer_SetFinaleTankRule(Handle timer)
 {
-	for (int client = 1; client <= MaxClients; client++) 
-	{
-		if (IsSurvivor(client)) 
-		{
-			
-			for (int i = 0; i < 5; i++) 
-			{ 
-				DeleteInventoryItem(client, i);		
-			}
-			BypassAndExecuteCommand(client, "give", "pistol");		
-		}
-	}		
+    if (!g_bWitchAndTankSystemAvailable) return Plugin_Stop;
+    if (!L4D_IsMissionFinalMap()) return Plugin_Stop;
+
+    char mapname[64];
+    GetCurrentMap(mapname, sizeof(mapname));
+
+    if (!IsOfficialFinal(mapname))
+    {
+        ServerCommand("static_tank_map %s", mapname);
+        ServerCommand("tank_map_only_first_event %s", mapname);
+    }
+    return Plugin_Stop;
 }
 
-void DeleteInventoryItem(int client, int slot) 
+bool IsOfficialFinal(const char[] mapname)
 {
-	int item = GetPlayerWeaponSlot(client, slot);
-	if (item > 0) 
-	{
-		RemovePlayerItem(client, item);
-	}	
+    for (int i = 0; i < sizeof(sFinalMapName); i++)
+    {
+        if (StrEqual(sFinalMapName[i], mapname, false))
+            return true;
+    }
+    return false;
 }
 
-void RestoreHealth() 
+// ====== 通关/切图重置 ======
+public Action ResetSurvivors(Event event, const char[] name, bool dontBroadcast)
 {
-	for (int client = 1; client <= MaxClients; client++) 
-	{
-		if (IsSurvivor(client)) 
-		{
-			BypassAndExecuteCommand(client, "give","health");
-			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);		
-			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
-			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", false);
-		}
-	}
+    g_RoundWipeCount = 0;
+
+    if (g_cvResetOnTransition.BoolValue)
+    {
+        RestoreHealth();
+        ResetInventory();
+    }
+    else if (g_cvHeal50OnTransition.BoolValue)
+    {
+        ApplyHealFloorTo50();
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+        g_bwAnnounced[i] = false;
+
+    return Plugin_Continue;
 }
 
-void BypassAndExecuteCommand(int client, char[] strCommand, char[] strParam1)
+// 首离安全区：补给（含 Bot 复活）
+public Action L4D_OnFirstSurvivorLeftSafeArea()
 {
-	int flags = GetCommandFlags(strCommand);
-	SetCommandFlags(strCommand, flags & ~FCVAR_CHEAT);
-	FakeClientCommand(client, "%s %s", strCommand, strParam1);
-	SetCommandFlags(strCommand, flags);
+    SetBot(0, 0);
+    if (!IsRealismORCoop())
+        CreateTimer(0.5, Timer_AutoGive, _, TIMER_FLAG_NO_MAPCHANGE);
+    return Plugin_Stop;
 }
 
-//判断生还是否已经满人
-stock bool IsSuivivorTeamFull() 
+public Action Timer_AutoGive(Handle timer)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
-		{
-			return false;
-		}
-	}
-	return true;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsSurvivor(i)) continue;
+
+        if (!IsPlayerAlive(i))
+            L4D_RespawnPlayer(i);
+
+        BypassAndExecuteCommand(i, "give", "pain_pills");
+        BypassAndExecuteCommand(i, "give", "health");
+        SetEntPropFloat(i, Prop_Send, "m_healthBuffer", 0.0);
+        SetEntProp(i,   Prop_Send, "m_currentReviveCount", 0);
+        SetEntProp(i,   Prop_Send, "m_bIsOnThirdStrike", false);
+
+        if (IsFakeClient(i))
+        {
+            for (int s = 0; s < 2; s++)
+                DeleteInventoryItem(i, s);
+
+            BypassAndExecuteCommand(i, "give", "smg_silenced");
+            BypassAndExecuteCommand(i, "give", "pistol_magnum");
+        }
+    }
+    return Plugin_Continue;
 }
-//判断是否为生还者
-stock bool IsSurvivor(int client) 
+
+// ====== 巫婆奖励回血 ======
+public void WitchKilled_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if(client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2) 
-	{
-		return true;
-	} 
-	else 
-	{
-		return false;
-	}
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!IsValidClient(client) || GetClientTeam(client) != 2) return;
+    if (!IsPlayerAlive(client) || IsPlayerIncap(client))      return;
+
+    int maxhp = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+    int target = GetSurvivorPermHealth(client) + 15;
+    if (target > maxhp) target = maxhp;
+
+    SetSurvivorPermHealth(client, target);
 }
-//判断是否为玩家再队伍里
-stock bool IsValidPlayerInTeam(int client, int team)
+
+// ====== 背包/血量工具 ======
+void ResetInventory()
 {
-	if(IsValidPlayer(client))
-	{
-		if(GetClientTeam(client)==team)
-		{
-			return true;
-		}
-	}
-	return false;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsSurvivor(i)) continue;
+
+        for (int s = 0; s <= 4; s++)
+            DeleteInventoryItem(i, s);
+
+        BypassAndExecuteCommand(i, "give", "pistol");
+    }
 }
+
+void DeleteInventoryItem(int client, int slot)
+{
+    int item = GetPlayerWeaponSlot(client, slot);
+    if (item > MaxClients)
+        RemovePlayerItem(client, item);
+}
+
+void RestoreHealth()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsSurvivor(i)) continue;
+
+        BypassAndExecuteCommand(i, "give", "health");
+        SetEntPropFloat(i, Prop_Send, "m_healthBuffer", 0.0);
+        SetEntProp(i,   Prop_Send, "m_currentReviveCount", 0);
+        SetEntProp(i,   Prop_Send, "m_bIsOnThirdStrike", false);
+    }
+}
+
+// 最低 50 实血 + 重置倒地次数（>=50 不变）
+void ApplyHealFloorTo50()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsSurvivor(i)) continue;
+
+        int hp = GetSurvivorPermHealth(i);
+        if (hp < 50)
+            SetSurvivorPermHealth(i, 50);
+
+        SetEntProp(i, Prop_Send, "m_currentReviveCount", 0);
+        SetEntProp(i, Prop_Send, "m_bIsOnThirdStrike", false);
+    }
+}
+
+void BypassAndExecuteCommand(int client, const char[] cmd, const char[] arg1)
+{
+    int flags = GetCommandFlags(cmd);
+    SetCommandFlags(cmd, flags & ~FCVAR_CHEAT);
+    FakeClientCommand(client, "%s %s", cmd, arg1);
+    SetCommandFlags(cmd, flags);
+}
+
+// ====== 生还/常用判断 ======
+stock bool IsSurvivor(int client)
+{
+    return (IsValidClient(client) && GetClientTeam(client) == 2);
+}
+
 stock bool IsValidPlayer(int client, bool AllowBot = true, bool AllowDeath = true)
 {
-	if (client < 1 || client > MaxClients)
-		return false;
-	if (!IsClientConnected(client) || !IsClientInGame(client))
-		return false;
-	if (!AllowBot)
-	{
-		if (IsFakeClient(client))
-			return false;
-	}
-
-	if (!AllowDeath)
-	{
-		if (!IsPlayerAlive(client))
-			return false;
-	}	
-	
-	return true;
-}
-
-//判断生还者是否已经被控
-stock bool IsPinned(int client) 
-{
-	bool bIsPinned = false;
-	if (IsSurvivor(client)) 
-	{
-		if( GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0 ) bIsPinned = true; // smoker
-		if( GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0 ) bIsPinned = true; // hunter
-		if( GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0 ) bIsPinned = true; // charger carry
-		if( GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 ) bIsPinned = true; // charger pound
-		if( GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0 ) bIsPinned = true; // jockey
-	}		
-	return bIsPinned;
-}
-
-stock int GetSurvivorPermHealth(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_iHealth");
-}
-
-stock void SetSurvivorPermHealth(int client, int health)
-{
-	SetEntProp(client, Prop_Send, "m_iHealth", health);
+    if (!IsValidClient(client)) return false;
+    if (!AllowBot && IsFakeClient(client)) return false;
+    if (!AllowDeath && !IsPlayerAlive(client)) return false;
+    return true;
 }
 
 stock bool IsPlayerIncap(int client)
 {
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
+    return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
+}
+
+stock int  GetSurvivorPermHealth(int client)
+{
+    return GetEntProp(client, Prop_Send, "m_iHealth");
+}
+
+stock void SetSurvivorPermHealth(int client, int health)
+{
+    SetEntProp(client, Prop_Send, "m_iHealth", health);
+}
+
+// ====== 黑白提醒 ======
+void AnnounceBW(int client)
+{
+    if (!IsValidClient(client) || GetClientTeam(client) != 2) return;
+
+    bool teamBroadcast = g_cvBWTeam.BoolValue;
+
+    if (teamBroadcast)
+    {
+        CPrintToChatAll("[{olive}提示{default}] {blue}%N{default} 已经 {lightgreen}黑白{default}，请优先保护并治疗！", client);
+        for (int i = 1; i <= MaxClients; i++)
+            if (IsValidClient(i) && GetClientTeam(i) == 2)
+                PrintHintText(i, "%N 已经黑白（再次倒地会直接死亡）！", client);
+    }
+    else
+    {
+        CPrintToChat(client, "[{olive}提示{default}] 你现在 {lightgreen}黑白{default}，请尽快治疗！");
+        PrintHintText(client, "你现在黑白（再次倒地会直接死亡）！");
+    }
+
+    if (g_bwSound[0] != ' ')
+    {
+        for (int i = 1; i <= MaxClients; i++)
+            if (IsValidClient(i) && GetClientTeam(i) == 2)
+                EmitSoundToClient(i, g_bwSound);
+    }
+}
+
+public Action Timer_CheckBW(Handle timer, any userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (!IsValidClient(client) || GetClientTeam(client) != 2)
+        return Plugin_Stop;
+
+    if (g_cvBWEnable.BoolValue && IsThirdStrike(client) && !g_bwAnnounced[client])
+    {
+        AnnounceBW(client);
+        g_bwAnnounced[client] = true;
+    }
+    return Plugin_Stop;
+}
+
+public void CvarChanged_BWSound(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    convar.GetString(g_bwSound, sizeof(g_bwSound));
+    if (g_bwSound[0] != ' ')
+        PrecacheSound(g_bwSound, true);
+}
+
+public void Event_ReviveSuccess(Event event, const char[] name, bool dontBroadcast)
+{
+    int subject = GetClientOfUserId(event.GetInt("subject"));
+    if (!IsValidClient(subject) || GetClientTeam(subject) != 2) return;
+
+    CreateTimer(0.1, Timer_CheckBW, GetClientUserId(subject), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public void Event_HealSuccess(Event event, const char[] name, bool dontBroadcast)
+{
+    int subject = GetClientOfUserId(event.GetInt("subject"));
+    if (IsValidClient(subject) && GetClientTeam(subject) == 2)
+        g_bwAnnounced[subject] = false;
+}
+
+public void Event_DefibUsed(Event event, const char[] name, bool dontBroadcast)
+{
+    int subject = GetClientOfUserId(event.GetInt("subject"));
+    if (IsValidClient(subject) && GetClientTeam(subject) == 2)
+        g_bwAnnounced[subject] = false;
+}
+
+bool IsThirdStrike(int client)
+{
+    return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsOnThirdStrike"));
+}
+
+// ====== 声音屏蔽（烟花/演唱会）======
+public Action OnNormalSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH],
+                            int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
+{
+    return (StrContains(sample, "firewerks", true) > -1 && !IsRealismORCoop()) ? Plugin_Stop : Plugin_Continue;
+}
+
+public Action OnAmbientSound(char sample[PLATFORM_MAX_PATH], int &entity, float &volume,
+                             int &level, int &pitch, float pos[3], int &flags, float &delay)
+{
+    return (StrContains(sample, "firewerks", true) > -1 && !IsRealismORCoop()) ? Plugin_Stop : Plugin_Continue;
+}
+
+stock bool IsRealismORCoop()
+{
+    char plugin_name[120];
+    ConVar h = FindConVar("l4d_ready_cfg_name");
+    if (h == null)
+        return false;
+
+    h.GetString(plugin_name, sizeof(plugin_name));
+    return (StrContains(plugin_name, "AnneCoop", false) != -1 || StrContains(plugin_name, "AnneRealism", false) != -1);
 }
