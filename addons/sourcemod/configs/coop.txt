@@ -1,0 +1,420 @@
+"Cfgs"
+{
+	"多人运动"
+	{
+		"exec sourcemod/duoren_off.cfg"
+		{
+			"message" "关闭多人运动"
+		}
+		"exec vote/Anneduoren/duoren2.cfg"
+		{
+			"message" "2人运动"
+		}
+		"exec vote/Anneduoren/duoren3.cfg"
+		{
+			"message" "3人运动"
+		}
+		"exec vote/Anneduoren/duoren5.cfg"
+		{
+			"message" "5人运动"
+		}
+		"exec vote/Anneduoren/duoren6.cfg"
+		{
+			"message" "6人运动"
+		}
+		"exec vote/Anneduoren/duoren7.cfg"
+		{
+			"message" "7人运动"
+		}
+		"exec vote/Anneduoren/duoren8.cfg"
+		{
+			"message" "8人运动"
+		}
+	}
+	"固定特感预设配置"
+	{
+		"exec sourcemod/dirspawn_presets/campaign_easy.cfg"      { "message" "普通战役 轻松（8特/35s）" }
+		"exec sourcemod/dirspawn_presets/campaign_standard.cfg"  { "message" "普通战役 标准（8特/30s）" }
+		"exec sourcemod/dirspawn_presets/campaign_dense.cfg"     { "message" "普通战役 稠密（10特/25s）" }
+
+		"exec sourcemod/dirspawn_presets/realism_stable.cfg"     { "message" "绝境 稳压（10特/20s）" }
+		"exec sourcemod/dirspawn_presets/realism_high.cfg"       { "message" "绝境 高压（12特/10s）" }
+		"exec sourcemod/dirspawn_presets/realism_brutal.cfg"     { "message" "绝境 凶猛（14特/8s）" }
+
+		"exec sourcemod/dirspawn_presets/nonstop_12t0s.cfg"      { "message" "12特/0s 不停刷" }
+		"exec sourcemod/dirspawn_presets/nonstop_20t0s.cfg"      { "message" "20特/0s 不停刷" }
+		"exec sourcemod/dirspawn_presets/nonstop_28t0s.cfg"      { "message" "28特/0s 不停刷（经典）" }
+		"exec sourcemod/dirspawn_presets/nonstop_30t0s.cfg"      { "message" "30特/0s 不停刷（极限）" }
+
+		"exec sourcemod/dirspawn_presets/harass_light.cfg"       { "message" "（12特/20s）" }
+		"exec sourcemod/dirspawn_presets/harass_mid.cfg"         { "message" "（14特/25s）" }
+		"exec sourcemod/dirspawn_presets/harass_wavey.cfg"       { "message" " （16特/30s）" }
+
+		"exec sourcemod/dirspawn_presets/native_campaign.cfg"    { "message" "原生战役" }
+		"exec sourcemod/dirspawn_presets/native_realism.cfg"     { "message" "原生绝境" }
+	}
+	"多人多特预设配置"
+	{
+		"exec sourcemod/dirspawn_presets/auto_off.cfg"
+		{
+			"message" "关闭多人多特"
+		}
+		"exec sourcemod/dirspawn_presets/auto_surv_gentle.cfg"
+		{
+			"message" "简单：基线4特，每+1生还：+1特"
+		}
+		"exec sourcemod/dirspawn_presets/auto_surv_standard.cfg"
+		{
+			"message" "普通：基线6特，每+1生还：+1特"
+		}
+		"exec sourcemod/dirspawn_presets/auto_surv_versus.cfg"
+		{
+			"message" "高级：基线8特，每+1生还：+1特"
+		}
+		"exec sourcemod/dirspawn_presets/auto_surv_aggressive.cfg"
+		{
+			"message" "专家：基线10特（4生还），每+1生还：+2特"
+		}
+		"exec sourcemod/dirspawn_presets/auto_surv_extreme.cfg"
+		{
+			"message" "极限：基线16特（4生还），每+1生还：+2特"
+		}
+	}
+
+	"特感数量"
+	{
+		"sm_cvar dirspawn_count 1"
+		{
+			"message" "1特模式"
+		}
+		"sm_cvar dirspawn_count 2"
+		{
+			"message" "2特模式"
+		}
+		"sm_cvar dirspawn_count 3"
+		{
+			"message" "3特模式"
+		}
+		"sm_cvar dirspawn_count 4"
+		{
+			"message" "4特模式"
+		}
+		"sm_cvar dirspawn_count 5"
+		{
+			"message" "5特模式"
+		}
+		"sm_cvar dirspawn_count 6"
+		{
+			"message" "6特模式"
+		}
+		"sm_cvar dirspawn_count 7"
+		{
+			"message" "7特模式"
+		}
+		"sm_cvar dirspawn_count 8"
+		{
+			"message" "8特模式"
+		}
+		"sm_cvar dirspawn_count 9"
+		{
+			"message" "9特模式"
+		}
+		"sm_cvar dirspawn_count 10"
+		{
+			"message" "10特模式"
+		}
+		"sm_cvar dirspawn_count 11"
+		{
+			"message" "11特模式"
+		}
+		"sm_cvar dirspawn_count 12"
+		{
+			"message" "12特模式"
+		}
+		"sm_cvar dirspawn_count 13"
+		{
+			"message" "13特模式"
+		}
+		"sm_cvar dirspawn_count 14"
+		{
+			"message" "14特模式"
+		}
+		"sm_cvar dirspawn_count 15"
+		{
+			"message" "15特模式"
+		}
+		"sm_cvar dirspawn_count 16"
+		{
+			"message" "16特模式"
+		}
+		"sm_cvar dirspawn_count 17"
+		{
+			"message" "17特模式"
+		}
+		"sm_cvar dirspawn_count 18"
+		{
+			"message" "18特模式"
+		}
+		"sm_cvar dirspawn_count 19"
+		{
+			"message" "19特模式"
+		}
+		"sm_cvar dirspawn_count 20"
+		{
+			"message" "20特模式"
+		}
+		"sm_cvar dirspawn_count 21"
+		{
+			"message" "21特模式"
+		}
+		"sm_cvar dirspawn_count 22"
+		{
+			"message" "22特模式"
+		}
+		"sm_cvar dirspawn_count 23"
+		{
+			"message" "23特模式"
+		}
+		"sm_cvar dirspawn_count 24"
+		{
+			"message" "24特模式"
+		}
+		"sm_cvar dirspawn_count 25"
+		{
+			"message" "25特模式"
+		}
+		"sm_cvar dirspawn_count 26"
+		{
+			"message" "26特模式"
+		}
+		"sm_cvar dirspawn_count 27"
+		{
+			"message" "27特模式"
+		}
+		"sm_cvar dirspawn_count 28"
+		{
+			"message" "28特模式"
+		}
+		"sm_cvar dirspawn_count 29"
+		{
+			"message" "29特模式"
+		}
+		"sm_cvar dirspawn_count 30"
+		{
+			"message" "30特模式"
+		}
+	}
+	"复活时间"
+	{
+		"sm_cvar dirspawn_interval 0"
+		{
+			"message" "0秒"
+		}
+		"sm_cvar dirspawn_interval 1"
+		{
+			"message" "1秒"
+		}
+		"sm_cvar dirspawn_interval 2"
+		{
+			"message" "2秒"
+		}
+		"sm_cvar dirspawn_interval 3"
+		{
+			"message" "3秒"
+		}
+		"sm_cvar dirspawn_interval 4"
+		{
+			"message" "4秒"
+		}
+		"sm_cvar dirspawn_interval 5"
+		{
+			"message" "5秒"
+		}
+		"sm_cvar dirspawn_interval 10"
+		{
+			"message" "10秒"
+		}
+		"sm_cvar dirspawn_interval 15"
+		{
+			"message" "15秒"
+		}
+		"sm_cvar dirspawn_interval 20"
+		{
+			"message" "20秒"
+		}
+		"sm_cvar dirspawn_interval 25"
+		{
+			"message" "25秒"
+		}
+		"sm_cvar dirspawn_interval 30"
+		{
+			"message" "30秒"
+		}
+		"sm_cvar dirspawn_interval 35"
+		{
+			"message" "35秒"
+		}
+		"sm_cvar dirspawn_interval 40"
+		{
+			"message" "40秒"
+		}
+		"sm_cvar dirspawn_interval 45"
+		{
+			"message" "45秒"
+		}
+		"sm_cvar dirspawn_interval 50"
+		{
+			"message" "50秒"
+		}
+		"sm_cvar dirspawn_interval 55"
+		{
+			"message" "55秒"
+		}
+		"sm_cvar dirspawn_interval 60"
+		{
+			"message" "60秒"
+		}
+		"sm_cvar dirspawn_interval 70"
+		{
+			"message" "70秒"
+		}
+		"sm_cvar dirspawn_interval 80"
+		{
+			"message" "80秒"
+		}
+		"sm_cvar dirspawn_interval 90"
+		{
+			"message" "90秒"
+		}
+		"sm_cvar dirspawn_interval 100"
+		{
+			"message" "100秒"
+		}
+	}
+	"杂项"
+	{
+		"sm_cvar specrates_fulltickspecnum 1"
+		{
+			"message" "限制旁观tick"
+		}
+		"sm_cvar sb_fix_enabled 1"
+		{
+			"message" "开启高级人机"
+		}
+		"sm_cvar sb_fix_enabled 0"
+		{
+			"message" "关闭高级人机"
+		}
+		"exec vote/tank_on.cfg"
+		{
+			"message" "开启Tank大致血量显示"
+		}
+		"exec vote/tank_off.cfg"
+		{
+			"message" "关闭Tank大致血量显示"
+		}
+		"exec vote/aidamageon.cfg"
+		{
+			"message" "关闭牛冲锋减伤"
+		}
+		"exec vote/aidamageoff.cfg"
+		{
+			"message" "开启牛冲锋减伤"
+		}
+	}
+	"mixmap插件开关"
+	{
+		"exec vote/mix_on.cfg"
+		{
+			"message" "打开mixmap插件"
+		}
+		"exec vote/mix_off.cfg"
+		{
+			"message" "关闭mixmap插件"
+		}
+	}
+	"商店选项开关"
+	{
+		"sm_cvar ReturnBlood 1"
+		{
+			"message" "开启回血"
+		}
+		"sm_cvar ReturnBlood 0"
+		{
+			"message" "关闭回血"
+		}
+		"sm_cvar rpg_allow_biggun 1"
+		{
+			"message" "开启大枪购买"
+		}
+		"sm_cvar rpg_allow_biggun 0"
+		{
+			"message" "关闭大枪购买"
+		}
+		"sm_cvar rpg_allow_UseB 1"
+		{
+			"message" "允许使用B数"
+		}
+		"sm_cvar rpg_allow_UseB 0"
+		{
+			"message" "禁止使用B数"
+		}
+	}
+	"开关Mod"
+	{
+		"exec vote/mod_on.cfg"
+		{
+			"message" "开启Mod"
+		}
+		"exec vote/mod_off.cfg"
+		{
+			"message" "关闭Mod"
+		}
+	}
+	"开关特殊插件"
+	{
+		"exec vote/sound_on.cfg"
+		{
+			"message" "开启音效"
+		}
+		"exec vote/sound_off.cfg"
+		{
+			"message" "关闭音效"
+		}
+		"exec vote/killhud_on.cfg"
+		{
+			"message" "开启击杀HUD"
+		}
+		"exec vote/killhud_off.cfg"
+		{
+			"message" "关闭击杀HUD"
+		}
+		"exec vote/dissolve_on.cfg"
+		{
+			"message" "开启击杀溶解尸体"
+		}
+		"exec vote/dissolve_off.cfg"
+		{
+			"message" "关闭击杀溶解尸体"
+		}
+		"sm_cvar l4d2_scripted_hud_enable 1"
+		{
+			"message" "打开进度hud"
+		}
+		"sm_cvar l4d2_scripted_hud_enable 0"
+		{
+			"message" "关闭关闭hud"
+		}
+	}
+	"服务器选项"
+	{
+		"sm_restartmap"
+		{
+			"message" "重置当前地图"
+		}
+		"sm_restart"
+		{
+			"message" "服务器端重启"
+		}
+	}
+}

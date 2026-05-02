@@ -86,7 +86,7 @@ public Plugin myinfo =
 #define FLAGS_INCAP_TANKPUNCH             2
 #define FLAGS_INCAP_TANKROCK              4
 
-#define TEAM_SURVIVOR                     2
+//#define TEAM_SURVIVOR                     2
 #define TEAM_INFECTED                     3
 
 #define DMG_TYPE_SPIT (DMG_RADIATION|DMG_ENERGYBEAM)
@@ -204,7 +204,7 @@ public void OnPluginStart()
 	
 	CreateConVar("l4d2_pickup_version", PLUGIN_VERSION, "l4d2_pickup version cvar.", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	
-	ConVar cv = CreateConVar("pickup_switch_flags", "7", "Flags for Switching from current item (1:Secondary, 2: Passed Pills, 4: Primary)", _, true, 0.0, true, 7.0);
+	ConVar cv = CreateConVar("pickup_switch_flags", "0", "Flags for Switching from current item (1:Secondary, 2: Passed Pills, 4: Primary)", _, true, 0.0, true, 7.0);
 	SwitchCVarChanged(cv, "", "");
 	cv.AddChangeHook(SwitchCVarChanged);
 	
@@ -254,7 +254,7 @@ public void OnClientPutInServer(int client)
 	HookValidClient(client, true);
 	
 	if (!QuerySwitchCookie(client, g_iSwitchOnPickup[client]))
-		g_iSwitchOnPickup[client] = g_iSwitchFlags & FLAGS_SWITCH_GUNS;
+		g_iSwitchOnPickup[client] = g_iSwitchFlags & (FLAGS_SWITCH_MELEE|FLAGS_SWITCH_GUNS);
 }
 
 public void OnClientDisconnect(int client)

@@ -146,7 +146,7 @@ new                 iRoundNumber;
 new                 bInRound;
 new                 bPlayerLeftStartArea;                       // used for tracking FF when RUP enabled
 
-new     String:     sTmpString[MAX_NAME_LENGTH];                // just used because I'm not going to break my head over why string assignment parameter passing doesn't work
+//stock char sTmpString[MAX_NAME_LENGTH];                // just used because I'm not going to break my head over why string assignment parameter passing doesn't work
 
 /*
 *      Natives
@@ -167,14 +167,14 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 }
 
 // simply return current round MVP client
-public Native_GetMVP(Handle:plugin, numParams)
+int Native_GetMVP(Handle:plugin, numParams)
 {
     new client = findMVPSI();
     return _:client;
 }
 
 // return damage percent of client
-public Native_GetMVPDmgPercent(Handle:plugin, numParams)
+int Native_GetMVPDmgPercent(Handle:plugin, numParams)
 {
     new client = GetNativeCell(1);
     new Float: dmgprc = client && iTotalDamageAll > 0 ? (float(iDidDamageAll[client]) / float(iTotalDamageAll)) * 100 : 0.0;
@@ -182,7 +182,7 @@ public Native_GetMVPDmgPercent(Handle:plugin, numParams)
 }
 
 // return damage of client
-public Native_GetMVPDmgCount(Handle:plugin, numParams)
+int Native_GetMVPDmgCount(Handle:plugin, numParams)
 {
     new client = GetNativeCell(1);
     new dmg = client && iTotalDamageAll > 0 ? iDidDamageAll[client] : 0;
@@ -190,7 +190,7 @@ public Native_GetMVPDmgCount(Handle:plugin, numParams)
 }
 
 // return SI kills of client
-public Native_GetMVPKills(Handle:plugin, numParams)
+int Native_GetMVPKills(Handle:plugin, numParams)
 {
     new client = GetNativeCell(1);
     new dmg = client && iTotalKills > 0 ? iGotKills[client] : 0;
@@ -198,14 +198,14 @@ public Native_GetMVPKills(Handle:plugin, numParams)
 }
 
 // simply return current round MVP client (Common)
-public Native_GetMVPCI(Handle:plugin, numParams)
+int Native_GetMVPCI(Handle:plugin, numParams)
 {
     new client = findMVPCommon();
     return _:client;
 }
 
 // return common kills for client
-public Native_GetMVPCIKills(Handle:plugin, numParams)
+int Native_GetMVPCIKills(Handle:plugin, numParams)
 {
     new client = GetNativeCell(1);
     new dmg = client && iTotalCommon > 0 ? iGotCommon[client] : 0;
@@ -213,7 +213,7 @@ public Native_GetMVPCIKills(Handle:plugin, numParams)
 }
 
 // return CI percent of client
-public Native_GetMVPCIPercent(Handle:plugin, numParams)
+int Native_GetMVPCIPercent(Handle:plugin, numParams)
 {
     new client = GetNativeCell(1);
     new Float: dmgprc = client && iTotalCommon > 0 ? (float(iGotCommon[client]) / float(iTotalCommon)) * 100 : 0.0;
@@ -331,17 +331,20 @@ public OnClientPutInServer(client)
 *      ==============
 */
 
-public ConVarChange_CountTankDamage(Handle:cvar, const String:oldValue[], const String:newValue[]) {
+void ConVarChange_CountTankDamage(Handle:cvar, const String:oldValue[], const String:newValue[]) {
     bCountTankDamage = StringToInt(newValue) != 0;
 }
-public ConVarChange_CountWitchDamage(Handle:cvar, const String:oldValue[], const String:newValue[]) {
+
+void ConVarChange_CountWitchDamage(Handle:cvar, const String:oldValue[], const String:newValue[]) {
     bCountWitchDamage = StringToInt(newValue) != 0;
 }
-public ConVarChange_TrackFF(Handle:cvar, const String:oldValue[], const String:newValue[]) {
+
+void ConVarChange_TrackFF(Handle:cvar, const String:oldValue[], const String:newValue[]) {
     //if (StringToInt(newValue) == 0) { bTrackFF = false; } else { bTrackFF = true; }
     // for now, disable FF tracking toggle (always on)
 }
-public ConVarChange_BrevityFlags(Handle:cvar, const String:oldValue[], const String:newValue[]) {
+
+void ConVarChange_BrevityFlags(Handle:cvar, const String:oldValue[], const String:newValue[]) {
     iBrevityFlags = StringToInt(newValue);
     if (!(iBrevityFlags & BREV_FF)) { 
         bTrackFF = true; 
@@ -353,7 +356,7 @@ public ConVarChange_BrevityFlags(Handle:cvar, const String:oldValue[], const Str
 *      ==========================
 */
 
-public Action:PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
+void PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // if RUP active, now we can start tracking FF
     bPlayerLeftStartArea = true;
@@ -370,7 +373,7 @@ public OnMapEnd()
     bInRound = false;
 }
 
-public void ScavRoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+void ScavRoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // clear mvp stats
     new i, maxplayers = MaxClients;
@@ -413,7 +416,7 @@ public void ScavRoundStart(Handle:event, const String:name[], bool:dontBroadcast
     tankSpawned = false;
 }
 
-public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     bPlayerLeftStartArea = false;
     bRUPLive = false;
@@ -463,7 +466,7 @@ public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
     tankSpawned = false;
 }
 
-public FinaleEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void FinaleEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // Co-op modes.
     if (!L4D_HasPlayerControlledZombies())
@@ -481,8 +484,7 @@ public FinaleEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
     tankSpawned = false;
 }
 
-
-public RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // Co-op modes.
     if (!L4D_HasPlayerControlledZombies())
@@ -516,7 +518,7 @@ public RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
 *      ==============
 */
 
-public Action:Say_Cmd(client, args)
+Action Say_Cmd(client, args)
 {
     if (!client) { return Plugin_Continue; }
     
@@ -528,7 +530,7 @@ public Action:Say_Cmd(client, args)
     return Plugin_Continue;
 }
 
-public Action:SurvivorMVP_Cmd(client, args)
+Action SurvivorMVP_Cmd(client, args)
 {
     decl String:printBuffer[4096];
     new String:strLines[8][192];
@@ -546,14 +548,17 @@ public Action:SurvivorMVP_Cmd(client, args)
         }
     }
     PrintLoserz(true, client);
+
+    return Plugin_Handled;
 }
 
-public Action:ShowMVPStats_Cmd(client, args)
+Action ShowMVPStats_Cmd(client, args)
 {
     PrintLoserz(true, client);
+    return Plugin_Handled;
 }
 
-public Action:delayedMVPPrint(Handle:timer)
+Action:delayedMVPPrint(Handle:timer)
 {
     decl String:printBuffer[4096];
     new String:strLines[8][192];
@@ -573,23 +578,23 @@ public Action:delayedMVPPrint(Handle:timer)
     CreateTimer(0.1, PrintLosers);
 }
 
-public Action:PrintLosers(Handle:timer)
+Action:PrintLosers(Handle:timer)
 {
     PrintLoserz(false, -1);
 }
 
-stock PrintLoserz(bool:bSolo, client)
+void PrintLoserz(bool:bSolo, client)
 {
     decl String:tmpBuffer[512];
-    // also find the three non-mvp survivors and tell them they sucked
-    // tell them they sucked with SI
+
+    // —— 特感（SI）排名 —— 
     if (iTotalDamageAll > 0)
     {
         new mvp_SI = findMVPSI();
         new mvp_SI_losers[3];
-        mvp_SI_losers[0] = findMVPSI(mvp_SI);                                                   // second place
-        mvp_SI_losers[1] = findMVPSI(mvp_SI, mvp_SI_losers[0]);                             // third
-        mvp_SI_losers[2] = findMVPSI(mvp_SI, mvp_SI_losers[0], mvp_SI_losers[1]);       // fourth
+        mvp_SI_losers[0] = findMVPSI(mvp_SI);                         // 第二名
+        mvp_SI_losers[1] = findMVPSI(mvp_SI, mvp_SI_losers[0]);       // 第三名
+        mvp_SI_losers[2] = findMVPSI(mvp_SI, mvp_SI_losers[0], mvp_SI_losers[1]); // 第四名
         
         for (new i = 0; i <= 2; i++)
         {
@@ -599,27 +604,41 @@ stock PrintLoserz(bool:bSolo, client)
                 {
                     if (mvp_SI_losers[i] == client)
                     {
-                        Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}SI: {olive}#%d - {blue}({default}%d {green}dmg {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}kills {blue}[{default}%.0f%%{blue}])", (i + 2), iDidDamageAll[mvp_SI_losers[i]], (float(iDidDamageAll[mvp_SI_losers[i]]) / float(iTotalDamageAll)) * 100, iGotKills[mvp_SI_losers[i]], (float(iGotKills[mvp_SI_losers[i]]) / float(iTotalKills)) * 100);
+                        Format(tmpBuffer, sizeof(tmpBuffer),
+                            "{blue}你的排名 {green}特感{default}: {olive}#%d - {blue}({default}%d {green}伤害 {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])",
+                            (i + 2),
+                            iDidDamageAll[mvp_SI_losers[i]],
+                            (float(iDidDamageAll[mvp_SI_losers[i]]) / float(iTotalDamageAll)) * 100.0,
+                            iGotKills[mvp_SI_losers[i]],
+                            (float(iGotKills[mvp_SI_losers[i]]) / float(iTotalKills)) * 100.0
+                        );
                         CPrintToChat(mvp_SI_losers[i], "%s", tmpBuffer);
                     }
                 }
                 else 
                 {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}SI: {olive}#%d - {blue}({default}%d {green}dmg {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}kills {blue}[{default}%.0f%%{blue}])", (i + 2), iDidDamageAll[mvp_SI_losers[i]], (float(iDidDamageAll[mvp_SI_losers[i]]) / float(iTotalDamageAll)) * 100, iGotKills[mvp_SI_losers[i]], (float(iGotKills[mvp_SI_losers[i]]) / float(iTotalKills)) * 100);
+                    Format(tmpBuffer, sizeof(tmpBuffer),
+                        "{blue}你的排名 {green}特感{default}: {olive}#%d - {blue}({default}%d {green}伤害 {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])",
+                        (i + 2),
+                        iDidDamageAll[mvp_SI_losers[i]],
+                        (float(iDidDamageAll[mvp_SI_losers[i]]) / float(iTotalDamageAll)) * 100.0,
+                        iGotKills[mvp_SI_losers[i]],
+                        (float(iGotKills[mvp_SI_losers[i]]) / float(iTotalKills)) * 100.0
+                    );
                     CPrintToChat(mvp_SI_losers[i], "%s", tmpBuffer);
                 }
             }
         }
     }
     
-    // tell them they sucked with Common
+    // —— 小僵尸（CI）排名 —— 
     if (iTotalCommon > 0)
     {
         new mvp_CI = findMVPCommon();
         new mvp_CI_losers[3];
-        mvp_CI_losers[0] = findMVPCommon(mvp_CI);                                                   // second place
-        mvp_CI_losers[1] = findMVPCommon(mvp_CI, mvp_CI_losers[0]);                             // third
-        mvp_CI_losers[2] = findMVPCommon(mvp_CI, mvp_CI_losers[0], mvp_CI_losers[1]);       // fourth
+        mvp_CI_losers[0] = findMVPCommon(mvp_CI);
+        mvp_CI_losers[1] = findMVPCommon(mvp_CI, mvp_CI_losers[0]);
+        mvp_CI_losers[2] = findMVPCommon(mvp_CI, mvp_CI_losers[0], mvp_CI_losers[1]);
         
         for (new i = 0; i <= 2; i++)
         {
@@ -629,27 +648,37 @@ stock PrintLoserz(bool:bSolo, client)
                 {
                     if (mvp_CI_losers[i] == client)
                     {
-                        Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}CI{default}: {olive}#%d {blue}({default}%d {green}common {blue}[{default}%.0f%%{blue}])", (i + 2), iGotCommon[mvp_CI_losers[i]], (float(iGotCommon[mvp_CI_losers[i]]) / float(iTotalCommon)) * 100);
+                        Format(tmpBuffer, sizeof(tmpBuffer),
+                            "{blue}你的排名 {green}小僵尸{default}: {olive}#%d {blue}({default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])",
+                            (i + 2),
+                            iGotCommon[mvp_CI_losers[i]],
+                            (float(iGotCommon[mvp_CI_losers[i]]) / float(iTotalCommon)) * 100.0
+                        );
                         CPrintToChat(mvp_CI_losers[i], "%s", tmpBuffer);
                     }
                 }
                 else
                 {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}CI{default}: {olive}#%d {blue}({default}%d {green}common {blue}[{default}%.0f%%{blue}])", (i + 2), iGotCommon[mvp_CI_losers[i]], (float(iGotCommon[mvp_CI_losers[i]]) / float(iTotalCommon)) * 100);
+                    Format(tmpBuffer, sizeof(tmpBuffer),
+                        "{blue}你的排名 {green}小僵尸{default}: {olive}#%d {blue}({default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])",
+                        (i + 2),
+                        iGotCommon[mvp_CI_losers[i]],
+                        (float(iGotCommon[mvp_CI_losers[i]]) / float(iTotalCommon)) * 100.0
+                    );
                     CPrintToChat(mvp_CI_losers[i], "%s", tmpBuffer);
                 }
             }
         }
     }
     
-    // tell them they were better with FF (I know, I know, losers = winners)
+    // —— 友伤（FF）排名 —— 
     if (iTotalFF > 0)
     {
         new mvp_FF = findLVPFF();
         new mvp_FF_losers[3];
-        mvp_FF_losers[0] = findLVPFF(mvp_FF);                                                   // second place
-        mvp_FF_losers[1] = findLVPFF(mvp_FF, mvp_FF_losers[0]);                             // third
-        mvp_FF_losers[2] = findLVPFF(mvp_FF, mvp_FF_losers[0], mvp_FF_losers[1]);       // fourth
+        mvp_FF_losers[0] = findLVPFF(mvp_FF);
+        mvp_FF_losers[1] = findLVPFF(mvp_FF, mvp_FF_losers[0]);
+        mvp_FF_losers[2] = findLVPFF(mvp_FF, mvp_FF_losers[0], mvp_FF_losers[1]);
         
         for (new i = 0; i <= 2; i++)
         {
@@ -659,19 +688,30 @@ stock PrintLoserz(bool:bSolo, client)
                 {
                     if (mvp_FF_losers[i] == client)
                     {
-                        Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}FF{default}: {olive}#%d {blue}({default}%d {green}friendly fire {blue}[{default}%.0f%%{blue}])", (i + 2), iDidFF[mvp_FF_losers[i]], (float(iDidFF[mvp_FF_losers[i]]) / float(iTotalFF)) * 100);
+                        Format(tmpBuffer, sizeof(tmpBuffer),
+                            "{blue}你的排名 {green}友伤{default}: {olive}#%d {blue}({default}%d {green}友伤 {blue}[{default}%.0f%%{blue}])",
+                            (i + 2),
+                            iDidFF[mvp_FF_losers[i]],
+                            (float(iDidFF[mvp_FF_losers[i]]) / float(iTotalFF)) * 100.0
+                        );
                         CPrintToChat(mvp_FF_losers[i], "%s", tmpBuffer);
                     }
                 }
                 else
                 {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "{blue}Your Rank {green}FF{default}: {olive}#%d {blue}({default}%d {green}friendly fire {blue}[{default}%.0f%%{blue}])", (i + 2), iDidFF[mvp_FF_losers[i]], (float(iDidFF[mvp_FF_losers[i]]) / float(iTotalFF)) * 100);
+                    Format(tmpBuffer, sizeof(tmpBuffer),
+                        "{blue}你的排名 {green}友伤{default}: {olive}#%d {blue}({default}%d {green}友伤 {blue}[{default}%.0f%%{blue}])",
+                        (i + 2),
+                        iDidFF[mvp_FF_losers[i]],
+                        (float(iDidFF[mvp_FF_losers[i]]) / float(iTotalFF)) * 100.0
+                    );
                     CPrintToChat(mvp_FF_losers[i], "%s", tmpBuffer);
                 }
             }
         }
-    }    
+    }
 }
+
 /**
 * When an entity is created (which we use to track rocks)
 * don't actually need this
@@ -702,7 +742,7 @@ public OnEntityDestroyed(entity)
 /**
 * When an infected uses their ability
 */
-public Action:abilityUseEvent(Handle:event, const String:name[], bool:dontBroadcast)
+void abilityUseEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     decl String:ability[32];
     GetEventString(event, "ability", ability, 32);
@@ -716,7 +756,7 @@ public Action:abilityUseEvent(Handle:event, const String:name[], bool:dontBroadc
 /**
 * Track pill usage
 */
-public pillsUsedEvent(Handle:event, const String:name[], bool:dontBroadcast)
+void pillsUsedEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client = GetClientOfUserId(GetEventInt(event, "userid")); 
     if (client == 0 || ! IsClientInGame(client)) {
@@ -729,7 +769,7 @@ public pillsUsedEvent(Handle:event, const String:name[], bool:dontBroadcast)
 /**
 * Track boomer pops
 */
-public boomerExploded(Handle:event, const String:name[], bool:dontBroadcast)
+void boomerExploded(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // We only want to track pops where the boomer didn't bile anyone
     new bool:biled = GetEventBool(event, "splashedbile");
@@ -746,7 +786,7 @@ public boomerExploded(Handle:event, const String:name[], bool:dontBroadcast)
 /**
 * Track when someone gets charged (end of charge for level, or if someone shoots you off etc.)
 */
-public chargerCarryEnd(Handle:event, const String:name[], bool:dontBroadcast)
+void chargerCarryEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client = GetClientOfUserId(GetEventInt(event, "victim")); 
     if (client == 0 || ! IsClientInGame(client)) {
@@ -764,7 +804,7 @@ public chargerCarryEnd(Handle:event, const String:name[], bool:dontBroadcast)
 /**
 * Track when someone gets jockeyed.
 */
-public jockeyRide(Handle:event, const String:name[], bool:dontBroadcast)
+void jockeyRide(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client = GetClientOfUserId(GetEventInt(event, "victim")); 
     if (client == 0 || ! IsClientInGame(client)) {
@@ -782,7 +822,7 @@ public jockeyRide(Handle:event, const String:name[], bool:dontBroadcast)
 /** 
 * Track when someone gets huntered.
 */
-public hunterLunged(Handle:event, const String:name[], bool:dontBroadcast)
+void hunterLunged(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client = GetClientOfUserId(GetEventInt(event, "victim")); 
     if (client == 0 || ! IsClientInGame(client)) {
@@ -800,7 +840,7 @@ public hunterLunged(Handle:event, const String:name[], bool:dontBroadcast)
 /**
 * Track when someone gets smoked (we track when they start getting smoked, because anyone can get smoked)
 */
-public smokerChoke(Handle:event, const String:name[], bool:dontBroadcast)
+void smokerChoke(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client = GetClientOfUserId(GetEventInt(event, "victim")); 
     if (client == 0 || ! IsClientInGame(client)) {
@@ -818,14 +858,14 @@ public smokerChoke(Handle:event, const String:name[], bool:dontBroadcast)
 /**
 * When the tank spawns
 */
-public tankSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
+void tankSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
     tankSpawned = true;
 }
 
 /**
 * When the tank is killed
 */
-public tankKilled(Handle:event, const String:name[], bool:dontBroadcast) {
+void tankKilled(Handle:event, const String:name[], bool:dontBroadcast) {
     tankSpawned = false;
 }
 
@@ -834,7 +874,7 @@ public tankKilled(Handle:event, const String:name[], bool:dontBroadcast) {
 *      ==================
 */
 
-public PlayerHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void PlayerHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new zombieClass = 0;
     
@@ -919,7 +959,7 @@ public PlayerHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
 * When the infected are hurt (i.e. when a survivor hurts an SI)
 * We want to use this to track damage done to the witch.
 */
-public InfectedHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void InfectedHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // catch damage done to witch
     new victimEntId = GetEventInt(event, "entityid");
@@ -947,7 +987,7 @@ public InfectedHurt_Event(Handle:event, const String:name[], bool:dontBroadcast)
     }
 }
 
-public PlayerDeath_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void PlayerDeath_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     // Get the victim details
     new zombieClass = 0;
@@ -987,11 +1027,11 @@ public PlayerDeath_Event(Handle:event, const String:name[], bool:dontBroadcast)
 }
 
 // Was the zombie a hunter?
-public bool:isHunter(zombieClass) {
+/*bool:isHunter(zombieClass) {
     return zombieClass == ZC_HUNTER;
-}
+}*/
 
-public InfectedDeath_Event(Handle:event, const String:name[], bool:dontBroadcast)
+void InfectedDeath_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new attackerId = GetEventInt(event, "attacker");
     new attacker = GetClientOfUserId(attackerId);
@@ -1028,144 +1068,199 @@ void GetMVPString(char[] printBuffer, const int iSize)
     new mvp_Common = 0;
     new mvp_FF = 0;
     
-    // calculate MVP per category:
-    //  1. SI damage & SI kills + damage to tank/witch
-    //  2. common kills
-    
-    // SI MVP
+    // —— 计算各项 MVP —— 
+
+    // 特感 MVP
     if (!(iBrevityFlags & BREV_SI))
     {
         mvp_SI = findMVPSI();
         if (mvp_SI > 0)
         {
-            // get name from client if connected -- if not, use sClientName array
             if (IsClientConnected(mvp_SI))
             {
                 GetClientName(mvp_SI, tmpName, sizeof(tmpName));
                 if (IsFakeClient(mvp_SI))
                 {
-                    StrCat(tmpName, 64, " \x01[BOT]");
+                    StrCat(tmpName, 64, " \x01[机器人]");
                 }
-            } else {
+            } 
+            else 
+            {
                 strcopy(tmpName, 64, sClientName[mvp_SI]);
             }
             mvp_SI_name = tmpName;
-        } else {
-            mvp_SI_name = "(nobody)";
+        } 
+        else 
+        {
+            mvp_SI_name = "(无)";
         }
     }
     
-    // Common MVP
+    // 小僵尸 MVP
     if (!(iBrevityFlags & BREV_CI))
     {
         mvp_Common = findMVPCommon();
         if (mvp_Common > 0)
         {
-            // get name from client if connected -- if not, use sClientName array
             if (IsClientConnected(mvp_Common))
             {
                 GetClientName(mvp_Common, tmpName, sizeof(tmpName));
                 if (IsFakeClient(mvp_Common))
                 {
-                    StrCat(tmpName, 64, " \x01[BOT]");
+                    StrCat(tmpName, 64, " \x01[机器人]");
                 }
-            } else {
+            } 
+            else 
+            {
                 strcopy(tmpName, 64, sClientName[mvp_Common]);
             }
             mvp_Common_name = tmpName;
-        } else {
-            mvp_Common_name = "(nobody)";
+        } 
+        else 
+        {
+            mvp_Common_name = "(无)";
         }
     }
     
-    // FF LVP
+    // 友伤 LVP
     if (!(iBrevityFlags & BREV_FF) && bTrackFF)
     {
         mvp_FF = findLVPFF();
         if (mvp_FF > 0)
         {
-            // get name from client if connected -- if not, use sClientName array
             if (IsClientConnected(mvp_FF))
             {
                 GetClientName(mvp_FF, tmpName, sizeof(tmpName));
                 if (IsFakeClient(mvp_FF))
                 {
-                    StrCat(tmpName, 64, " \x01[BOT]");
+                    StrCat(tmpName, 64, " \x01[机器人]");
                 }
-            } else {
+            } 
+            else 
+            {
                 strcopy(tmpName, 64, sClientName[mvp_FF]);
             }
             mvp_FF_name = tmpName;
-        } else {
-            mvp_FF_name = "(nobody)";
+        } 
+        else 
+        {
+            mvp_FF_name = "(无)";
         }
     }
     
-    // report
-    
+    // —— 汇总输出 —— 
+
     if (mvp_SI == 0 && mvp_Common == 0 && !(iBrevityFlags & BREV_SI && iBrevityFlags & BREV_CI))
     {
-        Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}MVP{blue}]{default} {blue}({default}not enough action yet{blue}){default}\n");
+        Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}MVP{blue}]{default} {blue}({default}当前数据不足，尚无法评选{blue}){default}\n");
         StrCat(printBuffer, iSize, tmpBuffer);
     }
     else
     {
+        // 特感输出
         if (!(iBrevityFlags & BREV_SI))
         {
             if (mvp_SI > 0)
             {
-                if (iBrevityFlags & BREV_PERCENT) {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] SI:\x03 %s \x01(\x05%d \x01dmg,\x05 %d \x01kills)\n", mvp_SI_name, iDidDamageAll[mvp_SI], iGotKills[mvp_SI]);
-                } else if (iBrevityFlags & BREV_ABSOLUTE) {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] SI:\x03 %s \x01(dmg \x04%2.0f%%\x01, kills \x04%.0f%%\x01)\n", mvp_SI_name, (float(iDidDamageAll[mvp_SI]) / float(iTotalDamageAll)) * 100, (float(iGotKills[mvp_SI]) / float(iTotalKills)) * 100);
-                } else {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}MVP{blue}] SI: {olive}%s {blue}({default}%d {green}dmg {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}kills {blue}[{default}%.0f%%{blue}])\n", mvp_SI_name, iDidDamageAll[mvp_SI], (float(iDidDamageAll[mvp_SI]) / float(iTotalDamageAll)) * 100, iGotKills[mvp_SI], (float(iGotKills[mvp_SI]) / float(iTotalKills)) * 100);
+                if (iBrevityFlags & BREV_PERCENT) 
+                {
+                    // 只显示绝对值
+                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] 特感:\x03 %s \x01(\x05%d \x01伤害,\x05 %d \x01击杀)\n",
+                        mvp_SI_name, iDidDamageAll[mvp_SI], iGotKills[mvp_SI]);
+                } 
+                else if (iBrevityFlags & BREV_ABSOLUTE) 
+                {
+                    // 只显示百分比（沿用原含义）
+                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] 特感:\x03 %s \x01(伤害 \x04%2.0f%%\x01, 击杀 \x04%.0f%%\x01)\n",
+                        mvp_SI_name,
+                        (float(iDidDamageAll[mvp_SI]) / float(iTotalDamageAll)) * 100.0,
+                        (float(iGotKills[mvp_SI]) / float(iTotalKills)) * 100.0);
+                } 
+                else 
+                {
+                    // 同时显示绝对值+百分比（默认）
+                    Format(tmpBuffer, sizeof(tmpBuffer),
+                        "{blue}[{default}MVP{blue}] 特感: {olive}%s {blue}({default}%d {green}伤害 {blue}[{default}%.0f%%{blue}]{olive}, {default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])\n",
+                        mvp_SI_name,
+                        iDidDamageAll[mvp_SI],
+                        (float(iDidDamageAll[mvp_SI]) / float(iTotalDamageAll)) * 100.0,
+                        iGotKills[mvp_SI],
+                        (float(iGotKills[mvp_SI]) / float(iTotalKills)) * 100.0
+                    );
                 }
                 StrCat(printBuffer, iSize, tmpBuffer);
             }
             else
             {
-                StrCat(printBuffer, iSize, "{blue}[{default}MVP{blue}] SI: {blue}({default}nobody{blue}){default}\n");
+                StrCat(printBuffer, iSize, "{blue}[{default}MVP{blue}] 特感: {blue}({default}无{blue}){default}\n");
             }
         }
         
+        // 小僵尸输出
         if (!(iBrevityFlags & BREV_CI))
         {
             if (mvp_Common > 0)
             {
-                if (iBrevityFlags & BREV_PERCENT) {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] CI:\x03 %s \x01(\x05%d \x01common)\n", mvp_Common_name, iGotCommon[mvp_Common]);
-                } else if (iBrevityFlags & BREV_ABSOLUTE) {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] CI:\x03 %s \x01(\x04%.0f%%\x01)\n", mvp_Common_name, (float(iGotCommon[mvp_Common]) / float(iTotalCommon)) * 100);
-                } else {
-                    Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}MVP{blue}] CI: {olive}%s {blue}({default}%d {green}common {blue}[{default}%.0f%%{blue}])\n", mvp_Common_name, iGotCommon[mvp_Common], (float(iGotCommon[mvp_Common]) / float(iTotalCommon)) * 100);
+                if (iBrevityFlags & BREV_PERCENT) 
+                {
+                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] 小僵尸:\x03 %s \x01(\x05%d \x01击杀)\n",
+                        mvp_Common_name, iGotCommon[mvp_Common]);
+                } 
+                else if (iBrevityFlags & BREV_ABSOLUTE) 
+                {
+                    Format(tmpBuffer, sizeof(tmpBuffer), "[MVP] 小僵尸:\x03 %s \x01(\x04%.0f%%\x01)\n",
+                        mvp_Common_name,
+                        (float(iGotCommon[mvp_Common]) / float(iTotalCommon)) * 100.0);
+                } 
+                else 
+                {
+                    Format(tmpBuffer, sizeof(tmpBuffer),
+                        "{blue}[{default}MVP{blue}] 小僵尸: {olive}%s {blue}({default}%d {green}击杀 {blue}[{default}%.0f%%{blue}])\n",
+                        mvp_Common_name,
+                        iGotCommon[mvp_Common],
+                        (float(iGotCommon[mvp_Common]) / float(iTotalCommon)) * 100.0
+                    );
                 }
                 StrCat(printBuffer, iSize, tmpBuffer);
             }
         }
     }
     
-    // FF
+    // 友伤输出（LVP）
     if (!(iBrevityFlags & BREV_FF) && bTrackFF)
     {
         if (mvp_FF == 0)
         {
-            Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}LVP{blue}] FF{default}: {green}no friendly fire at all!{default}\n");
+            Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}LVP{blue}] 友伤{default}: {green}本局没有任何友伤！{default}\n");
             StrCat(printBuffer, iSize, tmpBuffer);
         }
         else
         {
-            if (iBrevityFlags & BREV_PERCENT) {
-                Format(tmpBuffer, sizeof(tmpBuffer), "[LVP] FF:\x03 %s \x01(\x05%d \x01dmg)\n", mvp_FF_name, iDidFF[mvp_FF]);
-            } else if (iBrevityFlags & BREV_ABSOLUTE) {
-                Format(tmpBuffer, sizeof(tmpBuffer), "[LVP] FF:\x03 %s \x01(\x04%.0f%%\x01)\n", mvp_FF_name, (float(iDidFF[mvp_FF]) / float(iTotalFF)) * 100);
-            } else {
-                Format(tmpBuffer, sizeof(tmpBuffer), "{blue}[{default}LVP{blue}] FF{default}: {olive}%s {blue}({default}%d {green}friendly fire {blue}[{default}%.0f%%{blue}]){default}\n", mvp_FF_name, iDidFF[mvp_FF], (float(iDidFF[mvp_FF]) / float(iTotalFF)) * 100);
+            if (iBrevityFlags & BREV_PERCENT) 
+            {
+                Format(tmpBuffer, sizeof(tmpBuffer), "[LVP] 友伤:\x03 %s \x01(\x05%d \x01友伤)\n",
+                    mvp_FF_name, iDidFF[mvp_FF]);
+            } 
+            else if (iBrevityFlags & BREV_ABSOLUTE) 
+            {
+                Format(tmpBuffer, sizeof(tmpBuffer), "[LVP] 友伤:\x03 %s \x01(\x04%.0f%%\x01)\n",
+                    mvp_FF_name,
+                    (float(iDidFF[mvp_FF]) / float(iTotalFF)) * 100.0);
+            } 
+            else 
+            {
+                Format(tmpBuffer, sizeof(tmpBuffer),
+                    "{blue}[{default}LVP{blue}] 友伤{default}: {olive}%s {blue}({default}%d {green}友伤 {blue}[{default}%.0f%%{blue}]){default}\n",
+                    mvp_FF_name,
+                    iDidFF[mvp_FF],
+                    (float(iDidFF[mvp_FF]) / float(iTotalFF)) * 100.0
+                );
             }
             StrCat(printBuffer, iSize, tmpBuffer);
         }
     }
 }
+
 
 
 findMVPSI(excludeMeA = 0, excludeMeB = 0, excludeMeC = 0)
@@ -1251,9 +1346,10 @@ stock getSurvivor(exclude[4])
     return 0;
 }
 
-public stripUnicode(String:testString[MAX_NAME_LENGTH])
+/* //survivor_mvp.sp(1258) : error 017: undefined symbol "MAXLENGTH"
+void stripUnicode(String:testString[MAX_NAME_LENGTH])
 {
-    new const maxlength = MAX_NAME_LENGTH;
+    new const maxlength = MAXLENGTH;
     //strcopy(testString, maxlength, sTmpString);
     sTmpString = testString;
     
@@ -1302,7 +1398,7 @@ public stripUnicode(String:testString[MAX_NAME_LENGTH])
             }
         }
     }
-}
+}*/
 
 /*
 stock bool:IsCommonInfected(iEntity)

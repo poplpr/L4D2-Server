@@ -57,7 +57,7 @@ public Plugin myinfo =
 	name = "L4D2 Uniform Spit",
 	author = "Visor, Sir, A1m`",
 	description = "Make the spit deal a set amount of DPS under all circumstances",
-	version = "1.5",
+	version = "1.5.1",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -105,7 +105,7 @@ void InitGameData()
 	delete hGamedata;
 }
 
-public void CvarsChanged(ConVar hConVar, const char[] sOldValue, const char[] sNewValue)
+void CvarsChanged(ConVar hConVar, const char[] sOldValue, const char[] sNewValue)
 {
 	CvarsToType();
 }
@@ -123,7 +123,7 @@ void CvarsToType()
 	g_iGodframeTicks = g_hCvarGodframeTicks.IntValue;
 }
 
-public void Event_RoundReset(Event hEvent, const char[] sEventName, bool bDontBroadcast)
+void Event_RoundReset(Event hEvent, const char[] sEventName, bool bDontBroadcast)
 {
 	g_hPuddles.Clear();
 }
@@ -174,7 +174,7 @@ public void OnEntityDestroyed(int iEntity)
  *   return 263168; //DMG_RADIATION|DMG_ENERGYBEAM
  * }
 */
-public Action Hook_OnTakeDamage(int iVictim, int &iAttacker, int &iInflictor, float &fDamage, int &fDamageType)
+Action Hook_OnTakeDamage(int iVictim, int &iAttacker, int &iInflictor, float &fDamage, int &fDamageType)
 {
 	if (!(fDamageType & DMG_TYPE_SPIT)) { //for performance
 		return Plugin_Continue;
@@ -215,7 +215,7 @@ public Action Hook_OnTakeDamage(int iVictim, int &iAttacker, int &iInflictor, fl
 		}
 		
 		if (iVictimArray[iVictim][eCount] > g_iMaxTicks) {
-			KillEntity(iInflictor);
+			RemoveEntity(iInflictor);
 		}
 		
 		return Plugin_Changed;
@@ -248,11 +248,3 @@ bool IsSurvivor(int iClient)
 		&& GetClientTeam(iClient) == TEAM_SURVIVOR);
 }
 
-void KillEntity(int iEntity)
-{
-#if SOURCEMOD_V_MINOR > 8
-	RemoveEntity(iEntity);
-#else
-	AcceptEntityInput(iEntity, "Kill");
-#endif
-}

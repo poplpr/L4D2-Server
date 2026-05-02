@@ -26,7 +26,7 @@
 #include <sdktools>
 #include <left4dhooks>
 #include <l4d2util_stocks>
-
+#include <colors>
 #define SURVIVOR_RUNSPEED 220.0
 #define TEAM_SURVIVORS 2
 #define TEAM_INFECTED 3
@@ -148,7 +148,7 @@ public void TankSpawn(Event event, const char[] name, bool dontBroadcast)
 	if (!tankInPlay) {
 		tankInPlay = true;
 		if (fSurvWaterSpeedDuringTank > 0.0) {
-			PrintToChatAll("\x05Water Slowdown\x01 has been reduced while Tank is in play.");
+			CPrintToChatAll("{default}[{olive}Water Slowdown{default}]  {green}水中减速{default} 效果因tank生成被减弱.");
 		}
 	}
 }
@@ -167,7 +167,7 @@ public Action Timer_CheckTank(Handle timer)
 	if (!tankclient || !IsPlayerAlive(tankclient)) {
 		tankInPlay = false;
 		if (fSurvWaterSpeedDuringTank > 0.0) {
-			PrintToChatAll("\x05Water Slowdown\x01 has been restored to normal.");
+			CPrintToChatAll("{default}[{olive}Water Slowdown{default}]  {green}水中减速{default} 效果已恢复到正常水平。");
 		}
 	}
 

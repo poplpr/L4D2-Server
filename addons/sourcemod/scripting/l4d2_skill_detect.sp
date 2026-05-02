@@ -449,7 +449,7 @@ public APLRes
 	g_hForwardLevel			  = CreateGlobalForward("OnChargerLevel", ET_Ignore, Param_Cell, Param_Cell);
 	g_hForwardLevelHurt		  = CreateGlobalForward("OnChargerLevelHurt", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hForwardCrown			  = CreateGlobalForward("OnWitchCrown", ET_Ignore, Param_Cell, Param_Cell);
-	g_hForwardDrawCrown		  = CreateGlobalForward("OnWitchDrawCrown", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+	g_hForwardDrawCrown		  = CreateGlobalForward("OnWitchCrownHurt", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hForwardTongueCut		  = CreateGlobalForward("OnTongueCut", ET_Ignore, Param_Cell, Param_Cell);
 	g_hForwardSmokerSelfClear = CreateGlobalForward("OnSmokerSelfClear", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hForwardRockSkeeted	  = CreateGlobalForward("OnTankRockSkeeted", ET_Ignore, Param_Cell, Param_Cell);
@@ -574,7 +574,7 @@ public void OnPluginStart()
 	}
 }
 
-public void OnHookEvent()
+void OnHookEvent()
 {
 	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("scavenge_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
@@ -610,12 +610,12 @@ public void OnHookEvent()
 	HookEvent("triggered_car_alarm", Event_CarAlarmGoesOff, EventHookMode_Post);
 }
 
-public void CvarChange_PounceInterrupt(Handle convar, const char[] oldValue, const char[] newValue)
+void CvarChange_PounceInterrupt(Handle convar, const char[] oldValue, const char[] newValue)
 {
 	g_iPounceInterrupt = GetConVarInt(convar);
 }
 
-public void OnClientPostAdminCheck(int client)
+public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamageByWitch);
 }
